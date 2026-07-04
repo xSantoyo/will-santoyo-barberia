@@ -1,19 +1,24 @@
 """Datos semilla: tenant Bad Boys, 3 barberos, servicios, usuarios.
 
 Idempotente: se puede ejecutar en cada arranque (docker-compose lo hace);
-si el tenant ya existe no duplica nada.
+si el tenant ya existe no duplica nada. Además indexa las fotos reales que el
+dueño coloque en content/bad-boys/{gallery,barbers,cuts} (sección 13 del spec).
 
 Uso: python -m app.seed
 """
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from .config import get_settings
 from .db import SessionLocal
-from .models import AdminUser, Barber, Service, Tenant
+from .models import AdminUser, Barber, MediaAsset, Service, Tenant
 from .security import hash_password
+from .services.storage import KIND_DIRS
 
 logger = logging.getLogger("badboys.seed")
 
@@ -67,6 +72,35 @@ SERVICES = [
 
 DEFAULT_ADMIN_PASSWORD = "BadBoys2026!"  # ⚠️ cambiar en producción
 
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
+
+
+def sync_local_media(db: Session, tenant: Tenant) -> int:
+    """Registra como MediaAsset las imágenes colocadas a mano en content/
+    (solo backend de almacenamiento local). Idempotente por s3_key."""
+    settings = get_settings()
+    if settings.storage_backend != "local":
+        return 0
+    root = Path(settings.local_media_root)
+    added = 0
+    for kind, dirname in KIND_DIRS.items():
+        folder = root / tenant.slug / dirname
+        if not folder.is_dir():
+            continue
+        for file in sorted(folder.iterdir()):
+            if file.suffix.lower() not in IMAGE_EXTENSIONS:
+                continue
+            key = f"tenants/{tenant.slug}/{dirname}/{file.name}"
+            exists = db.scalar(select(MediaAsset.id).where(MediaAsset.s3_key == key))
+            if exists:
+                continue
+            db.add(MediaAsset(tenant_id=tenant.id, kind=kind, s3_key=key, title=file.stem))
+            added += 1
+    if added:
+        db.commit()
+        logger.info("Seed: %d imagen(es) de content/ indexadas en la galería.", added)
+    return added
+
 
 def run() -> None:
     db = SessionLocal()
@@ -74,6 +108,7 @@ def run() -> None:
         tenant = db.scalar(select(Tenant).where(Tenant.slug == "bad-boys"))
         if tenant is not None:
             logger.info("Seed: el tenant 'bad-boys' ya existe, no se duplica nada.")
+            sync_local_media(db, tenant)
             return
 
         tenant = Tenant(
@@ -136,6 +171,7 @@ def run() -> None:
             "usuarios admin/barbero1-3 (clave: %s)",
             len(BARBERS), len(SERVICES), DEFAULT_ADMIN_PASSWORD,
         )
+        sync_local_media(db, tenant)
     finally:
         db.close()
 

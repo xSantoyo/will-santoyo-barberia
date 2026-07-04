@@ -55,6 +55,10 @@ Al arrancar, el backend aplica migraciones Alembic y carga **datos semilla**
 (tenant Bad Boys, 3 barberos con horarios distintos, servicios y precios,
 usuario admin `admin` / `BadBoys2026!` — cámbialo en producción).
 
+**Fotos reales:** coloca tus imágenes en `content/bad-boys/{gallery,barbers,cuts}`
+y se indexan solas en la galería del sitio al arrancar; o súbelas por drag & drop
+desde el panel (`/admin/galeria`). En producción viven en S3 + CloudFront.
+
 ### Desarrollo sin Docker (backend)
 
 ```bash

@@ -26,6 +26,26 @@ test("admin: login → dashboard → barberos → servicios", async ({ page }) =
   await expect(page.getByText("Corte clásico")).toBeVisible();
   await expect(page.getByText(/30\.000/).first()).toBeVisible();
 
+  // Galería: subir una imagen sin tocar código (Fase 3) y eliminarla
+  const TINY_PNG = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+nHgAGAIIBPyoreQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await page.getByRole("link", { name: /galería/i }).click();
+  await expect(page.getByRole("heading", { name: "Galería" })).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "e2e-corte.png",
+    mimeType: "image/png",
+    buffer: TINY_PNG,
+  });
+  const uploaded = page.locator("figure img");
+  await expect(uploaded.first()).toBeVisible({ timeout: 15_000 });
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await uploaded.first().hover();
+  await page.getByRole("button", { name: /eliminar imagen/i }).first().click();
+  await expect(page.getByText(/aún no hay fotos/i)).toBeVisible({ timeout: 10_000 });
+
   // El rol barbero NO ve las secciones exclusivas del admin
   await page.getByRole("button", { name: /salir/i }).click();
   await expect(page).toHaveURL(/\/admin\/login/);
