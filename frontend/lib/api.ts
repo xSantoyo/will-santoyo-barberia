@@ -1,0 +1,113 @@
+/**
+ * Cliente de la API pública.
+ *
+ * - En el navegador usa NEXT_PUBLIC_API_URL (http://localhost:8000 en dev).
+ * - En Server Components / SSR usa API_URL_INTERNAL si existe (en docker-compose
+ *   el backend se resuelve como http://backend:8000 desde el contenedor).
+ */
+import type {
+  AppointmentPublic,
+  BarberPublic,
+  DayAvailability,
+  MediaAsset,
+  ServicePublic,
+  TenantPublic,
+} from "./types";
+
+export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "bad-boys";
+
+export function apiBase(): string {
+  if (typeof window === "undefined") {
+    return process.env.API_URL_INTERNAL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+}
+
+/** Prefija URLs relativas de media (modo local) con la base del backend. */
+export function mediaUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}${url}`;
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${apiBase()}${path}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...init?.headers },
+  });
+  if (!response.ok) {
+    let code = "error";
+    let message = `Error ${response.status}`;
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") message = body.detail;
+      else if (body.detail?.message) {
+        message = body.detail.message;
+        code = body.detail.code ?? code;
+      }
+    } catch {
+      /* cuerpo no-JSON: se mantiene el mensaje genérico */
+    }
+    throw new ApiError(response.status, code, message);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
+}
+
+const PUBLIC = `/api/v1/public/${TENANT_SLUG}`;
+
+export const publicApi = {
+  tenant: () => request<TenantPublic>(PUBLIC, { next: { revalidate: 300 } } as RequestInit),
+  barbers: () => request<BarberPublic[]>(`${PUBLIC}/barbers`, { cache: "no-store" }),
+  services: () => request<ServicePublic[]>(`${PUBLIC}/services`, { cache: "no-store" }),
+  media: (kind?: string) =>
+    request<MediaAsset[]>(`${PUBLIC}/media${kind ? `?kind=${kind}` : ""}`, {
+      cache: "no-store",
+    }),
+  timeOff: (barberId: number, start: string, end: string) =>
+    request<{ dates: string[] }>(
+      `${PUBLIC}/barbers/${barberId}/time-off?start=${start}&end=${end}`,
+      { cache: "no-store" },
+    ),
+  availability: (barberId: number, date: string, serviceIds: number[]) =>
+    request<DayAvailability>(`${PUBLIC}/availability`, {
+      method: "POST",
+      body: JSON.stringify({ barber_id: barberId, date, service_ids: serviceIds }),
+    }),
+  book: (payload: {
+    barber_id: number;
+    service_ids: number[];
+    date: string;
+    time: string;
+    customer_name: string;
+    customer_whatsapp: string;
+  }) =>
+    request<AppointmentPublic>(`${PUBLIC}/appointments`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  appointment: (code: string) =>
+    request<AppointmentPublic>(`${PUBLIC}/appointments/${encodeURIComponent(code)}`, {
+      cache: "no-store",
+    }),
+  find: (phone: string, code: string) =>
+    request<AppointmentPublic>(`${PUBLIC}/appointments/find`, {
+      method: "POST",
+      body: JSON.stringify({ customer_whatsapp: phone, manage_code: code }),
+    }),
+  cancel: (code: string, reason?: string) =>
+    request<AppointmentPublic>(
+      `${PUBLIC}/appointments/${encodeURIComponent(code)}/cancel`,
+      { method: "POST", body: JSON.stringify({ reason: reason ?? null }) },
+    ),
+};

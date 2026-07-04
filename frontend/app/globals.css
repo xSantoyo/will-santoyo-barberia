@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Identidad Bad Boys: negro profundo, dorado premium, blanco hueso, rojo vino
+   ========================================================================== */
+@theme {
+  --color-ink: #0b0b0c;
+  --color-ink-2: #131316;
+  --color-ink-3: #1c1c21;
+  --color-gold: #c9a24b;
+  --color-gold-2: #e3c887;
+  --color-bone: #f5f1e8;
+  --color-bone-2: #b9b3a6;
+  --color-wine: #7a1f2b;
+
+  --font-display: var(--font-anton), "Arial Narrow", sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Titulares condensados con carácter urbano */
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 0.95;
+}
+
+/* Línea dorada decorativa bajo títulos de sección */
+.gold-rule {
+  width: 56px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-gold), transparent);
+}
+
+/* Scrollbar sobria en el panel admin */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-3) transparent;
+}
+
+/* Grano sutil para la dirección de arte de alto contraste */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Utilidades de foco accesible con acento dorado */
+.focus-gold:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}

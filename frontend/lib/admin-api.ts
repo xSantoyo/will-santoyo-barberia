@@ -1,0 +1,236 @@
+"use client";
+
+/**
+ * Cliente de la API de administración (solo navegador).
+ * Maneja tokens en localStorage con refresh automático ante 401.
+ */
+import type {
+  AppointmentAdmin,
+  BarberAdmin,
+  DashboardData,
+  MediaAsset,
+  ServiceAdmin,
+  TimeOff,
+  TokenPair,
+} from "./types";
+
+const STORAGE_KEY = "badboys.auth";
+
+export interface StoredAuth {
+  access_token: string;
+  refresh_token: string;
+  role: "admin" | "barbero";
+  username: string;
+  barber_id: number | null;
+}
+
+export function getAuth(): StoredAuth | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as StoredAuth;
+  } catch {
+    return null;
+  }
+}
+
+export function setAuth(auth: StoredAuth | null): void {
+  if (auth) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+  else window.localStorage.removeItem(STORAGE_KEY);
+}
+
+function base(): string {
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+}
+
+export class AdminApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function tryRefresh(): Promise<boolean> {
+  const auth = getAuth();
+  if (!auth) return false;
+  const response = await fetch(`${base()}/api/v1/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: auth.refresh_token }),
+  });
+  if (!response.ok) {
+    setAuth(null);
+    return false;
+  }
+  const pair = (await response.json()) as TokenPair;
+  setAuth({ ...auth, access_token: pair.access_token, refresh_token: pair.refresh_token });
+  return true;
+}
+
+async function request<T>(path: string, init?: RequestInit, retry = true): Promise<T> {
+  const auth = getAuth();
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string>),
+  };
+  if (!(init?.body instanceof FormData)) headers["Content-Type"] = "application/json";
+  if (auth) headers.Authorization = `Bearer ${auth.access_token}`;
+
+  const response = await fetch(`${base()}${path}`, { ...init, headers });
+
+  if (response.status === 401 && retry && (await tryRefresh())) {
+    return request<T>(path, init, false);
+  }
+  if (!response.ok) {
+    let message = `Error ${response.status}`;
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") message = body.detail;
+      else if (body.detail?.message) message = body.detail.message;
+    } catch {
+      /* sin cuerpo JSON */
+    }
+    throw new AdminApiError(response.status, message);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
+}
+
+export const adminApi = {
+  login: async (username: string, password: string): Promise<StoredAuth> => {
+    const response = await fetch(`${base()}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, tenant_slug: "bad-boys" }),
+    });
+    if (!response.ok) {
+      throw new AdminApiError(response.status, "Usuario o contraseña incorrectos");
+    }
+    const pair = (await response.json()) as TokenPair;
+    const auth: StoredAuth = {
+      access_token: pair.access_token,
+      refresh_token: pair.refresh_token,
+      role: pair.role,
+      username: pair.username,
+      barber_id: pair.barber_id,
+    };
+    setAuth(auth);
+    return auth;
+  },
+  logout: () => setAuth(null),
+
+  dashboard: () => request<DashboardData>("/api/v1/admin/dashboard"),
+  agenda: (start: string, end: string, barberId?: number) =>
+    request<{
+      appointments: AppointmentAdmin[];
+      barbers: { id: number; name: string; schedule: Record<string, { start: string; end: string } | null> }[];
+      time_off: { id: number; barber_id: number; date: string; reason: string | null }[];
+    }>(
+      `/api/v1/admin/agenda?start=${start}&end=${end}${barberId ? `&barber_id=${barberId}` : ""}`,
+    ),
+
+  appointments: (params: Record<string, string>) =>
+    request<AppointmentAdmin[]>(
+      `/api/v1/admin/appointments?${new URLSearchParams(params).toString()}`,
+    ),
+  createAppointment: (payload: object) =>
+    request<AppointmentAdmin>("/api/v1/admin/appointments", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  reschedule: (id: number, payload: { barber_id?: number; date: string; time: string }) =>
+    request<AppointmentAdmin>(`/api/v1/admin/appointments/${id}/reschedule`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  cancelAppointment: (id: number, reason?: string) =>
+    request<AppointmentAdmin>(`/api/v1/admin/appointments/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason ?? null }),
+    }),
+  setStatus: (id: number, status: string) =>
+    request<AppointmentAdmin>(`/api/v1/admin/appointments/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+
+  barbers: () => request<BarberAdmin[]>("/api/v1/admin/barbers"),
+  createBarber: (payload: object) =>
+    request<BarberAdmin>("/api/v1/admin/barbers", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateBarber: (id: number, payload: object) =>
+    request<BarberAdmin>(`/api/v1/admin/barbers/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  timeOff: (barberId: number) => request<TimeOff[]>(`/api/v1/admin/barbers/${barberId}/time-off`),
+  addTimeOff: (barberId: number, date: string, reason?: string) =>
+    request<TimeOff>(`/api/v1/admin/barbers/${barberId}/time-off`, {
+      method: "POST",
+      body: JSON.stringify({ date, reason: reason ?? null }),
+    }),
+  removeTimeOff: (timeOffId: number) =>
+    request<void>(`/api/v1/admin/time-off/${timeOffId}`, { method: "DELETE" }),
+
+  services: () => request<ServiceAdmin[]>("/api/v1/admin/services"),
+  createService: (payload: object) =>
+    request<ServiceAdmin>("/api/v1/admin/services", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateService: (id: number, payload: object) =>
+    request<ServiceAdmin>(`/api/v1/admin/services/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  media: (kind?: string) =>
+    request<MediaAsset[]>(`/api/v1/admin/media${kind ? `?kind=${kind}` : ""}`),
+  deleteMedia: (id: number) => request<void>(`/api/v1/admin/media/${id}`, { method: "DELETE" }),
+
+  /** Subida unificada: presign decide si va directo a S3 o multipart al backend. */
+  uploadImage: async (kind: string, file: File): Promise<MediaAsset> => {
+    const presign = await request<{
+      mode: "presigned" | "direct";
+      key: string;
+      upload: { url: string; fields?: Record<string, string> };
+    }>("/api/v1/admin/media/presign", {
+      method: "POST",
+      body: JSON.stringify({ kind, filename: file.name, content_type: file.type }),
+    });
+
+    if (presign.mode === "presigned") {
+      const form = new FormData();
+      Object.entries(presign.upload.fields ?? {}).forEach(([k, v]) => form.append(k, v));
+      form.append("file", file);
+      const s3 = await fetch(presign.upload.url, { method: "POST", body: form });
+      if (!s3.ok) throw new AdminApiError(s3.status, "La subida a S3 falló");
+      return request<MediaAsset>("/api/v1/admin/media/confirm", {
+        method: "POST",
+        body: JSON.stringify({ key: presign.key, kind, title: file.name }),
+      });
+    }
+
+    const form = new FormData();
+    form.append("kind", kind);
+    form.append("file", file);
+    return request<MediaAsset>("/api/v1/admin/media/upload", { method: "POST", body: form });
+  },
+
+  notifications: (params?: Record<string, string>) =>
+    request<
+      {
+        id: number;
+        appointment_id: number | null;
+        event_type: string;
+        status: string;
+        detail: string | null;
+        created_at: string;
+        sent_at: string | null;
+      }[]
+    >(`/api/v1/admin/notifications?${new URLSearchParams(params ?? {}).toString()}`),
+};
