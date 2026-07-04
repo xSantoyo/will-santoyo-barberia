@@ -1,0 +1,41 @@
+[project]
+name = "badboys-backend"
+version = "1.0.0"
+description = "API de gestión y reservas para barberías (multi-tenant) — Bad Boys Barbershop"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0.30",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "PyJWT>=2.8",
+    "bcrypt>=4.1",
+    "httpx>=0.27",
+    "mangum>=0.17",
+    "python-multipart>=0.0.9",
+    "boto3>=1.34",
+    "tzdata; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.4",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "postgres: tests de integración que requieren PostgreSQL real (constraint anti doble-reserva)",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

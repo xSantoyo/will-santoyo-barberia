@@ -1,0 +1,12 @@
+# Imagen para AWS Lambda (arquitectura arm64 — coincide con architectures en Terraform)
+FROM public.ecr.aws/lambda/python:3.12
+
+COPY pyproject.toml ${LAMBDA_TASK_ROOT}/
+COPY app ${LAMBDA_TASK_ROOT}/app
+COPY alembic.ini ${LAMBDA_TASK_ROOT}/
+COPY alembic ${LAMBDA_TASK_ROOT}/alembic
+
+RUN pip install --no-cache-dir ${LAMBDA_TASK_ROOT}/
+
+# app.main.handler = Mangum(app) + despachador de tareas (migraciones)
+CMD ["app.main.handler"]

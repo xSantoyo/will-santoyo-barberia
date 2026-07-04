@@ -1,0 +1,212 @@
+"""API pública (sin autenticación): sitio web y flujo de agendamiento.
+
+Prefijo: /api/v1/public/{tenant_slug}
+Los endpoints de escritura llevan rate limiting por IP.
+"""
+from __future__ import annotations
+
+from datetime import date
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from ..db import get_db
+from ..deps import booking_rate_limiter, get_tenant_by_slug
+from ..models import Appointment, Barber, BarberTimeOff, MediaAsset, Service, Tenant
+from ..schemas import (
+    AppointmentFind,
+    AppointmentPublic,
+    AvailabilityQuery,
+    BarberPublic,
+    BookingCreate,
+    CancelRequest,
+    DayAvailability,
+    MediaAssetOut,
+    ServicePublic,
+    TenantPublic,
+)
+from ..services import appointments as booking
+from ..services.availability import compute_slots
+from ..services.notifications import dispatch_event
+from ..services.storage import get_storage
+from .common import appointment_to_public, barber_photo_url
+
+router = APIRouter(prefix="/api/v1/public/{tenant_slug}", tags=["public"])
+
+
+def _handle_booking_error(exc: booking.BookingError) -> HTTPException:
+    return HTTPException(exc.status_code, {"code": exc.code, "message": exc.detail})
+
+
+@router.get("", response_model=TenantPublic)
+def tenant_info(tenant: Tenant = Depends(get_tenant_by_slug)):
+    return tenant
+
+
+@router.get("/barbers", response_model=list[BarberPublic])
+def list_barbers(
+    tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
+):
+    barbers = db.scalars(
+        select(Barber)
+        .where(Barber.tenant_id == tenant.id, Barber.is_active.is_(True))
+        .order_by(Barber.sort_order, Barber.id)
+    )
+    result = []
+    for barber in barbers:
+        item = BarberPublic.model_validate(barber)
+        item.photo_url = barber_photo_url(barber)
+        result.append(item)
+    return result
+
+
+@router.get("/services", response_model=list[ServicePublic])
+def list_services(
+    tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
+):
+    return list(
+        db.scalars(
+            select(Service)
+            .where(Service.tenant_id == tenant.id, Service.is_active.is_(True))
+            .order_by(Service.sort_order, Service.id)
+        )
+    )
+
+
+@router.get("/barbers/{barber_id}/time-off")
+def barber_time_off(
+    barber_id: int,
+    start: date,
+    end: date,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Fechas de descanso puntual (excepciones) para pintar el calendario."""
+    rows = db.scalars(
+        select(BarberTimeOff).where(
+            BarberTimeOff.tenant_id == tenant.id,
+            BarberTimeOff.barber_id == barber_id,
+            BarberTimeOff.date >= start,
+            BarberTimeOff.date <= end,
+        )
+    )
+    return {"dates": [r.date.isoformat() for r in rows]}
+
+
+@router.post("/availability", response_model=DayAvailability)
+def availability(
+    query: AvailabilityQuery,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    try:
+        barber = booking.load_barber(db, tenant, query.barber_id)
+        services = booking.load_services(db, tenant, query.service_ids)
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    duration = sum(s.duration_min for s in services)
+    is_day_off, slots = compute_slots(db, tenant, barber, query.date, duration)
+    return DayAvailability(date=query.date, is_day_off=is_day_off, slots=slots)
+
+
+@router.post(
+    "/appointments",
+    response_model=AppointmentPublic,
+    status_code=201,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def create_booking(
+    data: BookingCreate,
+    background: BackgroundTasks,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    try:
+        appointment = booking.create_appointment(db, tenant, data)
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    # La notificación jamás condiciona la reserva: va en background post-respuesta.
+    background.add_task(dispatch_event, appointment.id, "appointment.created")
+    return appointment_to_public(appointment, tenant)
+
+
+def _load_by_code(db: Session, tenant: Tenant, manage_code: str) -> Appointment:
+    appointment = db.scalar(
+        select(Appointment)
+        .options(selectinload(Appointment.services), selectinload(Appointment.barber))
+        .where(
+            Appointment.tenant_id == tenant.id,
+            Appointment.manage_code == manage_code.strip().upper(),
+        )
+    )
+    if appointment is None:
+        raise HTTPException(404, "Turno no encontrado. Verifica el código.")
+    return appointment
+
+
+@router.get("/appointments/{manage_code}", response_model=AppointmentPublic)
+def get_appointment(
+    manage_code: str,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    return appointment_to_public(_load_by_code(db, tenant, manage_code), tenant)
+
+
+@router.post(
+    "/appointments/find",
+    response_model=AppointmentPublic,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def find_appointment(
+    data: AppointmentFind,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Búsqueda por teléfono + código (cuando el cliente perdió el enlace)."""
+    appointment = _load_by_code(db, tenant, data.manage_code)
+    if appointment.customer_whatsapp != data.customer_whatsapp:
+        raise HTTPException(404, "Turno no encontrado. Verifica el código y el teléfono.")
+    return appointment_to_public(appointment, tenant)
+
+
+@router.post(
+    "/appointments/{manage_code}/cancel",
+    response_model=AppointmentPublic,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def cancel_appointment(
+    manage_code: str,
+    data: CancelRequest,
+    background: BackgroundTasks,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    appointment = _load_by_code(db, tenant, manage_code)
+    try:
+        appointment = booking.cancel_appointment(
+            db, appointment, reason=data.reason, by_admin=False
+        )
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    background.add_task(dispatch_event, appointment.id, "appointment.cancelled")
+    return appointment_to_public(appointment, tenant)
+
+
+@router.get("/media", response_model=list[MediaAssetOut])
+def list_media(
+    kind: str | None = None,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    query = select(MediaAsset).where(MediaAsset.tenant_id == tenant.id)
+    if kind:
+        query = query.where(MediaAsset.kind == kind)
+    storage = get_storage()
+    result = []
+    for asset in db.scalars(query.order_by(MediaAsset.sort_order, MediaAsset.id)):
+        item = MediaAssetOut.model_validate(asset)
+        item.url = storage.public_url(asset.s3_key)
+        result.append(item)
+    return result
