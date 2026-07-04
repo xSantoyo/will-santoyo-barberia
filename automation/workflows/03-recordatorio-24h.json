@@ -1,0 +1,102 @@
+{
+  "name": "Bad Boys — Recordatorio 24h antes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 1 }]
+        }
+      },
+      "id": "cron-hourly",
+      "name": "Cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_BASE_URL }}/api/v1/internal/appointments/upcoming-reminders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Service-Key", "value": "={{ $env.BACKEND_SERVICE_KEY }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-reminders",
+      "name": "Turnos próximas 24h sin recordatorio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un item de n8n por turno pendiente de recordatorio (plantilla recordatorio_24h).\nconst { items } = $input.first().json;\nreturn (items || []).map((entry) => {\n  const appt = entry.appointment;\n  return {\n    json: {\n      appointmentId: appt.id,\n      waPayload: {\n        messaging_product: 'whatsapp',\n        to: appt.customer_whatsapp,\n        type: 'template',\n        template: {\n          name: 'recordatorio_24h',\n          language: { code: 'es_CO' },\n          components: [\n            {\n              type: 'body',\n              parameters: [\n                { type: 'text', text: appt.customer_name },\n                { type: 'text', text: appt.date_local },\n                { type: 'text', text: appt.time_local },\n                { type: 'text', text: appt.barber.name },\n              ],\n            },\n            {\n              type: 'button',\n              sub_type: 'url',\n              index: '0',\n              parameters: [{ type: 'text', text: appt.manage_code }],\n            },\n          ],\n        },\n      },\n    },\n  };\n});"
+      },
+      "id": "split-items",
+      "name": "Preparar recordatorios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waPayload) }}",
+        "options": {}
+      },
+      "id": "wa-reminder",
+      "name": "WhatsApp recordatorio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_BASE_URL }}/api/v1/internal/appointments/{{ $json.appointmentId }}/notification-log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Service-Key", "value": "={{ $env.BACKEND_SERVICE_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'reminder_24h', status: 'enviado' }) }}",
+        "options": {}
+      },
+      "id": "mark-sent",
+      "name": "Marcar recordatorio enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "Cada hora": {
+      "main": [[{ "node": "Turnos próximas 24h sin recordatorio", "type": "main", "index": 0 }]]
+    },
+    "Turnos próximas 24h sin recordatorio": {
+      "main": [[{ "node": "Preparar recordatorios", "type": "main", "index": 0 }]]
+    },
+    "Preparar recordatorios": {
+      "main": [[{ "node": "WhatsApp recordatorio", "type": "main", "index": 0 }]]
+    },
+    "WhatsApp recordatorio": {
+      "main": [[{ "node": "Marcar recordatorio enviado", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "timezone": "America/Bogota", "executionOrder": "v1" },
+  "pinData": {}
+}

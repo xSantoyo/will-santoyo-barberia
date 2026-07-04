@@ -72,6 +72,10 @@ services:
       BACKEND_BASE_URL: http://backend:8000
       BACKEND_SERVICE_KEY: local-service-key
       WEBHOOK_SECRET: local-webhook-secret
+      # Credenciales de Meta (vacías en local: los nodos de WhatsApp fallarán
+      # de forma controlada y quedará el registro en notification_log)
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      META_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID:-}
     ports:
       - "5678:5678"
     volumes:

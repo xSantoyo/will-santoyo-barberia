@@ -1,0 +1,80 @@
+{
+  "name": "Bad Boys — Resumen diario 7:00 a.m.",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 7 * * *" }
+          ]
+        }
+      },
+      "id": "cron-daily",
+      "name": "Diario 7:00 (hora Colombia)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_BASE_URL }}/api/v1/internal/agenda/today",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Service-Key", "value": "={{ $env.BACKEND_SERVICE_KEY }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-agenda",
+      "name": "Agenda de hoy por barbero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construye un resumen del día por tenant y lo envía al WhatsApp del negocio.\nconst { items } = $input.first().json;\nconst out = [];\n\nfor (const block of items || []) {\n  const lines = [`Agenda de hoy (${block.date_local}):`];\n  for (const barber of block.barbers) {\n    if (barber.appointments.length === 0) {\n      lines.push(`${barber.name}: sin turnos.`);\n      continue;\n    }\n    lines.push(`${barber.name} (${barber.appointments.length} turnos):`);\n    for (const appt of barber.appointments) {\n      lines.push(`  ${appt.time_local} #${appt.daily_number} ${appt.customer_name} — ${appt.services.join(', ')}`);\n    }\n  }\n  out.push({\n    json: {\n      waPayload: {\n        messaging_product: 'whatsapp',\n        to: block.tenant.whatsapp_number,\n        type: 'template',\n        template: {\n          name: 'notificacion_interna',\n          language: { code: 'es_CO' },\n          components: [\n            { type: 'body', parameters: [{ type: 'text', text: lines.join(' | ') }] },\n          ],\n        },\n      },\n    },\n  });\n}\n\nreturn out;"
+      },
+      "id": "build-summary",
+      "name": "Construir resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waPayload) }}",
+        "options": {}
+      },
+      "id": "wa-summary",
+      "name": "WhatsApp resumen al negocio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    }
+  ],
+  "connections": {
+    "Diario 7:00 (hora Colombia)": {
+      "main": [[{ "node": "Agenda de hoy por barbero", "type": "main", "index": 0 }]]
+    },
+    "Agenda de hoy por barbero": {
+      "main": [[{ "node": "Construir resumen", "type": "main", "index": 0 }]]
+    },
+    "Construir resumen": {
+      "main": [[{ "node": "WhatsApp resumen al negocio", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "timezone": "America/Bogota", "executionOrder": "v1" },
+  "pinData": {}
+}

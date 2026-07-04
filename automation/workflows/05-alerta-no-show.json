@@ -1,0 +1,80 @@
+{
+  "name": "Bad Boys — Alerta de no-show",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "*/15 * * * *" }
+          ]
+        }
+      },
+      "id": "cron-15min",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_BASE_URL }}/api/v1/internal/appointments/overdue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Service-Key", "value": "={{ $env.BACKEND_SERVICE_KEY }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-overdue",
+      "name": "Turnos vencidos en confirmado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Alerta interna al admin por cada turno vencido sin atender.\n// El backend solo devuelve turnos SIN alerta previa registrada... no:\n// devuelve todos los vencidos; la desduplicación se hace aquí consultando\n// una sola vez por ejecución y alertando en lote (un mensaje por corrida).\nconst { items, count } = $input.first().json;\nif (!count) {\n  return []; // nada vencido: la ejecución termina sin enviar mensajes\n}\nconst lines = items.map((entry) => {\n  const appt = entry.appointment;\n  return `#${appt.daily_number} ${appt.time_local} ${appt.customer_name} (${appt.barber.name})`;\n});\nconst tenant = items[0].tenant;\nconst text = `Posibles no-show (${count}): ${lines.join(' | ')}. Márcalos en el panel: en curso, completado o no asistió.`;\nreturn [{\n  json: {\n    waPayload: {\n      messaging_product: 'whatsapp',\n      to: tenant.whatsapp_number,\n      type: 'template',\n      template: {\n        name: 'notificacion_interna',\n        language: { code: 'es_CO' },\n        components: [\n          { type: 'body', parameters: [{ type: 'text', text }] },\n        ],\n      },\n    },\n  },\n}];"
+      },
+      "id": "build-alert",
+      "name": "Construir alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waPayload) }}",
+        "options": {}
+      },
+      "id": "wa-alert",
+      "name": "WhatsApp alerta al admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    }
+  ],
+  "connections": {
+    "Cada 15 minutos": {
+      "main": [[{ "node": "Turnos vencidos en confirmado", "type": "main", "index": 0 }]]
+    },
+    "Turnos vencidos en confirmado": {
+      "main": [[{ "node": "Construir alerta", "type": "main", "index": 0 }]]
+    },
+    "Construir alerta": {
+      "main": [[{ "node": "WhatsApp alerta al admin", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "timezone": "America/Bogota", "executionOrder": "v1" },
+  "pinData": {}
+}

@@ -83,7 +83,9 @@ def dispatch_event(appointment_id: int, event: str) -> None:
             return
 
         payload = build_event_payload(tenant, appointment, event)
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        # Separadores compactos: n8n re-serializa con JSON.stringify para
+        # verificar la firma HMAC, y ambos formatos deben coincidir byte a byte.
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         url = f"{settings.n8n_webhook_base.rstrip('/')}/webhook/{event.replace('.', '-')}"
         try:
             response = httpx.post(

@@ -1,0 +1,86 @@
+{
+  "name": "Bad Boys — Notificación de cancelación",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment-cancelled",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-cancelled",
+      "name": "Webhook appointment.cancelled",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "appointment-cancelled"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst secret = $env.WEBHOOK_SECRET || '';\nconst incoming = $input.first().json;\nconst signature = (incoming.headers['x-badboys-signature'] || '').toString();\nconst raw = JSON.stringify(incoming.body);\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\n\nif (!signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {\n  throw new Error('Firma HMAC inválida: el webhook no proviene del backend');\n}\n\nconst { tenant, appointment: appt } = incoming.body;\nconst motivo = appt.cancel_reason ? ` Motivo: ${appt.cancel_reason}.` : '';\n\n// Confirmación de cancelación al cliente (plantilla cancelacion_turno)\nconst waClientPayload = {\n  messaging_product: 'whatsapp',\n  to: appt.customer_whatsapp,\n  type: 'template',\n  template: {\n    name: 'cancelacion_turno',\n    language: { code: 'es_CO' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: appt.customer_name },\n          { type: 'text', text: appt.date_local },\n          { type: 'text', text: appt.time_local },\n        ],\n      },\n    ],\n  },\n};\n\n// Alerta al negocio: el horario quedó libre\nconst resumen = `Turno cancelado: ${appt.customer_name} — ${appt.date_local} ${appt.time_local} con ${appt.barber.name}.${motivo} El horario quedó libre.`;\nconst waBusinessPayload = {\n  messaging_product: 'whatsapp',\n  to: tenant.whatsapp_number,\n  type: 'template',\n  template: {\n    name: 'notificacion_interna',\n    language: { code: 'es_CO' },\n    components: [\n      { type: 'body', parameters: [{ type: 'text', text: resumen }] },\n    ],\n  },\n};\n\nreturn [{ json: { waClientPayload, waBusinessPayload } }];"
+      },
+      "id": "code-verify-cancel",
+      "name": "Verificar firma y preparar mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waClientPayload) }}",
+        "options": {}
+      },
+      "id": "wa-client-cancel",
+      "name": "WhatsApp al cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waBusinessPayload) }}",
+        "options": {}
+      },
+      "id": "wa-business-cancel",
+      "name": "WhatsApp al negocio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 100]
+    }
+  ],
+  "connections": {
+    "Webhook appointment.cancelled": {
+      "main": [[{ "node": "Verificar firma y preparar mensajes", "type": "main", "index": 0 }]]
+    },
+    "Verificar firma y preparar mensajes": {
+      "main": [
+        [
+          { "node": "WhatsApp al cliente", "type": "main", "index": 0 },
+          { "node": "WhatsApp al negocio", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "timezone": "America/Bogota", "executionOrder": "v1" },
+  "pinData": {}
+}

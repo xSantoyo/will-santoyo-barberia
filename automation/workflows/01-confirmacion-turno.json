@@ -1,0 +1,86 @@
+{
+  "name": "Bad Boys — Confirmación de turno",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment-created",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-created",
+      "name": "Webhook appointment.created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "appointment-created"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verifica la firma HMAC-SHA256 del backend y prepara los payloads de WhatsApp.\nconst crypto = require('crypto');\n\nconst secret = $env.WEBHOOK_SECRET || '';\nconst incoming = $input.first().json;\nconst signature = (incoming.headers['x-badboys-signature'] || '').toString();\nconst raw = JSON.stringify(incoming.body);\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\n\nif (!signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {\n  throw new Error('Firma HMAC inválida: el webhook no proviene del backend');\n}\n\nconst { tenant, appointment: appt } = incoming.body;\nconst services = appt.services.map((s) => s.name).join(', ');\nconst totalCop = new Intl.NumberFormat('es-CO').format(appt.total_cop);\n\n// Plantilla pre-aprobada en Meta: confirmacion_turno (ver docs/WHATSAPP_SETUP.md)\nconst waClientPayload = {\n  messaging_product: 'whatsapp',\n  to: appt.customer_whatsapp,\n  type: 'template',\n  template: {\n    name: 'confirmacion_turno',\n    language: { code: 'es_CO' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: appt.customer_name },\n          { type: 'text', text: appt.date_local },\n          { type: 'text', text: appt.time_local },\n          { type: 'text', text: appt.barber.name },\n          { type: 'text', text: services },\n          { type: 'text', text: String(appt.daily_number) },\n          { type: 'text', text: appt.manage_code },\n        ],\n      },\n      {\n        type: 'button',\n        sub_type: 'url',\n        index: '0',\n        parameters: [{ type: 'text', text: appt.manage_code }],\n      },\n    ],\n  },\n};\n\n// Alerta interna al negocio: plantilla notificacion_interna ({{1}} = resumen)\nconst resumen = `Nuevo turno #${appt.daily_number}: ${appt.customer_name} — ${appt.date_local} ${appt.time_local} con ${appt.barber.name}. Servicios: ${services}. Total: $${totalCop}.`;\nconst waBusinessPayload = {\n  messaging_product: 'whatsapp',\n  to: tenant.whatsapp_number,\n  type: 'template',\n  template: {\n    name: 'notificacion_interna',\n    language: { code: 'es_CO' },\n    components: [\n      { type: 'body', parameters: [{ type: 'text', text: resumen }] },\n    ],\n  },\n};\n\nreturn [{ json: { waClientPayload, waBusinessPayload, appointmentId: appt.id } }];"
+      },
+      "id": "code-verify",
+      "name": "Verificar firma y preparar mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waClientPayload) }}",
+        "options": {}
+      },
+      "id": "wa-client",
+      "name": "WhatsApp al cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.META_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.META_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.waBusinessPayload) }}",
+        "options": {}
+      },
+      "id": "wa-business",
+      "name": "WhatsApp al negocio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 100]
+    }
+  ],
+  "connections": {
+    "Webhook appointment.created": {
+      "main": [[{ "node": "Verificar firma y preparar mensajes", "type": "main", "index": 0 }]]
+    },
+    "Verificar firma y preparar mensajes": {
+      "main": [
+        [
+          { "node": "WhatsApp al cliente", "type": "main", "index": 0 },
+          { "node": "WhatsApp al negocio", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "timezone": "America/Bogota", "executionOrder": "v1" },
+  "pinData": {}
+}
