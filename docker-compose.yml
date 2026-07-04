@@ -1,0 +1,83 @@
+name: bad-boys-platform
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: badboys
+      POSTGRES_PASSWORD: badboys
+      POSTGRES_DB: badboys
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U badboys -d badboys"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://badboys:badboys@db:5432/badboys
+      JWT_SECRET: local-dev-secret-change-me
+      ENVIRONMENT: local
+      CORS_ORIGINS: http://localhost:3000
+      PUBLIC_BASE_URL: http://localhost:3000
+      N8N_WEBHOOK_BASE: http://n8n:5678
+      N8N_WEBHOOK_SECRET: local-webhook-secret
+      SERVICE_API_KEY: local-service-key
+      STORAGE_BACKEND: local
+      LOCAL_MEDIA_ROOT: /content
+      SEED_ON_START: "true"
+    volumes:
+      - ./content:/content
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.seed &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      # URL del backend vista desde el navegador (cliente) y desde el server (SSR)
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_URL_INTERNAL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      GENERIC_TIMEZONE: America/Bogota
+      TZ: America/Bogota
+      # En local no exigimos login para agilizar el desarrollo:
+      N8N_BASIC_AUTH_ACTIVE: "false"
+      # Variables que usan los workflows importados (ver automation/):
+      BACKEND_BASE_URL: http://backend:8000
+      BACKEND_SERVICE_KEY: local-service-key
+      WEBHOOK_SECRET: local-webhook-secret
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./automation:/automation:ro
+
+volumes:
+  pg-data:
+  n8n-data:

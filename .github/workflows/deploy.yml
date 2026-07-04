@@ -1,0 +1,57 @@
+name: Deploy
+
+# Despliegue a AWS en cada push a main, DESPUÉS de que CI pase.
+# El apply de Terraform NO es automático: este pipeline publica la imagen del
+# backend y actualiza la Lambda existente. Cambios de infraestructura se aplican
+# manualmente con `terraform plan/apply` (checkpoint de costos).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy-backend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC hacia AWS, sin llaves estáticas
+      contents: read
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: badboys-backend
+      LAMBDA_FUNCTION: badboys-prod-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - name: Build & push imagen Lambda
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}:${GITHUB_SHA::12}"
+          docker build -f backend/Dockerfile.lambda -t "$IMAGE" backend
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+      - name: Actualizar Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION" \
+            --image-uri "$IMAGE"
+          aws lambda wait function-updated --function-name "$LAMBDA_FUNCTION"
+      - name: Ejecutar migraciones Alembic
+        run: |
+          aws lambda invoke --function-name "$LAMBDA_FUNCTION" \
+            --cli-binary-format raw-in-base64-out \
+            --payload '{"badboys_task": "migrate"}' /tmp/migrate-out.json
+          cat /tmp/migrate-out.json
+
+  # El frontend lo despliega Amplify Hosting automáticamente al detectar el push
+  # a main (webhook de GitHub configurado por Terraform). No requiere job aquí.

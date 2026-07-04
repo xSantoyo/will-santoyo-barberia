@@ -1,0 +1,54 @@
+# --- Herramientas locales portables (no forman parte del repo) ---
+.tools/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# --- Entornos y secretos (NUNCA commitear credenciales reales) ---
+.env
+.env.*
+!.env.example
+
+# --- Terraform ---
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# --- Contenido real del cliente (fotos pesadas se gestionan por S3, no por git) ---
+content/bad-boys/gallery/*
+content/bad-boys/barbers/*
+content/bad-boys/cuts/*
+!content/bad-boys/**/.gitkeep
+
+# --- SO / editores ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Datos locales ---
+*.db
+*.sqlite3
+n8n-data/
+pg-data/
