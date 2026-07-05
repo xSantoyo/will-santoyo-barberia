@@ -21,6 +21,7 @@ from ..models import (
     Barber,
     BarberTimeOff,
     MediaAsset,
+    Review,
     Service,
     Tenant,
 )
@@ -33,10 +34,14 @@ from ..schemas import (
     CancelRequest,
     DayAvailability,
     MediaAssetOut,
+    PortalRequest,
+    ReviewCreate,
+    ReviewPublic,
     ServicePublic,
     TenantPublic,
 )
 from ..services import appointments as booking
+from ..services import clients as clients_service
 from ..services.availability import compute_slots
 from ..services.storage import get_storage
 from .common import appointment_to_public, barber_photo_url
@@ -219,6 +224,150 @@ def cancel_appointment(
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     return appointment_to_public(appointment, tenant)
+
+
+# ------------------------------------------------------------- tanda 3
+
+def _review_label(name: str) -> str:
+    parts = name.split()
+    return parts[0] + (f" {parts[1][0]}." if len(parts) > 1 else "")
+
+
+def _review_to_public(review: Review, tenant: Tenant) -> ReviewPublic:
+    tz = ZoneInfo(tenant.timezone)
+    return ReviewPublic(
+        rating=review.rating,
+        comment=review.comment,
+        customer_label=_review_label(review.customer_name),
+        barber_name=review.appointment.barber.name,
+        date_local=review.created_at.astimezone(tz).strftime("%Y-%m-%d"),
+    )
+
+
+@router.post("/portal", dependencies=[Depends(booking_rate_limiter)])
+def client_portal(
+    data: PortalRequest,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Portal ligero sin contraseña (Tanda 3): el teléfono es la llave y
+    cualquier código de gestión propio hace de comprobante."""
+    key_appointment = _load_by_code(db, tenant, data.manage_code)
+    if key_appointment.customer_whatsapp != data.customer_whatsapp:
+        raise HTTPException(404, "Turno no encontrado. Verifica el código y el teléfono.")
+
+    appointments = db.scalars(
+        select(Appointment)
+        .options(
+            selectinload(Appointment.services),
+            selectinload(Appointment.barber),
+            selectinload(Appointment.review),
+        )
+        .where(
+            Appointment.tenant_id == tenant.id,
+            Appointment.customer_whatsapp == data.customer_whatsapp,
+        )
+        .order_by(Appointment.starts_at.desc())
+        .limit(60)
+    )
+    tz = ZoneInfo(tenant.timezone)
+    history = [
+        {
+            "manage_code": a.manage_code,
+            "date_local": a.starts_at.astimezone(tz).strftime("%Y-%m-%d"),
+            "time_local": a.starts_at.astimezone(tz).strftime("%H:%M"),
+            "status": a.status,
+            "barber_name": a.barber.name,
+            "services": [s.name for s in a.services],
+            "total_cop": a.total_cop,
+            "can_review": a.status == "completado" and a.review is None,
+            "review_rating": a.review.rating if a.review else None,
+        }
+        for a in appointments
+    ]
+    return {
+        "customer_name": key_appointment.customer_name,
+        "appointments": history,
+        "loyalty": clients_service.loyalty_status(db, tenant, data.customer_whatsapp),
+    }
+
+
+@router.post(
+    "/appointments/{manage_code}/review",
+    response_model=ReviewPublic,
+    status_code=201,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def leave_review(
+    manage_code: str,
+    data: ReviewCreate,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Reseña verificada: solo de una cita real completada, una por cita."""
+    appointment = _load_by_code(db, tenant, manage_code)
+    if appointment.status != "completado":
+        raise HTTPException(
+            409, {"code": "not_completed",
+                  "message": "Solo puedes reseñar un turno ya completado."}
+        )
+    if appointment.review is not None:
+        raise HTTPException(
+            409, {"code": "already_reviewed",
+                  "message": "Este turno ya tiene su reseña. ¡Gracias!"}
+        )
+    review = Review(
+        tenant_id=tenant.id,
+        appointment_id=appointment.id,
+        barber_id=appointment.barber_id,
+        customer_whatsapp=appointment.customer_whatsapp,
+        customer_name=appointment.customer_name,
+        rating=data.rating,
+        comment=(data.comment or "").strip() or None,
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return _review_to_public(review, tenant)
+
+
+@router.get("/reviews")
+def list_reviews(
+    barber_id: int | None = None,
+    limit: int = 12,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Reseñas públicas recientes + promedios (general y por barbero)."""
+    from sqlalchemy import func
+
+    stats_rows = db.execute(
+        select(Review.barber_id, func.avg(Review.rating), func.count(Review.id))
+        .where(Review.tenant_id == tenant.id, Review.is_public.is_(True))
+        .group_by(Review.barber_id)
+    ).all()
+    per_barber = {
+        str(row[0]): {"average": round(float(row[1]), 1), "count": row[2]}
+        for row in stats_rows
+    }
+    total = sum(row[2] for row in stats_rows)
+    overall = (
+        round(sum(float(row[1]) * row[2] for row in stats_rows) / total, 1) if total else None
+    )
+
+    query = (
+        select(Review)
+        .options(selectinload(Review.appointment).selectinload(Appointment.barber))
+        .where(Review.tenant_id == tenant.id, Review.is_public.is_(True))
+    )
+    if barber_id:
+        query = query.where(Review.barber_id == barber_id)
+    reviews = db.scalars(query.order_by(Review.id.desc()).limit(min(limit, 30)))
+    return {
+        "overall": {"average": overall, "count": total},
+        "per_barber": per_barber,
+        "items": [_review_to_public(r, tenant) for r in reviews],
+    }
 
 
 # ---------------------------------------------------------------- La Fila

@@ -10,7 +10,10 @@ import type {
   BarberPublic,
   DayAvailability,
   MediaAsset,
+  PortalResponse,
   QueueBoard,
+  ReviewPublic,
+  ReviewsResponse,
   ServicePublic,
   TenantPublic,
   TicketQueue,
@@ -119,6 +122,19 @@ export const publicApi = {
       `${PUBLIC}/appointments/${encodeURIComponent(code)}/confirm`,
       { method: "POST" },
     ),
+  /* Tanda 3: cliente con memoria */
+  portal: (phone: string, code: string) =>
+    request<PortalResponse>(`${PUBLIC}/portal`, {
+      method: "POST",
+      body: JSON.stringify({ customer_whatsapp: phone, manage_code: code }),
+    }),
+  leaveReview: (code: string, rating: number, comment?: string) =>
+    request<ReviewPublic>(
+      `${PUBLIC}/appointments/${encodeURIComponent(code)}/review`,
+      { method: "POST", body: JSON.stringify({ rating, comment: comment ?? null }) },
+    ),
+  reviews: () =>
+    request<ReviewsResponse>(`${PUBLIC}/reviews`, { cache: "no-store" }),
   /* La Fila en vivo */
   queue: () => request<QueueBoard>(`${PUBLIC}/queue`, { cache: "no-store" }),
   ticketQueue: (code: string) =>

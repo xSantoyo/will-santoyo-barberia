@@ -27,6 +27,7 @@ from ..models import (
     AuditLog,
     Barber,
     BarberTimeOff,
+    ClientNote,
     MediaAsset,
     Service,
     Tenant,
@@ -37,6 +38,8 @@ from ..schemas import (
     BarberCreate,
     BarberUpdate,
     CancelRequest,
+    ClientNoteCreate,
+    ClientNoteOut,
     ManualBookingCreate,
     MediaAssetOut,
     PresignRequest,
@@ -49,8 +52,10 @@ from ..schemas import (
     TimeOffOut,
     WalkInCreate,
 )
+from ..schemas import normalize_phone
 from ..services import appointments as booking
 from ..services import audit
+from ..services import clients as clients_service
 from ..services.storage import ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES, get_storage, make_key
 from .common import appointment_to_admin, barber_photo_url
 
@@ -352,6 +357,91 @@ def update_status(
     audit.record(db, user, f"appointment.status.{data.status}", "appointment", appointment.id)
     db.commit()
     return appointment_to_admin(appointment, tenant)
+
+
+# ------------------------------------------------------------------ clientes
+
+def _normalized_phone_or_400(phone: str) -> str:
+    try:
+        return normalize_phone(phone)
+    except ValueError:
+        raise HTTPException(400, "Teléfono inválido") from None
+
+
+@router.get("/clients/{phone}")
+def client_profile(
+    phone: str,
+    _: AdminUser = Depends(get_current_user),  # el barbero también lo ve (D7)
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Perfil del cliente por teléfono: historial, fidelidad y notas de estilo."""
+    normalized = _normalized_phone_or_400(phone)
+    recent = db.scalars(
+        _appointment_query()
+        .where(
+            Appointment.tenant_id == tenant.id,
+            Appointment.customer_whatsapp == normalized,
+        )
+        .order_by(Appointment.starts_at.desc())
+        .limit(10)
+    )
+    return {
+        "phone": normalized,
+        "stats": clients_service.client_stats(db, tenant, normalized),
+        "loyalty": clients_service.loyalty_status(db, tenant, normalized),
+        "notes": [
+            ClientNoteOut.model_validate(n)
+            for n in clients_service.client_notes(db, tenant, normalized)
+        ],
+        "recent": [appointment_to_admin(a, tenant) for a in recent],
+    }
+
+
+@router.post("/clients/{phone}/notes", response_model=ClientNoteOut, status_code=201)
+def add_client_note(
+    phone: str,
+    data: ClientNoteCreate,
+    user: AdminUser = Depends(get_current_user),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    normalized = _normalized_phone_or_400(phone)
+    note = ClientNote(
+        tenant_id=tenant.id,
+        customer_whatsapp=normalized,
+        author_user_id=user.id,
+        author_name=user.username,
+        note=data.note.strip(),
+    )
+    db.add(note)
+    db.flush()
+    audit.record(db, user, "client.note.create", "client_note", note.id,
+                 {"phone": normalized})
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@router.delete("/client-notes/{note_id}", status_code=204)
+def delete_client_note(
+    note_id: int,
+    user: AdminUser = Depends(get_current_user),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    note = db.scalar(
+        select(ClientNote).where(
+            ClientNote.id == note_id, ClientNote.tenant_id == tenant.id
+        )
+    )
+    if note is None:
+        raise HTTPException(404, "Nota no encontrada")
+    if user.role != "admin" and note.author_user_id != user.id:
+        raise HTTPException(403, "Solo el autor o el admin pueden borrar la nota")
+    audit.record(db, user, "client.note.delete", "client_note", note_id, {})
+    db.delete(note)
+    db.commit()
 
 
 # ------------------------------------------------------------------ barberos

@@ -4,7 +4,15 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CalendarCheck2, CalendarX2, Check, Loader2, Radio } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarCheck2,
+  CalendarX2,
+  Check,
+  Loader2,
+  Radio,
+  Star,
+} from "lucide-react";
 import { publicApi } from "@/lib/api";
 import FlipNumber from "@/components/public/FlipNumber";
 import AddToCalendar from "@/components/public/AddToCalendar";
@@ -312,6 +320,22 @@ export default function ManageAppointmentPage({
           )}
         </AnimatePresence>
 
+        {/* Reseña verificada: solo citas completadas, una por cita */}
+        {appointment.can_review && (
+          <ReviewWidget
+            code={code}
+            onDone={(rating) =>
+              setAppointment({ ...appointment, can_review: false, review_rating: rating })
+            }
+          />
+        )}
+        {appointment.review_rating && (
+          <p className="data mt-6 text-center text-sm text-gold">
+            {"★".repeat(appointment.review_rating)}
+            {"☆".repeat(5 - appointment.review_rating)} — gracias por tu reseña
+          </p>
+        )}
+
         {appointment.status === "cancelado" && (
           <Link
             href="/agendar"
@@ -320,8 +344,89 @@ export default function ManageAppointmentPage({
             Agendar un nuevo turno
           </Link>
         )}
+
+        <Link
+          href="/mi-historial"
+          className="data mt-8 block text-center text-xs uppercase tracking-widest text-bone-2 transition-colors hover:text-gold"
+        >
+          Ver todo mi historial y mi tarjeta de fidelidad →
+        </Link>
       </div>
     </main>
+  );
+}
+
+function ReviewWidget({
+  code,
+  onDone,
+}: {
+  code: string;
+  onDone: (rating: number) => void;
+}) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (rating === 0) return;
+    setSending(true);
+    setError(null);
+    try {
+      await publicApi.leaveReview(code, rating, comment.trim() || undefined);
+      onDone(rating);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos guardar tu reseña.");
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="clip-corner mt-6 border border-gold/40 bg-gold/[0.06] p-5 text-center">
+      <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+        ¿Cómo quedó el corte?
+      </p>
+      <div className="mt-3 flex justify-center gap-1.5">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            onClick={() => setRating(value)}
+            onMouseEnter={() => setHover(value)}
+            onMouseLeave={() => setHover(0)}
+            aria-label={`${value} estrellas`}
+            className="p-1.5 transition-transform hover:scale-125"
+          >
+            <Star
+              size={26}
+              className={
+                value <= (hover || rating) ? "fill-gold text-gold" : "text-bone-2/40"
+              }
+            />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Cuéntanos cómo te fue (opcional)"
+        rows={2}
+        maxLength={500}
+        className="focus-gold mt-3 w-full rounded-sm border border-ink-3 bg-ink px-3 py-2.5 text-sm text-bone placeholder:text-bone-2/50"
+      />
+      {error && <p className="mt-2 text-xs text-wine">{error}</p>}
+      <button
+        onClick={submit}
+        disabled={sending || rating === 0}
+        className="display mx-auto mt-3 flex min-h-11 items-center gap-2 rounded-sm bg-gold px-6 text-ink transition-all enabled:hover:scale-[1.02] disabled:opacity-40"
+      >
+        {sending && <Loader2 className="animate-spin" size={16} />}
+        Publicar reseña
+      </button>
+      <p className="mt-2 text-[11px] text-bone-2/70">
+        Reseña verificada: viene de tu cita real en la barbería.
+      </p>
+    </div>
   );
 }
 

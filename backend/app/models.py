@@ -137,6 +137,7 @@ class Appointment(Base):
     services: Mapped[list[AppointmentService]] = relationship(
         back_populates="appointment", cascade="all, delete-orphan"
     )
+    review: Mapped[Review | None] = relationship(back_populates="appointment", uselist=False)
 
     @property
     def total_cop(self) -> int:
@@ -190,6 +191,52 @@ class MediaAsset(Base):
     title: Mapped[str | None] = mapped_column(String(200))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+
+
+class ClientNote(Base):
+    """Notas de estilo sobre un cliente recurrente (Tanda 3, D2/D7).
+
+    La llave del cliente es su teléfono normalizado. Visibles para todo el
+    equipo que lo atienda (criterio D7); cada nota registra su autor.
+    """
+
+    __tablename__ = "client_notes"
+    __table_args__ = (
+        Index("ix_client_notes_tenant_phone", "tenant_id", "customer_whatsapp"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    customer_whatsapp: Mapped[str] = mapped_column(String(20))
+    author_user_id: Mapped[int | None] = mapped_column(ForeignKey("admin_users.id"))
+    author_name: Mapped[str] = mapped_column(String(60))
+    note: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+
+
+class Review(Base):
+    """Reseñas verificadas (Tanda 3, C4): solo nacen de una cita real
+    completada, vía su código de gestión — una por cita."""
+
+    __tablename__ = "reviews"
+    __table_args__ = (
+        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_review_rating"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    appointment_id: Mapped[int] = mapped_column(
+        ForeignKey("appointments.id"), unique=True, index=True
+    )
+    barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id"), index=True)
+    customer_whatsapp: Mapped[str | None] = mapped_column(String(20))
+    customer_name: Mapped[str] = mapped_column(String(120))
+    rating: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str | None] = mapped_column(String(500))
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+
+    appointment: Mapped[Appointment] = relationship(back_populates="review")
 
 
 class AuditLog(Base):

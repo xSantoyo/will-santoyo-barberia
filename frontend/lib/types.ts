@@ -60,6 +60,74 @@ export interface AppointmentPublic {
   attendance_pending: boolean;
   attendance_confirmed: boolean;
   attendance_deadline_local: string | null;
+  can_review: boolean;
+  review_rating: number | null;
+}
+
+/* --- Tanda 3: cliente con memoria --- */
+
+export interface ReviewPublic {
+  rating: number;
+  comment: string | null;
+  customer_label: string;
+  barber_name: string;
+  date_local: string;
+}
+
+export interface ReviewsResponse {
+  overall: { average: number | null; count: number };
+  per_barber: Record<string, { average: number; count: number }>;
+  items: ReviewPublic[];
+}
+
+export interface LoyaltyStatus {
+  completed_count: number;
+  target: number;
+  progress: number;
+  remaining: number;
+  earned_rewards: number;
+  reward: string;
+}
+
+export interface PortalAppointment {
+  manage_code: string;
+  date_local: string;
+  time_local: string;
+  status: AppointmentStatus;
+  barber_name: string;
+  services: string[];
+  total_cop: number;
+  can_review: boolean;
+  review_rating: number | null;
+}
+
+export interface PortalResponse {
+  customer_name: string;
+  appointments: PortalAppointment[];
+  loyalty: LoyaltyStatus;
+}
+
+export interface ClientNote {
+  id: number;
+  author_name: string;
+  note: string;
+  created_at: string;
+}
+
+export interface ClientProfile {
+  phone: string;
+  stats: {
+    customer_name: string | null;
+    total_appointments: number;
+    completed_count: number;
+    cancelled_count: number;
+    no_show_count: number;
+    favorite_barber: string | null;
+    last_visit_local: string | null;
+  };
+  loyalty: LoyaltyStatus;
+  notes: ClientNote[];
+  recent: AppointmentAdmin[];
 }
 
 export type AppointmentStatus =

@@ -7,6 +7,8 @@
 import type {
   AppointmentAdmin,
   BarberAdmin,
+  ClientNote,
+  ClientProfile,
   DashboardData,
   MediaAsset,
   ServiceAdmin,
@@ -165,6 +167,16 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+
+  clientProfile: (phone: string) =>
+    request<ClientProfile>(`/api/v1/admin/clients/${encodeURIComponent(phone)}`),
+  addClientNote: (phone: string, note: string) =>
+    request<ClientNote>(`/api/v1/admin/clients/${encodeURIComponent(phone)}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ note }),
+    }),
+  deleteClientNote: (noteId: number) =>
+    request<void>(`/api/v1/admin/client-notes/${noteId}`, { method: "DELETE" }),
 
   barbers: () => request<BarberAdmin[]>("/api/v1/admin/barbers"),
   createBarber: (payload: object) =>

@@ -80,6 +80,13 @@ export default function FindAppointmentPage() {
             Buscar mi turno
           </button>
         </form>
+
+        <Link
+          href="/mi-historial"
+          className="data mt-8 block text-center text-xs uppercase tracking-widest text-bone-2 transition-colors hover:text-gold"
+        >
+          ¿Cliente de la casa? Mira tu historial y tu tarjeta de fidelidad →
+        </Link>
       </div>
     </main>
   );

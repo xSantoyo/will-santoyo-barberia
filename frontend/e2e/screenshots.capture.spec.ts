@@ -201,6 +201,39 @@ test("la fila en vivo: tablero y tiquete (desktop + móvil)", async ({ page }) =
   }
 });
 
+test("tanda 3: portal, reseñas y widget de reseña", async ({ page }) => {
+  let demo: { portal_phone?: string; portal_code?: string; review_code?: string } = {};
+  try {
+    demo = JSON.parse(readFileSync("e2e/.demo-queue.json", "utf-8"));
+  } catch {
+    /* sin demo */
+  }
+  test.skip(!demo.portal_code, "Requiere la fila de demostración");
+
+  // Portal del cliente (móvil)
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/mi-historial");
+  await page.getByPlaceholder("300 123 4567").fill(demo.portal_phone!);
+  await page.getByPlaceholder("A1B2C3").fill(demo.portal_code!);
+  await page.getByRole("button", { name: /ver mi historial/i }).click();
+  await expect(page.getByText(/tarjeta de fidelidad/i)).toBeVisible({ timeout: 10_000 });
+  await shot(page, "33-mi-historial-mobile", true);
+
+  // Widget de reseña en el tiquete (cita completada sin reseñar)
+  await page.goto(`/turno/${demo.review_code}`);
+  await expect(page.getByText(/cómo quedó el corte/i)).toBeVisible({ timeout: 10_000 });
+  await shot(page, "35-resena-en-tiquete", true);
+
+  // Sección de reseñas verificadas en el home (desktop)
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  const section = page.locator("#resenas");
+  await section.scrollIntoViewIfNeeded();
+  await expect(section.getByText(/palabra de cliente/i)).toBeVisible({ timeout: 10_000 });
+  await page.waitForTimeout(900);
+  await section.screenshot({ path: `${OUT}/34-resenas-home.png` });
+});
+
 test("anchos móviles reales: 375px y 428px", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 }); // iPhone SE/Mini
   await page.goto("/agendar");
@@ -238,6 +271,18 @@ test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", as
     await expect(page.getByText(/en la fila de hoy/i)).toBeVisible({ timeout: 10_000 });
     await shot(page, "32-walkin-tiquete");
     await page.getByRole("button", { name: /^listo$/i }).click();
+  }
+
+  // Tanda 3: perfil del cliente (clic en el nombre → historial + notas)
+  const clientName = page
+    .locator("button[title*='perfil del cliente']")
+    .first();
+  if ((await clientName.count()) > 0) {
+    await clientName.click();
+    await expect(page.getByText(/notas de estilo/i)).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(600);
+    await shot(page, "36-perfil-cliente-admin");
+    await page.getByRole("button", { name: /cerrar/i }).click();
   }
 
   await page.getByRole("link", { name: /agenda/i }).click();

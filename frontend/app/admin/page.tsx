@@ -32,6 +32,7 @@ import {
   buttonPrimary,
   inputClass,
 } from "@/components/admin/shared";
+import ClientProfileModal from "@/components/admin/ClientProfileModal";
 
 const LAST_SEEN_KEY = "badboys.dashboard.lastSeen";
 
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [busy, setBusy] = useState<number | null>(null);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [walkInFor, setWalkInFor] = useState<{ id: number; name: string } | null>(null);
+  const [profilePhone, setProfilePhone] = useState<string | null>(null);
 
   const load = useCallback(() => {
     adminApi
@@ -281,7 +283,17 @@ export default function DashboardPage() {
                       <span className="data font-medium text-gold">
                         {appointment.time_local}
                       </span>
-                      {appointment.customer_name}
+                      {appointment.customer_whatsapp ? (
+                        <button
+                          onClick={() => setProfilePhone(appointment.customer_whatsapp)}
+                          title="Ver perfil del cliente (historial, fidelidad, notas)"
+                          className="truncate underline-offset-4 transition-colors hover:text-gold hover:underline"
+                        >
+                          {appointment.customer_name}
+                        </button>
+                      ) : (
+                        appointment.customer_name
+                      )}
                       {appointment.attendance_confirmed && (
                         <CircleCheck
                           size={13}
@@ -320,6 +332,9 @@ export default function DashboardPage() {
           onClose={() => setWalkInFor(null)}
           onCreated={load}
         />
+      )}
+      {profilePhone && (
+        <ClientProfileModal phone={profilePhone} onClose={() => setProfilePhone(null)} />
       )}
     </>
   );

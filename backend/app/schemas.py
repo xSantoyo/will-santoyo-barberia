@@ -107,6 +107,9 @@ class AppointmentPublic(ORMModel):
     attendance_pending: bool = False
     attendance_confirmed: bool = False
     attendance_deadline_local: str | None = None
+    # Reseñas verificadas (Tanda 3): el tiquete invita a reseñar al completar
+    can_review: bool = False
+    review_rating: int | None = None
 
 
 class AppointmentFind(BaseModel):
@@ -279,6 +282,43 @@ class StatusUpdate(BaseModel):
         if v not in APPOINTMENT_STATUSES:
             raise ValueError(f"Estado inválido: {v}")
         return v
+
+
+# ---------------------------------------------------------------- tanda 3
+
+class PortalRequest(BaseModel):
+    """Portal ligero sin contraseña: teléfono + cualquier código de sus turnos."""
+    customer_whatsapp: str
+    manage_code: str = Field(min_length=4, max_length=12)
+
+    @field_validator("customer_whatsapp")
+    @classmethod
+    def _phone(cls, v: str) -> str:
+        return normalize_phone(v)
+
+
+class ReviewCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=500)
+
+
+class ReviewPublic(ORMModel):
+    rating: int
+    comment: str | None
+    customer_label: str  # nombre abreviado: "Juan P."
+    barber_name: str
+    date_local: str
+
+
+class ClientNoteCreate(BaseModel):
+    note: str = Field(min_length=2, max_length=800)
+
+
+class ClientNoteOut(ORMModel):
+    id: int
+    author_name: str
+    note: str
+    created_at: datetime
 
 
 class MediaAssetOut(ORMModel):

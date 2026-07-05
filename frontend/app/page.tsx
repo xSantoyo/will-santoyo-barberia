@@ -1,9 +1,23 @@
 import Navbar from "@/components/public/Navbar";
 import Hero from "@/components/public/Hero";
 import LiveStrip from "@/components/public/LiveStrip";
-import { About, Barbers, Footer, Gallery, Location, Services } from "@/components/public/Sections";
+import {
+  About,
+  Barbers,
+  Footer,
+  Gallery,
+  Location,
+  Reviews,
+  Services,
+} from "@/components/public/Sections";
 import { publicApi } from "@/lib/api";
-import type { BarberPublic, MediaAsset, ServicePublic, TenantPublic } from "@/lib/types";
+import type {
+  BarberPublic,
+  MediaAsset,
+  ReviewsResponse,
+  ServicePublic,
+  TenantPublic,
+} from "@/lib/types";
 
 // El contenido (precios, barberos, fotos) se edita desde el panel admin:
 // siempre se sirve fresco desde la API.
@@ -23,13 +37,15 @@ export default async function HomePage() {
   let barbers: BarberPublic[] = [];
   let services: ServicePublic[] = [];
   let gallery: MediaAsset[] = [];
+  let reviews: ReviewsResponse | null = null;
 
   try {
-    [tenant, barbers, services, gallery] = await Promise.all([
+    [tenant, barbers, services, gallery, reviews] = await Promise.all([
       publicApi.tenant(),
       publicApi.barbers(),
       publicApi.services(),
       publicApi.media("gallery"),
+      publicApi.reviews(),
     ]);
   } catch {
     // Backend no disponible: el sitio degrada con elegancia en vez de romperse.
@@ -46,8 +62,9 @@ export default async function HomePage() {
         <LiveStrip />
         <About tenant={tenant} />
         <Services services={services} />
-        <Barbers barbers={barbers} />
+        <Barbers barbers={barbers} ratings={reviews?.per_barber} />
         <Gallery items={gallery} />
+        <Reviews data={reviews} />
         <Location tenant={tenant} />
       </main>
       <Footer tenant={tenant} />

@@ -36,6 +36,8 @@ def appointment_to_public(appointment: Appointment, tenant: Tenant) -> Appointme
             if attendance["pending"] and attendance["deadline"]
             else None
         ),
+        can_review=appointment.status == "completado" and appointment.review is None,
+        review_rating=appointment.review.rating if appointment.review else None,
     )
 
 

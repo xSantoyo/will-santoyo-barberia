@@ -5,7 +5,7 @@
  * dentro de la paleta original. Las entradas son escalonadas (StaggerGroup).
  */
 import Link from "next/link";
-import { Clock, Instagram, MapPin, Facebook, Music2, Scissors } from "lucide-react";
+import { Clock, Instagram, MapPin, Facebook, Music2, Scissors, Star } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import {
   formatCOP,
@@ -13,6 +13,7 @@ import {
   WEEKDAY_LABELS,
   type BarberPublic,
   type MediaAsset,
+  type ReviewsResponse,
   type ServicePublic,
   type TenantPublic,
 } from "@/lib/types";
@@ -119,7 +120,23 @@ export function Services({ services }: { services: ServicePublic[] }) {
   );
 }
 
-export function Barbers({ barbers }: { barbers: BarberPublic[] }) {
+function Stars({ average, count }: { average: number; count: number }) {
+  return (
+    <span className="data flex items-center gap-1 text-xs text-gold">
+      <Star size={12} className="fill-gold" />
+      {average.toFixed(1)}
+      <span className="text-bone-2">({count})</span>
+    </span>
+  );
+}
+
+export function Barbers({
+  barbers,
+  ratings,
+}: {
+  barbers: BarberPublic[];
+  ratings?: Record<string, { average: number; count: number }>;
+}) {
   return (
     <section id="barberos" className="relative overflow-hidden">
       <Watermark word="EQUIPO" />
@@ -165,7 +182,15 @@ export function Barbers({ barbers }: { barbers: BarberPublic[] }) {
                       </a>
                     )}
                   </div>
-                  <p className="mt-1 min-h-10 text-sm text-bone-2">{barber.specialty}</p>
+                  <p className="mt-1 text-sm text-bone-2">{barber.specialty}</p>
+                  <div className="mt-1.5 min-h-5">
+                    {ratings?.[String(barber.id)] && (
+                      <Stars
+                        average={ratings[String(barber.id)].average}
+                        count={ratings[String(barber.id)].count}
+                      />
+                    )}
+                  </div>
                   <Link
                     href={`/agendar?barbero=${barber.id}`}
                     className="display mt-4 block rounded-sm border border-gold px-4 py-3.5 text-center text-gold transition-all duration-300 hover:bg-gold hover:text-ink active:scale-[0.98]"
@@ -217,6 +242,57 @@ export function Gallery({ items }: { items: MediaAsset[] }) {
             ))}
           </StaggerGroup>
         )}
+      </div>
+    </section>
+  );
+}
+
+export function Reviews({ data }: { data: ReviewsResponse | null }) {
+  if (!data || data.overall.count === 0) return null;
+  return (
+    <section id="resenas" className="relative overflow-hidden">
+      <Watermark word="LA VOZ" />
+      <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <SectionTitle kicker="Reseñas verificadas" title="Palabra de cliente" />
+          <Reveal delay={0.1}>
+            <p className="data text-right text-sm text-bone-2">
+              <span className="stamped text-4xl text-gold">
+                {data.overall.average?.toFixed(1)}
+              </span>
+              <span className="ml-2 text-gold">★</span>
+              <span className="block">
+                {data.overall.count} reseña{data.overall.count === 1 ? "" : "s"} de citas reales
+              </span>
+            </p>
+          </Reveal>
+        </div>
+        <StaggerGroup className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {data.items.slice(0, 6).map((review, i) => (
+            <StaggerItem key={`${review.date_local}-${i}`}>
+              <figure className="plate clip-corner h-full p-5">
+                <p className="data text-sm text-gold">
+                  {"★".repeat(review.rating)}
+                  <span className="text-bone-2/40">{"★".repeat(5 - review.rating)}</span>
+                </p>
+                {review.comment && (
+                  <blockquote className="mt-3 text-sm leading-relaxed text-bone">
+                    “{review.comment}”
+                  </blockquote>
+                )}
+                <figcaption className="data mt-4 text-[11px] uppercase tracking-wider text-bone-2">
+                  {review.customer_label} · con {review.barber_name} · {review.date_local}
+                </figcaption>
+              </figure>
+            </StaggerItem>
+          ))}
+        </StaggerGroup>
+        <Reveal delay={0.15}>
+          <p className="mt-8 text-xs text-bone-2/70">
+            Solo pueden reseñar clientes con cita completada en el sistema — cero
+            reseñas inventadas.
+          </p>
+        </Reveal>
       </div>
     </section>
   );
