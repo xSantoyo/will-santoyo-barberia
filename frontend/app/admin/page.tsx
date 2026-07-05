@@ -4,7 +4,7 @@
  * Sin canal de notificación externo (ADR-009): el indicador de "turnos nuevos
  * sin revisar" compara created_at contra la última revisión (localStorage). */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BellRing, Loader2, RefreshCw } from "lucide-react";
+import { Banknote, BellRing, Clock3, Loader2, RefreshCw, Scissors, UserX } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
 import { formatCOP, type AppointmentAdmin, type DashboardData } from "@/lib/types";
 import { PageTitle, StatusBadge, buttonGhost } from "@/components/admin/shared";
@@ -38,6 +38,26 @@ export default function DashboardPage() {
       .flatMap((block) => block.all_today)
       .filter((a) => (threshold ? new Date(a.created_at) > threshold : true));
   }, [data, lastSeen]);
+
+  // Resumen ejecutivo del día: todo sale del payload que ya tenemos.
+  // El dinero es solo REGISTRO (efectivo/datáfono en el local, sin cobro en línea).
+  const summary = useMemo(() => {
+    if (!data) return null;
+    const all = data.barbers.flatMap((block) => block.all_today);
+    const now = new Date();
+    const nowHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const done = all.filter((a) => a.status === "completado");
+    const active = all.filter(
+      (a) => a.status === "confirmado" || a.status === "pendiente" || a.status === "en_curso",
+    );
+    return {
+      earned: done.reduce((sum, a) => sum + a.total_cop, 0),
+      expected: active.reduce((sum, a) => sum + a.total_cop, 0),
+      doneCount: done.length,
+      activeCount: active.length,
+      overdue: all.filter((a) => a.status === "confirmado" && a.end_time_local < nowHM),
+    };
+  }, [data]);
 
   function markSeen() {
     const now = new Date().toISOString();
@@ -77,6 +97,55 @@ export default function DashboardPage() {
           </button>
         }
       />
+
+      {/* Resumen ejecutivo: el pulso del día de un vistazo */}
+      {summary && (
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="plate clip-corner p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
+              <Banknote size={13} className="text-gold" /> Caja de hoy
+            </p>
+            <p className="data mt-1 text-2xl font-semibold text-gold">
+              {formatCOP(summary.earned)}
+            </p>
+            <p className="data mt-0.5 text-[11px] text-bone-2">
+              + {formatCOP(summary.expected)} por atender
+            </p>
+          </div>
+          <div className="plate clip-corner p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
+              <Scissors size={13} className="text-gold" /> Atendidos
+            </p>
+            <p className="data mt-1 text-2xl font-semibold text-bone">{summary.doneCount}</p>
+          </div>
+          <div className="plate clip-corner p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
+              <Clock3 size={13} className="text-gold" /> En fila
+            </p>
+            <p className="data mt-1 text-2xl font-semibold text-bone">{summary.activeCount}</p>
+          </div>
+          <div
+            className={`plate clip-corner p-4 ${summary.overdue.length > 0 ? "border-wine/60" : ""}`}
+          >
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
+              <UserX size={13} className={summary.overdue.length > 0 ? "text-wine" : "text-gold"} />
+              Vencidos sin atender
+            </p>
+            <p
+              className={`data mt-1 text-2xl font-semibold ${
+                summary.overdue.length > 0 ? "text-wine" : "text-bone"
+              }`}
+            >
+              {summary.overdue.length}
+            </p>
+            {summary.overdue.length > 0 && (
+              <p className="data mt-0.5 truncate text-[11px] text-bone-2">
+                {summary.overdue.map((a) => `#${a.daily_number} ${a.time_local}`).join(" · ")}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {newAppointments.length > 0 && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-gold/50 bg-gold/10 px-4 py-3">

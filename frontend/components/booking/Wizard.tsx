@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { ApiError, mediaUrl, publicApi } from "@/lib/api";
 import { RazorReveal } from "@/components/public/Razor";
+import AddToCalendar from "@/components/public/AddToCalendar";
 import {
   formatCOP,
   WEEKDAY_KEYS,
@@ -686,6 +687,19 @@ function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
         <p className="data mt-1 text-4xl font-semibold text-gold">
           #{appointment.daily_number}
         </p>
+      </div>
+
+      <div className="mt-4">
+        <AddToCalendar
+          event={{
+            title: `Bad Boys Barbershop — turno #${appointment.daily_number}`,
+            dateLocal: appointment.date_local,
+            timeLocal: appointment.time_local,
+            durationMin: appointment.services.reduce((sum, s) => sum + s.duration_min, 0) || 45,
+            description: `Con ${appointment.barber_name}. Código de gestión: ${appointment.manage_code}. Gestiona tu turno: ${typeof window !== "undefined" ? window.location.origin : ""}/turno/${appointment.manage_code}`,
+            location: "Bad Boys Barbershop",
+          }}
+        />
       </div>
 
       <div className="mt-8 flex flex-col gap-3">

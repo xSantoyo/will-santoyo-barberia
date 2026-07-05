@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anton, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -31,6 +31,16 @@ export const metadata: Metadata = {
   },
   description:
     "Barbería en Colombia. Cortes, barba y estilo con estándar de estudio. Agenda tu turno en línea.",
+  appleWebApp: {
+    capable: true,
+    title: "Bad Boys",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b0b0c",
+  viewportFit: "cover", // respeta el notch: la barra fija usa safe-area-inset
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

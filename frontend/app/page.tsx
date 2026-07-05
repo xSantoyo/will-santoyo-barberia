@@ -1,5 +1,6 @@
 import Navbar from "@/components/public/Navbar";
 import Hero from "@/components/public/Hero";
+import LiveStrip from "@/components/public/LiveStrip";
 import { About, Barbers, Footer, Gallery, Location, Services } from "@/components/public/Sections";
 import { publicApi } from "@/lib/api";
 import type { BarberPublic, MediaAsset, ServicePublic, TenantPublic } from "@/lib/types";
@@ -42,6 +43,7 @@ export default async function HomePage() {
           tagline={(tenant.brand_config.tagline as string) ?? "Elegancia con actitud"}
           slides={gallery.slice(0, 4)}
         />
+        <LiveStrip />
         <About tenant={tenant} />
         <Services services={services} />
         <Barbers barbers={barbers} />

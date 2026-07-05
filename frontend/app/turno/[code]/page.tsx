@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CalendarX2, Check, Loader2, Radio } from "lucide-react";
 import { publicApi } from "@/lib/api";
 import FlipNumber from "@/components/public/FlipNumber";
+import AddToCalendar from "@/components/public/AddToCalendar";
 import {
   formatCOP,
   STATUS_LABELS,
@@ -187,6 +188,22 @@ export default function ManageAppointmentPage({
             />
           </dl>
         </div>
+
+        {isActive && (
+          <div className="mt-4">
+            <AddToCalendar
+              event={{
+                title: `Bad Boys Barbershop — turno #${appointment.daily_number}`,
+                dateLocal: appointment.date_local,
+                timeLocal: appointment.time_local,
+                durationMin:
+                  appointment.services.reduce((sum, s) => sum + s.duration_min, 0) || 45,
+                description: `Con ${appointment.barber_name}. Código de gestión: ${appointment.manage_code}.`,
+                location: "Bad Boys Barbershop",
+              }}
+            />
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">
