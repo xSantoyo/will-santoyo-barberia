@@ -132,7 +132,6 @@ class Appointment(Base):
     services: Mapped[list[AppointmentService]] = relationship(
         back_populates="appointment", cascade="all, delete-orphan"
     )
-    notifications: Mapped[list[NotificationLog]] = relationship(back_populates="appointment")
 
     @property
     def total_cop(self) -> int:
@@ -173,24 +172,6 @@ class AdminUser(Base):
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
 
     barber: Mapped[Barber | None] = relationship()
-
-
-class NotificationLog(Base):
-    """Auditoría de cada intento de notificación (webhook a n8n / WhatsApp).
-    La cita NUNCA depende de que esto tenga éxito."""
-
-    __tablename__ = "notification_log"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
-    appointment_id: Mapped[int | None] = mapped_column(ForeignKey("appointments.id"), index=True)
-    event_type: Mapped[str] = mapped_column(String(50))  # appointment.created, reminder_24h, ...
-    status: Mapped[str] = mapped_column(String(20), default="pendiente")  # pendiente|enviado|fallido
-    detail: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
-    sent_at: Mapped[datetime | None] = mapped_column(TZDateTime)
-
-    appointment: Mapped[Appointment | None] = relationship(back_populates="notifications")
 
 
 class MediaAsset(Base):

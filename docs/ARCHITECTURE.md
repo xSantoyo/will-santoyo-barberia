@@ -5,7 +5,7 @@
 ## 1. Diagrama general
 
 ```
-Cliente (navegador / WhatsApp)
+Cliente (navegador)
         │
         ▼
 ┌─────────────────────────────┐
@@ -17,17 +17,17 @@ Cliente (navegador / WhatsApp)
 │ Backend FastAPI              │───────►│ Amazon RDS PostgreSQL 16 │
 │ AWS Lambda + API Gateway     │  SQL   │ (multi-tenant)           │
 │ (Mangum ASGI adapter)        │        └──────────────────────────┘
-└─────┬───────────────┬───────┘
-      │ webhook       │ presigned URLs
-      │ (eventos)     ▼
-      │        ┌──────────────────────┐
-      │        │ S3 + CloudFront      │  imágenes: gallery/barbers/cuts
-      │        └──────────────────────┘
-      ▼
-┌─────────────────────────────┐
-│ n8n (Docker, EC2 t4g.micro) │──► Meta WhatsApp Business Cloud API
-└─────────────────────────────┘
+└─────────────┬───────────────┘
+              │ presigned URLs
+              ▼
+       ┌──────────────────────┐
+       │ S3 + CloudFront      │  imágenes: gallery/barbers/cuts
+       └──────────────────────┘
 ```
+
+> Nota: la capa n8n → WhatsApp del diseño original fue **retirada** (ADR-009).
+> El código de gestión en pantalla y el dashboard del admin cubren la
+> comunicación con cliente y negocio sin canal externo.
 
 ## 2. Decisiones de arquitectura (ADR resumidas)
 
@@ -66,16 +66,10 @@ HTTP 409. Requiere la extensión `btree_gist` (disponible en RDS).
 existe; la suite incluye tests de integración contra Postgres real (docker-compose / CI)
 que verifican el constraint disparando inserts concurrentes.
 
-### ADR-004 — n8n como capa de automatización desacoplada
-**Decisión:** el backend solo emite webhooks de dominio (`appointment.created`,
-`appointment.cancelled`, etc.) con un payload JSON estable. n8n consume esos webhooks y
-habla con la API de WhatsApp.
-**Por qué:** los flujos de mensajería cambian más rápido que el core (textos, horarios de
-recordatorio, nuevos flujos de reseñas). Editarlos visualmente en n8n no requiere
-redesplegar el backend. Además aísla las credenciales de Meta fuera del backend.
-**Garantía:** el disparo del webhook es *fire-and-forget con auditoría*: la cita se
-guarda siempre; el intento de notificación se registra en `notification_log` con su
-estado (`pendiente/enviado/fallido`) para reintentos y diagnóstico.
+### ADR-004 — n8n como capa de automatización desacoplada ⛔ SUPERSEDIDO por ADR-009
+**Decisión original:** el backend emitía webhooks de dominio y n8n los convertía en
+mensajes de WhatsApp. **Retirado en julio 2026** — ver ADR-009. Los workflows
+exportados se conservan como referencia histórica en `automation/workflows/`.
 
 ### ADR-005 — Fechas y horas
 **Decisión:** todas las columnas temporales son `TIMESTAMPTZ` guardadas en UTC; la zona
@@ -102,6 +96,31 @@ imágenes públicas. En local, un `StorageService` alternativo escribe a
 **Por qué:** las imágenes no deben pasar por Lambda (límite de payload de 6 MB y costo
 de tiempo de ejecución). El patrón presigned es el estándar.
 
+### ADR-009 — Sin WhatsApp Business API ni n8n (julio 2026)
+**Decisión:** se elimina por completo la integración con Meta WhatsApp Business Cloud
+API (directa o vía BSP) y con ella el servicio n8n, cuyo único propósito era orquestar
+esos envíos.
+**Por qué:** el costo por conversación de Meta y, sobre todo, el proceso de
+verificación de negocio ante Meta no se justifican para el alcance actual (una
+barbería, 3 barberos). Menos partes móviles = menos costo fijo (~9 USD/mes de EC2
+menos, cero costo por conversación) y menos superficie operativa.
+**Cómo se cubren las necesidades que atendía:**
+- *Confirmación al cliente:* el **código de gestión se muestra de forma prominente en
+  pantalla** al confirmar la reserva, con instrucción explícita de guardarlo
+  (captura/copiar). Con él consulta o cancela en `/turno/<código>` o con
+  teléfono + código.
+- *Alerta de turno nuevo al negocio:* dashboard del panel admin (turnos del día,
+  turno en curso) + indicador de "turnos nuevos sin revisar" con marca local de
+  última revisión. Sin canal externo.
+- *Recordatorio 24h / no-show:* quedan fuera del alcance v1. Si se retoman, la vía
+  preparada es EventBridge Scheduler + Lambda o un canal más barato (email), sin
+  reconstruir nada: el modelo de datos y los estados ya lo soportan.
+**Qué se conserva:** los workflows n8n exportados quedan en `automation/workflows/`
+como referencia histórica (no se despliegan); el enlace `wa.me` del sitio público se
+mantiene — es un enlace de chat normal, no usa la API.
+**Reversibilidad:** re-agregar el canal es aditivo (webhook post-commit + plantillas);
+ninguna decisión de esquema lo bloquea.
+
 ### ADR-008 — Amplify Hosting para Next.js
 **Decisión:** Amplify Hosting (soporta SSR/ISR de Next.js App Router de forma nativa).
 **Verificación pendiente al desplegar (Fase 4):** confirmar en la documentación vigente
@@ -115,7 +134,6 @@ en Lambda, o SST/OpenNext sobre CloudFront+Lambda.
 tenants ─┬─< barbers ─────< barber_time_off        (descansos puntuales)
          ├─< services
          ├─< appointments >── appointment_services  (M:N con snapshot de precio)
-         │        └────────< notification_log
          ├─< admin_users
          └─< media_assets
 ```
@@ -131,7 +149,6 @@ Tablas y campos clave (ver `backend/app/models.py` como fuente de verdad):
 | `appointments` | `id`, `tenant_id`, `barber_id`, `customer_name`, `customer_whatsapp`, `starts_at`/`ends_at` (UTC), `status`, `daily_number` (turno del día por barbero), `manage_code` (código único de gestión), timestamps |
 | `appointment_services` | snapshot de `price_cop` y `duration_min` al momento de reservar |
 | `admin_users` | `username`, `password_hash`, `role` (`admin`/`barbero`), `barber_id` opcional |
-| `notification_log` | `appointment_id`, `event_type`, `status`, `detail`, `sent_at` |
 | `media_assets` | `tenant_id`, `kind` (`gallery`/`barber`/`cut`), `s3_key`, `sort_order` |
 | `audit_log` | quién hizo qué: `actor_user_id`, `action`, `entity`, `entity_id`, `payload` (JSONB) |
 
@@ -140,37 +157,12 @@ con salidas `cancelado` y `no_show`. El turno nace `confirmado` (la confirmació
 automática es el comportamiento de negocio deseado; `pendiente` queda reservado para
 futuros flujos de aprobación manual).
 
-## 4. Contratos de eventos (backend → n8n)
+## 4. Eventos y notificaciones
 
-Todos los webhooks son `POST {N8N_WEBHOOK_BASE}/webhook/<evento>` con firma HMAC-SHA256
-en el header `X-BadBoys-Signature` (secreto compartido `N8N_WEBHOOK_SECRET`).
-
-```jsonc
-// appointment.created / appointment.cancelled
-{
-  "event": "appointment.created",
-  "tenant": { "slug": "bad-boys", "name": "Bad Boys Barbershop", "whatsapp_number": "+57..." },
-  "appointment": {
-    "id": 123,
-    "manage_code": "7GK4QZ",
-    "manage_url": "https://badboys.example.com/turno/7GK4QZ",
-    "daily_number": 4,
-    "date_local": "2026-07-10",
-    "time_local": "15:30",
-    "status": "confirmado",
-    "customer_name": "Juan Pérez",
-    "customer_whatsapp": "+573001112233",
-    "barber": { "id": 1, "name": "Barbero 1" },
-    "services": [ { "name": "Corte clásico", "price_cop": 30000 } ],
-    "total_cop": 30000
-  }
-}
-```
-
-Los crons de n8n (recordatorio 24h, resumen diario, no-show) consultan endpoints
-internos del backend autenticados con API key de servicio (`X-Service-Key`):
-`GET /api/v1/internal/appointments/upcoming-reminders`, `GET /api/v1/internal/agenda/today`,
-`GET /api/v1/internal/appointments/overdue`.
+Retirados junto con n8n/WhatsApp (ADR-009). El "canal" del cliente es el código de
+gestión en pantalla; el del negocio, el dashboard del panel. El contrato de webhooks
+original quedó documentado en el historial de git y en `automation/workflows/` por si
+se retoma un canal de notificaciones en el futuro.
 
 ## 5. Seguridad
 
@@ -183,7 +175,6 @@ internos del backend autenticados con API key de servicio (`X-Service-Key`):
   `.env.example` documentado.
 - `audit_log` de acciones de administración (crear/reprogramar/cancelar turnos, cambios
   de servicios/barberos).
-- Webhooks firmados con HMAC; endpoints internos con API key de servicio.
 
 ## 6. Entornos
 
@@ -192,7 +183,6 @@ internos del backend autenticados con API key de servicio (`X-Service-Key`):
 | DB | Postgres 16 en Docker | RDS db.t4g.micro | RDS db.t4g.micro (multi-AZ opcional) |
 | API | uvicorn --reload | Lambda alias `dev` | Lambda alias `prod` |
 | Frontend | next dev | Amplify branch `dev` | Amplify branch `main` |
-| n8n | Docker local | — (compartido con prod) | EC2 t4g.micro + Docker |
 | Imágenes | carpeta `content/` | S3 dev | S3 prod + CloudFront |
 
 ## 7. Qué NO se construye todavía (Fase 5, futuro)

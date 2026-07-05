@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -28,7 +28,6 @@ from ..schemas import (
 )
 from ..services import appointments as booking
 from ..services.availability import compute_slots
-from ..services.notifications import dispatch_event
 from ..services.storage import get_storage
 from .common import appointment_to_public, barber_photo_url
 
@@ -118,16 +117,15 @@ def availability(
 )
 def create_booking(
     data: BookingCreate,
-    background: BackgroundTasks,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
+    # El código de gestión devuelto aquí es el ÚNICO canal de gestión del
+    # cliente (ADR-009): el frontend lo muestra de forma prominente.
     try:
         appointment = booking.create_appointment(db, tenant, data)
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
-    # La notificación jamás condiciona la reserva: va en background post-respuesta.
-    background.add_task(dispatch_event, appointment.id, "appointment.created")
     return appointment_to_public(appointment, tenant)
 
 
@@ -179,7 +177,6 @@ def find_appointment(
 def cancel_appointment(
     manage_code: str,
     data: CancelRequest,
-    background: BackgroundTasks,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
@@ -190,7 +187,6 @@ def cancel_appointment(
         )
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
-    background.add_task(dispatch_event, appointment.id, "appointment.cancelled")
     return appointment_to_public(appointment, tenant)
 
 

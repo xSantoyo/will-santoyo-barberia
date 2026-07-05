@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
-from .routers import admin, auth, internal, public
+from .routers import admin, auth, public
 
 logging.basicConfig(level=logging.INFO)
 
@@ -33,13 +33,12 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Service-Key"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(public.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
-app.include_router(internal.router)
 
 
 @app.get("/health")

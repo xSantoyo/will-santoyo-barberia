@@ -220,17 +220,4 @@ export const adminApi = {
     form.append("file", file);
     return request<MediaAsset>("/api/v1/admin/media/upload", { method: "POST", body: form });
   },
-
-  notifications: (params?: Record<string, string>) =>
-    request<
-      {
-        id: number;
-        appointment_id: number | null;
-        event_type: string;
-        status: string;
-        detail: string | null;
-        created_at: string;
-        sent_at: string | null;
-      }[]
-    >(`/api/v1/admin/notifications?${new URLSearchParams(params ?? {}).toString()}`),
 };

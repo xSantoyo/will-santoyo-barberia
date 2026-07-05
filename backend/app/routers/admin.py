@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -29,7 +28,6 @@ from ..models import (
     Barber,
     BarberTimeOff,
     MediaAsset,
-    NotificationLog,
     Service,
     Tenant,
 )
@@ -52,7 +50,6 @@ from ..schemas import (
 )
 from ..services import appointments as booking
 from ..services import audit
-from ..services.notifications import dispatch_event
 from ..services.storage import ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES, get_storage, make_key
 from .common import appointment_to_admin, barber_photo_url
 
@@ -243,7 +240,6 @@ def list_appointments(
 @router.post("/appointments", response_model=AppointmentAdmin, status_code=201)
 def create_manual(
     data: ManualBookingCreate,
-    background: BackgroundTasks,
     user: AdminUser = Depends(require_admin),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
@@ -258,7 +254,6 @@ def create_manual(
     audit.record(db, user, "appointment.create_manual", "appointment", appointment.id,
                  {"customer": data.customer_name, "date": str(data.date), "time": data.time})
     db.commit()
-    background.add_task(dispatch_event, appointment.id, "appointment.created")
     return appointment_to_admin(appointment, tenant)
 
 
@@ -290,7 +285,6 @@ def reschedule(
 def cancel(
     appointment_id: int,
     data: CancelRequest,
-    background: BackgroundTasks,
     user: AdminUser = Depends(require_admin),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
@@ -304,7 +298,6 @@ def cancel(
     audit.record(db, user, "appointment.cancel", "appointment", appointment.id,
                  {"reason": data.reason})
     db.commit()
-    background.add_task(dispatch_event, appointment.id, "appointment.cancelled")
     return appointment_to_admin(appointment, tenant)
 
 
@@ -629,32 +622,6 @@ def delete_media(
 
 
 # ------------------------------------------------------------------ auditoría
-
-@router.get("/notifications")
-def list_notifications(
-    appointment_id: int | None = None,
-    status: str | None = None,
-    limit: int = 100,
-    _: AdminUser = Depends(require_admin),
-    tenant: Tenant = Depends(get_user_tenant),
-    db: Session = Depends(get_db),
-):
-    query = select(NotificationLog).where(NotificationLog.tenant_id == tenant.id)
-    if appointment_id:
-        query = query.where(NotificationLog.appointment_id == appointment_id)
-    if status:
-        query = query.where(NotificationLog.status == status)
-    rows = db.scalars(query.order_by(NotificationLog.id.desc()).limit(min(limit, 200)))
-    return [
-        {
-            "id": r.id, "appointment_id": r.appointment_id, "event_type": r.event_type,
-            "status": r.status, "detail": r.detail,
-            "created_at": r.created_at.isoformat(),
-            "sent_at": r.sent_at.isoformat() if r.sent_at else None,
-        }
-        for r in rows
-    ]
-
 
 @router.get("/audit-log")
 def list_audit(

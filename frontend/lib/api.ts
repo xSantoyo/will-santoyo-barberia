@@ -18,7 +18,9 @@ export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "bad-boys";
 
 export function apiBase(): string {
   if (typeof window === "undefined") {
-    return process.env.API_URL_INTERNAL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    // 127.0.0.1 y no localhost: en Node el fetch no hace fallback IPv6→IPv4
+    // (en Windows localhost resuelve primero a ::1 y uvicorn escucha en IPv4).
+    return process.env.API_URL_INTERNAL ?? "http://127.0.0.1:8000";
   }
   return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 }

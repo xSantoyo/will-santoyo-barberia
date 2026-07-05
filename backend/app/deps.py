@@ -6,7 +6,7 @@ import time
 from collections import defaultdict, deque
 
 import jwt as pyjwt
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -53,12 +53,6 @@ def get_user_tenant(
     user: AdminUser = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> Tenant:
     return db.get(Tenant, user.tenant_id)
-
-
-def require_service_key(x_service_key: str = Header(default="")) -> None:
-    """Protege los endpoints /internal que consumen los crons de n8n."""
-    if x_service_key != get_settings().service_api_key:
-        raise HTTPException(401, "Service key inválida")
 
 
 class RateLimiter:

@@ -1,4 +1,9 @@
-# Configuración de WhatsApp Business Cloud API (Meta)
+# [ARCHIVADO — ADR-009] Configuración de WhatsApp Business Cloud API (Meta)
+
+> ⛔ **Este documento está archivado.** En julio de 2026 se decidió NO usar la API
+> de WhatsApp de Meta (costo + verificación de negocio no justificados para el
+> alcance actual). Se conserva solo como referencia por si el canal se retoma.
+> Ver ADR-009 en `docs/ARCHITECTURE.md`.
 
 Guía para conectar la plataforma con la API **oficial** de Meta. Los pasos marcados
 con 🖐️ son manuales y los debe hacer el dueño del proyecto en Meta Business Manager

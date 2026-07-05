@@ -31,11 +31,6 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     public_base_url: str = "http://localhost:3000"  # para construir enlaces de gestión
 
-    # --- Integración n8n ---
-    n8n_webhook_base: str = ""  # ej. http://n8n:5678 — vacío = webhooks deshabilitados
-    n8n_webhook_secret: str = "local-webhook-secret"
-    service_api_key: str = "local-service-key"  # para endpoints /internal consumidos por n8n
-
     # --- Almacenamiento de imágenes ---
     storage_backend: str = "local"  # local | s3
     local_media_root: str = "../content"  # raíz local: <root>/<tenant_slug>/<kind>/
@@ -67,7 +62,7 @@ def load_aws_secrets() -> None:
     import boto3  # import diferido: no requerido en local
 
     client = boto3.client("secretsmanager")
-    for name in ("app", "database", "whatsapp"):
+    for name in ("app", "database"):
         try:
             value = client.get_secret_value(SecretId=f"{prefix}/{name}")["SecretString"]
         except client.exceptions.ResourceNotFoundException:

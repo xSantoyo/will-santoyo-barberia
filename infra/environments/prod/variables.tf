@@ -13,16 +13,6 @@ variable "frontend_url" {
   description = "URL pública del frontend (para CORS y enlaces en mensajes)"
 }
 
-variable "n8n_host" {
-  type        = string
-  description = "Dominio de n8n, ej. n8n.badboysbarber.com"
-}
-
-variable "admin_cidr" {
-  type        = string
-  description = "CIDR con acceso SSH a la instancia de n8n, ej. 190.x.x.x/32"
-}
-
 variable "github_repository_url" { type = string }
 
 variable "github_access_token" {
@@ -32,26 +22,6 @@ variable "github_access_token" {
 
 # --- Secretos de aplicación (pasar por TF_VAR_* o tfvars fuera de git) ---
 variable "jwt_secret" {
-  type      = string
-  sensitive = true
-}
-variable "service_api_key" {
-  type      = string
-  sensitive = true
-}
-variable "n8n_webhook_secret" {
-  type      = string
-  sensitive = true
-}
-variable "meta_access_token" {
-  type      = string
-  sensitive = true
-}
-variable "meta_phone_number_id" {
-  type      = string
-  sensitive = true
-}
-variable "meta_app_secret" {
   type      = string
   sensitive = true
 }

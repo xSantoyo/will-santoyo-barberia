@@ -8,7 +8,6 @@ Todo debe funcionar en local antes de tocar AWS:
 docker compose up --build
 # Frontend  http://localhost:3000
 # Backend   http://localhost:8000/docs
-# n8n       http://localhost:5678  (importar automation/workflows/*.json)
 # Admin     http://localhost:3000/admin  →  admin / BadBoys2026!
 ```
 
@@ -69,8 +68,7 @@ terraform plan -var-file=terraform.tfvars
 terraform apply -var-file=terraform.tfvars     # solo tras aprobación explícita
 ```
 
-Salidas relevantes: `api_endpoint`, `frontend_url`, `n8n_public_ip`,
-`cloudfront_domain`.
+Salidas relevantes: `api_endpoint`, `frontend_url`, `cloudfront_domain`.
 
 ## 4. Post-aprovisionamiento
 
@@ -80,15 +78,10 @@ Salidas relevantes: `api_endpoint`, `frontend_url`, `n8n_public_ip`,
      --cli-binary-format raw-in-base64-out \
      --payload '{"badboys_task": "migrate"}' out.json && cat out.json
    ```
-2. **Seed inicial**: conectarse una vez (bastion temporal o `psql` desde la
-   instancia n8n, que está en la VPC) y ejecutar `python -m app.seed`, o insertar
-   el tenant con SQL equivalente. Cambiar inmediatamente la contraseña admin.
-3. **DNS de n8n**: apuntar `n8n.TU-DOMINIO.com` (registro A) a `n8n_public_ip`.
-   Caddy emite el certificado TLS automáticamente al primer acceso.
-4. **n8n**: crear el usuario owner, importar `automation/workflows/*.json` y
-   definir en el entorno del contenedor las variables de `docs/AUTOMATION.md`.
-5. **WhatsApp**: seguir `docs/WHATSAPP_SETUP.md` (plantillas + credenciales).
-6. **Amplify**: la app queda conectada al repo por Terraform; el primer build se
+2. **Seed inicial**: conectarse una vez a la base (bastion temporal en la VPC o
+   una tarea puntual) y ejecutar `python -m app.seed`, o insertar el tenant con
+   SQL equivalente. Cambiar inmediatamente la contraseña admin.
+3. **Amplify**: la app queda conectada al repo por Terraform; el primer build se
    dispara al hacer push a `main`. Configurar el dominio propio en la consola de
    Amplify si aplica.
 
@@ -96,9 +89,8 @@ Salidas relevantes: `api_endpoint`, `frontend_url`, `n8n_public_ip`,
 
 | Secreto | Dónde vive | Quién lo consume |
 |---|---|---|
-| `badboys-prod/app` (JWT, service key, HMAC) | Secrets Manager | Lambda (al arrancar) |
+| `badboys-prod/app` (JWT) | Secrets Manager | Lambda (al arrancar) |
 | `badboys-prod/database` (DATABASE_URL) | Secrets Manager | Lambda |
-| `badboys-prod/whatsapp` (token Meta) | Secrets Manager | n8n (inyectar en el compose de la instancia) |
 
 La Lambda los carga en el arranque vía `AWS_SECRETS_PREFIX` (ver
 `backend/app/config.py::load_aws_secrets`). Rotación: actualizar el secreto y
@@ -119,8 +111,7 @@ forzar un nuevo despliegue de la Lambda.
 - Logs del backend: CloudWatch `/aws/lambda/badboys-prod-api` (retención 30 días).
 - Alarma `badboys-prod-api-5xx` (≥5 errores en 5 min). Conectar una acción SNS →
   email en la consola si se desea aviso.
-- Fallos de notificación WhatsApp: panel admin (tabla `notification_log`) y
-  ejecuciones de n8n.
+- Acciones administrativas: panel admin (audit log con quién hizo qué y cuándo).
 
 ## 8. Rollback
 

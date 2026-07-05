@@ -141,19 +141,6 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "notification_log",
-        sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("tenant_id", sa.Integer, sa.ForeignKey("tenants.id"), nullable=False,
-                  index=True),
-        sa.Column("appointment_id", sa.Integer, sa.ForeignKey("appointments.id"), index=True),
-        sa.Column("event_type", sa.String(50), nullable=False),
-        sa.Column("status", sa.String(20), nullable=False, server_default="pendiente"),
-        sa.Column("detail", sa.Text),
-        sa.Column("created_at", TZDT, nullable=False),
-        sa.Column("sent_at", TZDT),
-    )
-
-    op.create_table(
         "media_assets",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("tenant_id", sa.Integer, sa.ForeignKey("tenants.id"), nullable=False,
@@ -183,7 +170,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     for table in (
-        "audit_log", "media_assets", "notification_log", "admin_users",
+        "audit_log", "media_assets", "admin_users",
         "appointment_services", "appointments", "services", "barber_time_off",
         "barbers", "tenants",
     ):

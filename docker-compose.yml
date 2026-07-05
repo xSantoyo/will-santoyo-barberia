@@ -27,9 +27,6 @@ services:
       ENVIRONMENT: local
       CORS_ORIGINS: http://localhost:3000
       PUBLIC_BASE_URL: http://localhost:3000
-      N8N_WEBHOOK_BASE: http://n8n:5678
-      N8N_WEBHOOK_SECRET: local-webhook-secret
-      SERVICE_API_KEY: local-service-key
       STORAGE_BACKEND: local
       LOCAL_MEDIA_ROOT: /content
       SEED_ON_START: "true"
@@ -58,30 +55,5 @@ services:
     depends_on:
       - backend
 
-  n8n:
-    image: n8nio/n8n:latest
-    environment:
-      N8N_HOST: localhost
-      N8N_PORT: "5678"
-      N8N_PROTOCOL: http
-      GENERIC_TIMEZONE: America/Bogota
-      TZ: America/Bogota
-      # En local no exigimos login para agilizar el desarrollo:
-      N8N_BASIC_AUTH_ACTIVE: "false"
-      # Variables que usan los workflows importados (ver automation/):
-      BACKEND_BASE_URL: http://backend:8000
-      BACKEND_SERVICE_KEY: local-service-key
-      WEBHOOK_SECRET: local-webhook-secret
-      # Credenciales de Meta (vacías en local: los nodos de WhatsApp fallarán
-      # de forma controlada y quedará el registro en notification_log)
-      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
-      META_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID:-}
-    ports:
-      - "5678:5678"
-    volumes:
-      - n8n-data:/home/node/.n8n
-      - ./automation:/automation:ro
-
 volumes:
   pg-data:
-  n8n-data:

@@ -53,12 +53,11 @@ test("flujo completo: agendar → confirmar → gestionar → cancelar", async (
   await expect(page.getByText(/resumen de tu turno/i)).toBeVisible();
   await page.getByRole("button", { name: /confirmar turno/i }).click();
 
-  // 7. Confirmación con código de gestión
+  // 7. Confirmación: el código de gestión debe ser prominente en pantalla
+  // (ADR-009: es el único canal del cliente para gestionar su turno)
   await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
-  const code = (await page
-    .locator("p.tracking-\\[0\\.2em\\]")
-    .first()
-    .textContent())!.trim();
+  await expect(page.getByText(/guarda este código/i)).toBeVisible();
+  const code = (await page.getByTestId("manage-code").textContent())!.trim();
   expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
   // 8. Gestionar por enlace único y cancelar

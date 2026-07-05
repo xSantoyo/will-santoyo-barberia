@@ -1,10 +1,6 @@
 """Flujo público de agendamiento: disponibilidad → reserva → gestión → cancelación."""
 from __future__ import annotations
 
-from sqlalchemy import select
-
-from app.models import NotificationLog
-
 from .conftest import next_day_off, next_working_date
 
 BASE = "/api/v1/public/bad-boys"
@@ -88,14 +84,6 @@ def test_full_booking_flow(client, db, barbers):
         json={"customer_whatsapp": "+573009999999", "manage_code": code},
     )
     assert not_found.status_code == 404
-
-    # La reserva quedó guardada AUNQUE el webhook falló (n8n deshabilitado):
-    # el intento queda auditado en notification_log (ADR-004)
-    logs = list(
-        db.scalars(select(NotificationLog).where(NotificationLog.event_type
-                                                 == "appointment.created"))
-    )
-    assert any(log.status == "fallido" for log in logs)
 
     # Cancelar
     cancelled = client.post(

@@ -22,8 +22,6 @@ os.environ.update(
         "JWT_SECRET": "clave-de-pruebas-suficientemente-larga-para-hs256!",
         "STORAGE_BACKEND": "local",
         "LOCAL_MEDIA_ROOT": str(_TMP / "media"),
-        "N8N_WEBHOOK_BASE": "",  # webhooks deshabilitados: se auditan como fallidos
-        "SERVICE_API_KEY": "test-service-key",
         "RATE_LIMIT_REQUESTS": "10000",  # sin fricción en tests (hay test dedicado)
         "BOOKING_LEAD_MINUTES": "30",
         # Los tests reparten reservas en semanas distintas para aislarse entre sí:

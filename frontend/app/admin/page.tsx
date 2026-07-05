@@ -1,16 +1,21 @@
 "use client";
 
-/** Dashboard: turnos de HOY por barbero, turno en curso, próximos. */
-import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+/** Dashboard: turnos de HOY por barbero, turno en curso, próximos.
+ * Sin canal de notificación externo (ADR-009): el indicador de "turnos nuevos
+ * sin revisar" compara created_at contra la última revisión (localStorage). */
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { BellRing, Loader2, RefreshCw } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
 import { formatCOP, type AppointmentAdmin, type DashboardData } from "@/lib/types";
 import { PageTitle, StatusBadge, buttonGhost } from "@/components/admin/shared";
+
+const LAST_SEEN_KEY = "badboys.dashboard.lastSeen";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
 
   const load = useCallback(() => {
     adminApi
@@ -20,10 +25,25 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    setLastSeen(window.localStorage.getItem(LAST_SEEN_KEY));
     load();
     const timer = setInterval(load, 60_000); // refresco cada minuto
     return () => clearInterval(timer);
   }, [load]);
+
+  const newAppointments = useMemo(() => {
+    if (!data) return [];
+    const threshold = lastSeen ? new Date(lastSeen) : null;
+    return data.barbers
+      .flatMap((block) => block.all_today)
+      .filter((a) => (threshold ? new Date(a.created_at) > threshold : true));
+  }, [data, lastSeen]);
+
+  function markSeen() {
+    const now = new Date().toISOString();
+    window.localStorage.setItem(LAST_SEEN_KEY, now);
+    setLastSeen(now);
+  }
 
   async function setStatus(appointment: AppointmentAdmin, status: string) {
     setBusy(appointment.id);
@@ -57,6 +77,32 @@ export default function DashboardPage() {
           </button>
         }
       />
+
+      {newAppointments.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-gold/50 bg-gold/10 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-bone">
+            <BellRing size={16} className="shrink-0 text-gold" />
+            <span>
+              <strong className="text-gold">{newAppointments.length}</strong> turno(s)
+              nuevo(s) sin revisar hoy
+              {newAppointments.length <= 3 && (
+                <span className="text-bone-2">
+                  {" · "}
+                  {newAppointments
+                    .map((a) => `${a.time_local} ${a.customer_name}`)
+                    .join(" · ")}
+                </span>
+              )}
+            </span>
+          </p>
+          <button
+            onClick={markSeen}
+            className="rounded-sm border border-gold px-3 py-1.5 text-xs text-gold transition-colors hover:bg-gold hover:text-ink"
+          >
+            Marcar como revisados
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-3 lg:grid-cols-2">
         {data.barbers.map((block) => (

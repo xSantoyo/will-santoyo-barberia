@@ -52,17 +52,10 @@ module "secrets" {
   name_prefix = local.name_prefix
   secrets = {
     app = {
-      JWT_SECRET         = var.jwt_secret
-      SERVICE_API_KEY    = var.service_api_key
-      N8N_WEBHOOK_SECRET = var.n8n_webhook_secret
+      JWT_SECRET = var.jwt_secret
     }
     database = {
       DATABASE_URL = "postgresql+psycopg://${module.database.db_username}:${module.database.db_password}@${module.database.db_endpoint}:5432/${module.database.db_name}"
-    }
-    whatsapp = {
-      META_ACCESS_TOKEN    = var.meta_access_token
-      META_PHONE_NUMBER_ID = var.meta_phone_number_id
-      META_APP_SECRET      = var.meta_app_secret
     }
   }
 }
@@ -75,24 +68,14 @@ module "api" {
   image_uri          = var.backend_image_uri
   cors_origins       = [var.frontend_url]
   environment_variables = {
-    ENVIRONMENT       = "prod"
+    ENVIRONMENT        = "prod"
     AWS_SECRETS_PREFIX = local.name_prefix
-    CORS_ORIGINS      = var.frontend_url
-    PUBLIC_BASE_URL   = var.frontend_url
-    N8N_WEBHOOK_BASE  = "http://${module.automation.n8n_private_ip}:5678"
-    STORAGE_BACKEND   = "s3"
-    S3_BUCKET         = module.storage.bucket_name
-    CDN_BASE_URL      = "https://${module.storage.cloudfront_domain}"
+    CORS_ORIGINS       = var.frontend_url
+    PUBLIC_BASE_URL    = var.frontend_url
+    STORAGE_BACKEND    = "s3"
+    S3_BUCKET          = module.storage.bucket_name
+    CDN_BASE_URL       = "https://${module.storage.cloudfront_domain}"
   }
-}
-
-module "automation" {
-  source           = "../../modules/automation"
-  name_prefix      = local.name_prefix
-  vpc_id           = module.network.vpc_id
-  public_subnet_id = module.network.public_subnet_ids[0]
-  n8n_host         = var.n8n_host
-  admin_cidr       = var.admin_cidr
 }
 
 module "frontend" {
@@ -106,5 +89,4 @@ module "frontend" {
 
 output "api_endpoint" { value = module.api.api_endpoint }
 output "frontend_url" { value = module.frontend.default_domain }
-output "n8n_public_ip" { value = module.automation.n8n_public_ip }
 output "cloudfront_domain" { value = module.storage.cloudfront_domain }

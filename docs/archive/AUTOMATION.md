@@ -1,4 +1,9 @@
-# Automatización con n8n
+# [ARCHIVADO — ADR-009] Automatización con n8n
+
+> ⛔ **Este documento está archivado.** El servicio n8n fue retirado junto con la
+> integración de WhatsApp (ADR-009 en `docs/ARCHITECTURE.md`). Los workflows JSON
+> siguen en `automation/workflows/` como referencia histórica; no se despliegan
+> ni forman parte de docker-compose ni de Terraform.
 
 Todos los flujos de notificación viven en n8n, desacoplados del backend (ADR-004):
 el backend solo emite webhooks firmados y expone endpoints internos de consulta;

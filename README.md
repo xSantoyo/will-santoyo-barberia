@@ -14,7 +14,6 @@ lista para escalar a múltiples negocios. El primer cliente en producción es
 | ORM / migraciones | SQLAlchemy 2.x + Alembic |
 | Imágenes | Amazon S3 + CloudFront (local: carpeta `content/`) |
 | Autenticación | JWT propio (access + refresh), bcrypt, roles `admin` / `barbero` |
-| Automatización | n8n self-hosted (Docker) → Meta WhatsApp Business Cloud API |
 | IaC | Terraform (`infra/`, entornos `dev` y `prod`) |
 | CI/CD | GitHub Actions |
 | Testing | pytest (backend) · Vitest + Playwright (frontend) |
@@ -28,10 +27,10 @@ lista para escalar a múltiples negocios. El primer cliente en producción es
 │   ├── alembic/       #   migraciones de base de datos
 │   └── tests/         #   suite pytest
 ├── infra/             # Terraform (modules + environments/{dev,prod})
-├── automation/        # Workflows n8n exportados (JSON) + documentación
+├── automation/        # (histórico) workflows n8n del diseño original — ver ADR-009
 ├── content/bad-boys/  # Fotos reales del cliente (gallery / barbers / cuts)
-├── docs/              # ARCHITECTURE, DEPLOYMENT, WHATSAPP_SETUP, AUTOMATION
-└── docker-compose.yml # Postgres + backend + n8n con un solo comando
+├── docs/              # ARCHITECTURE, DEPLOYMENT (+ docs/archive/)
+└── docker-compose.yml # Postgres + backend + frontend con un solo comando
 ```
 
 ## Desarrollo local (un solo comando)
@@ -49,7 +48,6 @@ Esto levanta:
 | PostgreSQL 16 | `localhost:5432` | usuario/clave/db: `badboys` |
 | Backend FastAPI | http://localhost:8000 | docs interactivas en `/docs` |
 | Frontend Next.js | http://localhost:3000 | sitio público + `/admin` |
-| n8n | http://localhost:5678 | editor visual de workflows |
 
 Al arrancar, el backend aplica migraciones Alembic y carga **datos semilla**
 (tenant Bad Boys, 3 barberos con horarios distintos, servicios y precios,
@@ -92,18 +90,18 @@ cd frontend && npm run test:e2e  # end-to-end (Playwright, requiere stack corrie
 
 ## Documentación
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — arquitectura, diagrama y decisiones técnicas
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — arquitectura, diagrama y decisiones técnicas (ADRs)
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — despliegue a AWS con Terraform, paso a paso
-- [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md) — configuración de Meta WhatsApp Cloud API y plantillas
-- [docs/AUTOMATION.md](docs/AUTOMATION.md) — workflows de n8n: qué hace cada uno y cómo importarlos
+- `docs/archive/` — documentación del canal WhatsApp/n8n retirado (ADR-009), como referencia
 
 ## Principios de diseño
 
 1. **Multi-tenant desde el modelo de datos**: toda tabla de negocio lleva `tenant_id`.
    Hoy existe un solo tenant (`bad-boys`), pero el esquema no se rehace para escalar.
 2. **Serverless-first**: Lambda + API Gateway + RDS escala a cero costo marginal en horas muertas.
-3. **La reserva nunca depende de WhatsApp**: la cita se guarda primero; la notificación
-   se despacha como webhook a n8n y sus fallos quedan auditados en `notification_log`.
+3. **Sin canal de notificación externo (ADR-009)**: el cliente recibe su código de
+   gestión en pantalla (y debe guardarlo); el negocio ve los turnos nuevos en el
+   dashboard del panel. Cero dependencias de Meta/WhatsApp API.
 4. **Zona horaria única**: `America/Bogota` en frontend, backend, DB y mensajes.
 5. **Doble-reserva imposible a nivel de base de datos**: constraint de exclusión
    (`EXCLUDE USING gist`) sobre rango horario por barbero, no solo validación de aplicación.

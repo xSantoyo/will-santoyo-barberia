@@ -66,13 +66,3 @@ def test_refresh_flow(client):
 def test_barbero_role_cannot_manage_services(client, barbero_headers):
     assert client.get("/api/v1/admin/services", headers=barbero_headers).status_code == 403
     assert client.get("/api/v1/admin/barbers", headers=barbero_headers).status_code == 403
-
-
-def test_internal_requires_service_key(client):
-    assert client.get("/api/v1/internal/agenda/today").status_code == 401
-    assert client.get(
-        "/api/v1/internal/agenda/today", headers={"X-Service-Key": "incorrecta"}
-    ).status_code == 401
-    assert client.get(
-        "/api/v1/internal/agenda/today", headers={"X-Service-Key": "test-service-key"}
-    ).status_code == 200

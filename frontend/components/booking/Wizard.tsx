@@ -11,7 +11,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Loader2,
+  TriangleAlert,
+} from "lucide-react";
 import { ApiError, mediaUrl, publicApi } from "@/lib/api";
 import {
   formatCOP,
@@ -362,7 +371,7 @@ export default function Wizard() {
                   className="focus-gold w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3 text-bone placeholder:text-bone-2/50"
                 />
                 <span className="mt-1.5 block text-xs text-bone-2/70">
-                  Te enviaremos la confirmación y el recordatorio a este número.
+                  Solo lo usamos si necesitamos contactarte por tu turno.
                 </span>
               </label>
             </div>
@@ -537,6 +546,18 @@ function CalendarDay({
 }
 
 function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(appointment.manage_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      /* clipboard no disponible (http antiguo): el código sigue visible */
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
@@ -553,18 +574,40 @@ function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
         <span className="text-bone">{appointment.time_local}</span> con{" "}
         <span className="text-bone">{appointment.barber_name}</span>.
       </p>
-      <div className="mt-8 rounded-sm border border-ink-3 bg-ink-2 p-6">
-        <p className="text-xs uppercase tracking-widest text-bone-2">Turno del día</p>
-        <p className="display mt-1 text-5xl text-gold">#{appointment.daily_number}</p>
-        <p className="mt-4 text-xs uppercase tracking-widest text-bone-2">Código de gestión</p>
-        <p className="display mt-1 text-3xl tracking-[0.2em] text-bone">
+
+      {/* El código es el ÚNICO medio para gestionar el turno: protagonista. */}
+      <div className="mt-8 rounded-sm border-2 border-gold bg-gold/10 p-6">
+        <p className="text-xs uppercase tracking-widest text-gold">
+          Tu código de gestión
+        </p>
+        <p
+          data-testid="manage-code"
+          className="display mt-2 text-6xl tracking-[0.18em] text-bone"
+        >
           {appointment.manage_code}
         </p>
-        <p className="mt-4 text-xs text-bone-2/70">
-          Guarda este código: con él puedes consultar o cancelar tu turno. También te
-          lo enviaremos por WhatsApp.
+        <button
+          onClick={copyCode}
+          className="mx-auto mt-4 flex items-center gap-2 rounded-sm border border-gold px-4 py-2 text-sm text-gold transition-colors hover:bg-gold hover:text-ink"
+        >
+          {copied ? <Check size={15} /> : <Copy size={15} />}
+          {copied ? "¡Copiado!" : "Copiar código"}
+        </button>
+        <p className="mt-5 flex items-start gap-2 text-left text-sm text-bone">
+          <TriangleAlert size={18} className="mt-0.5 shrink-0 text-gold" />
+          <span>
+            <strong>Guarda este código:</strong> lo necesitas para consultar o
+            cancelar tu turno. Tómale una captura de pantalla o cópialo ahora —
+            no se envía por ningún otro medio.
+          </span>
         </p>
       </div>
+
+      <div className="mt-6 rounded-sm border border-ink-3 bg-ink-2 px-6 py-4">
+        <p className="text-xs uppercase tracking-widest text-bone-2">Turno del día</p>
+        <p className="display mt-1 text-4xl text-gold">#{appointment.daily_number}</p>
+      </div>
+
       <div className="mt-8 flex flex-col gap-3">
         <Link
           href={`/turno/${appointment.manage_code}`}

@@ -36,7 +36,7 @@ export function About({ tenant }: { tenant: TenantPublic }) {
             declaración.
           </p>
           <ul className="mt-8 space-y-3 text-bone-2">
-            {["Turnos en línea, sin filas ni esperas", "Productos y técnica de primera", "WhatsApp directo: confirmación y recordatorio de tu turno"].map(
+            {["Turnos en línea, sin filas ni esperas", "Productos y técnica de primera", "Tu código de gestión en pantalla: consulta o cancela cuando quieras"].map(
               (item) => (
                 <li key={item} className="flex items-center gap-3">
                   <Scissors size={16} className="shrink-0 text-gold" />

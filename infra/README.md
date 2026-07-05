@@ -8,12 +8,14 @@ infra/
 │   ├── api/          # Lambda (imagen contenedor) + API Gateway HTTP API
 │   ├── storage/      # S3 (media) + CloudFront
 │   ├── frontend/     # Amplify Hosting conectado al repo GitHub
-│   ├── automation/   # EC2 t4g.micro con Docker + n8n (user_data)
-│   └── secrets/      # Secrets Manager (JWT, DB, Meta WhatsApp, webhook HMAC)
+│   └── secrets/      # Secrets Manager (JWT, DATABASE_URL)
 └── environments/
     ├── dev/
     └── prod/
 ```
+
+> El módulo `automation/` (EC2 con n8n) fue eliminado en ADR-009: sin
+> integración de WhatsApp no hay nada que orquestar fuera del backend.
 
 ## Uso
 
@@ -35,10 +37,10 @@ terraform apply                                # ⚠️ genera costos reales en 
 |---|---|---|
 | RDS PostgreSQL | db.t4g.micro, 20 GB gp3, single-AZ | ~15–17 |
 | Lambda + API Gateway | < 100k req/mes | ~0–2 |
-| EC2 n8n | t4g.micro + 20 GB EBS | ~7–9 |
 | S3 + CloudFront | pocos GB + tráfico bajo | ~1–3 |
 | Amplify Hosting | build + hosting SSR bajo tráfico | ~5–15 |
-| Secrets Manager | ~5 secretos | ~2 |
-| **Total** | | **~30–50 USD/mes** |
+| Secrets Manager | 2 secretos + endpoint VPC | ~8 |
+| **Total** | | **~25–40 USD/mes** |
 
-(No incluye el costo por conversación de WhatsApp Business, que factura Meta aparte.)
+(Bajó frente a la estimación original al eliminar la instancia EC2 de n8n y los
+costos por conversación de WhatsApp Business — ver ADR-009.)
