@@ -161,14 +161,27 @@ def test_create_and_deactivate_barber(client, admin_headers):
         json={
             "name": "Barbero Temporal",
             "specialty": "Prueba",
+            "instagram": "@temporal.badboys",
             "schedule": {"mon": {"start": "10:00", "end": "18:00"}},
         },
         headers=admin_headers,
     )
     assert created.status_code == 201
     barber_id = created.json()["id"]
+    assert created.json()["instagram"] == "@temporal.badboys"
 
-    public_names = {b["name"] for b in client.get("/api/v1/public/bad-boys/barbers").json()}
+    # El Instagram es editable desde el panel y visible en la tarjeta pública
+    updated = client.patch(
+        f"{BASE}/barbers/{barber_id}",
+        json={"instagram": "@nuevo.handle"},
+        headers=admin_headers,
+    )
+    assert updated.json()["instagram"] == "@nuevo.handle"
+    public = client.get("/api/v1/public/bad-boys/barbers").json()
+    temporal = next(b for b in public if b["name"] == "Barbero Temporal")
+    assert temporal["instagram"] == "@nuevo.handle"
+
+    public_names = {b["name"] for b in public}
     assert "Barbero Temporal" in public_names
 
     response = client.patch(

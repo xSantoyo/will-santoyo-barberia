@@ -37,18 +37,21 @@ BARBERS = [
     {
         "name": "Barbero 1",
         "specialty": "Fades y diseño freestyle",
+        "instagram": "@badboys.barbero1",
         "sort_order": 1,
         "schedule": {**FULL_WEEK, "mon": None},  # descansa lunes
     },
     {
         "name": "Barbero 2",
         "specialty": "Barba y afeitado tradicional",
+        "instagram": "@badboys.barbero2",
         "sort_order": 2,
         "schedule": {**FULL_WEEK, "tue": None},  # descansa martes
     },
     {
         "name": "Barbero 3",
         "specialty": "Color y estilos clásicos",
+        "instagram": "@badboys.barbero3",
         "sort_order": 3,
         "schedule": {
             **FULL_WEEK,

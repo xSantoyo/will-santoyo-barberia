@@ -50,13 +50,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-svh">
-      <aside className="fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-ink-3 bg-ink-2 lg:w-56">
-        <Link href="/" className="display px-3 py-5 text-center text-xl text-bone lg:text-left">
+      <aside className="texture-pinstripe fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-ink-3 bg-ink-2 lg:w-56">
+        <Link href="/" className="display px-3 py-6 text-center text-xl text-bone lg:px-5 lg:text-left">
           <span className="hidden lg:inline">
             BAD<span className="text-gold"> BOYS</span>
           </span>
-          <span className="lg:hidden text-gold">BB</span>
+          <span className="text-gold lg:hidden">BB</span>
         </Link>
+        <div className="barber-stripe mx-3 mb-4 lg:mx-5" />
         <nav className="flex-1 space-y-1 px-2">
           {links.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
@@ -64,12 +65,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-colors ${
+                className={`relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-all duration-200 ${
                   active
                     ? "bg-gold/15 text-gold"
-                    : "text-bone-2 hover:bg-ink-3 hover:text-bone"
+                    : "text-bone-2 hover:translate-x-0.5 hover:bg-ink-3 hover:text-bone"
                 }`}
               >
+                {active && (
+                  <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-gold" />
+                )}
                 <Icon size={18} className="shrink-0" />
                 <span className="hidden lg:inline">{label}</span>
               </Link>
@@ -78,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="border-t border-ink-3 p-3">
           <p className="hidden truncate px-1 pb-2 text-xs text-bone-2 lg:block">
-            {auth.username} · {auth.role}
+            {auth.username} · <span className="text-gold">{auth.role}</span>
           </p>
           <button
             onClick={() => {
@@ -92,7 +96,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </aside>
-      <main className="ml-16 flex-1 px-5 py-8 lg:ml-56 lg:px-10">{children}</main>
+      {/* key=pathname reinicia la animación de entrada al cambiar de sección */}
+      <main key={pathname} className="animate-fade-up ml-16 flex-1 px-5 py-8 lg:ml-56 lg:px-10">
+        {children}
+      </main>
     </div>
   );
 }

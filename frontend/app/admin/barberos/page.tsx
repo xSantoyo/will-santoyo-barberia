@@ -113,6 +113,9 @@ export default function BarberosPage() {
               <div className="min-w-0 flex-1">
                 <h2 className="display truncate text-2xl text-bone">{barber.name}</h2>
                 <p className="truncate text-xs text-bone-2">{barber.specialty}</p>
+                {barber.instagram && (
+                  <p className="mt-0.5 truncate text-xs text-gold/80">{barber.instagram}</p>
+                )}
                 {!barber.is_active && (
                   <p className="mt-1 text-[11px] uppercase tracking-wider text-wine">Inactivo</p>
                 )}
@@ -176,6 +179,7 @@ function BarberModal({
   const [form, setForm] = useState({
     name: barber?.name ?? "",
     specialty: barber?.specialty ?? "",
+    instagram: barber?.instagram ?? "",
     schedule: (barber?.schedule && Object.keys(barber.schedule).length > 0
       ? barber.schedule
       : EMPTY_SCHEDULE) as WeeklySchedule,
@@ -195,11 +199,15 @@ function BarberModal({
     setError(null);
     try {
       if (barber) {
-        await adminApi.updateBarber(barber.id, form);
+        await adminApi.updateBarber(barber.id, {
+          ...form,
+          instagram: form.instagram || null,
+        });
       } else {
         await adminApi.createBarber({
           name: form.name,
           specialty: form.specialty || null,
+          instagram: form.instagram || null,
           schedule: form.schedule,
           sort_order: form.sort_order,
         });
@@ -232,6 +240,15 @@ function BarberModal({
             <input
               value={form.specialty ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, specialty: e.target.value }))}
+              className={`${inputClass} mt-1`}
+            />
+          </label>
+          <label className="col-span-2 block text-sm text-bone-2">
+            Instagram (visible en su tarjeta del sitio)
+            <input
+              value={form.instagram}
+              onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))}
+              placeholder="@usuario o URL completa"
               className={`${inputClass} mt-1`}
             />
           </label>

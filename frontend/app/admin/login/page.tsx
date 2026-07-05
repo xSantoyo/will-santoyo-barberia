@@ -26,16 +26,23 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center px-5">
-      <div className="w-full max-w-sm">
+    <main className="grain texture-grid relative flex min-h-svh items-center justify-center overflow-hidden px-5">
+      <span
+        aria-hidden
+        className="display text-outline pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap text-[16vw] leading-none"
+      >
+        ADMIN
+      </span>
+      <div className="animate-fade-up relative w-full max-w-sm">
         <p className="display text-center text-4xl text-bone">
           BAD<span className="text-gold"> BOYS</span>
         </p>
         <p className="mt-2 text-center text-sm text-bone-2">Panel de administración</p>
+        <div className="barber-stripe mx-auto mt-4 w-24" />
 
         <form
           onSubmit={submit}
-          className="mt-10 space-y-5 rounded-sm border border-ink-3 bg-ink-2 p-6"
+          className="clip-corner mt-8 space-y-5 border border-gold/25 bg-ink-2 p-6"
         >
           {error && (
             <div className="rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">

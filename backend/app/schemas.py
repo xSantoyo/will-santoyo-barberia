@@ -40,6 +40,7 @@ class BarberPublic(ORMModel):
     id: int
     name: str
     specialty: str | None
+    instagram: str | None = None
     photo_url: str | None = None
     schedule: dict
 
@@ -145,6 +146,7 @@ class BarberAdmin(ORMModel):
     id: int
     name: str
     specialty: str | None
+    instagram: str | None = None
     photo_key: str | None
     photo_url: str | None = None
     schedule: dict
@@ -155,6 +157,7 @@ class BarberAdmin(ORMModel):
 class BarberCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     specialty: str | None = None
+    instagram: str | None = Field(default=None, max_length=120)
     schedule: dict = Field(default_factory=dict)
     sort_order: int = 0
 
@@ -162,6 +165,7 @@ class BarberCreate(BaseModel):
 class BarberUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=120)
     specialty: str | None = None
+    instagram: str | None = Field(default=None, max_length=120)
     schedule: dict | None = None
     is_active: bool | None = None
     sort_order: int | None = None

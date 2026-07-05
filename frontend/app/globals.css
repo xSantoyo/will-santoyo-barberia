@@ -28,6 +28,32 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ==========================================================================
+   Interacción de texto (feedback R1 #3): el contenido estático no debe verse
+   ni comportarse como editable. Sin cursor I-beam sobre texto no interactivo;
+   titulares y controles no seleccionables. Los párrafos siguen siendo
+   copiables (solo cambia el cursor); .selectable marca lo que SÍ se copia
+   (código de gestión).
+   ========================================================================== */
+body {
+  cursor: default;
+}
+h1, h2, h3, h4, .display, label, legend, dt, th, nav {
+  user-select: none;
+}
+a, button, [role="button"], select, summary {
+  cursor: pointer;
+  user-select: none;
+}
+input, textarea {
+  cursor: text;
+  user-select: text;
+}
+.selectable {
+  user-select: all;
+  cursor: text;
+}
+
 /* Titulares condensados con carácter urbano */
 .display {
   font-family: var(--font-display);
@@ -43,24 +69,98 @@ body {
   background: linear-gradient(90deg, var(--color-gold), transparent);
 }
 
+/* ==========================================================================
+   Texturas urbanas (feedback R1 #1) — misma paleta, cero colores nuevos
+   ========================================================================== */
+
+/* Grano de concreto (ruido fractal sutil) */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Pinstripe diagonal en dorado casi imperceptible (superficie cepillada) */
+.texture-pinstripe {
+  background-image: repeating-linear-gradient(
+    -55deg,
+    transparent 0px,
+    transparent 11px,
+    rgba(201, 162, 75, 0.05) 11px,
+    rgba(201, 162, 75, 0.05) 12px
+  );
+}
+
+/* Retícula urbana tenue (plano de ciudad) */
+.texture-grid {
+  background-image:
+    linear-gradient(rgba(245, 241, 232, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 241, 232, 0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Franja de poste de barbero, versión sobria: hueso/dorado/vino sobre negro */
+.barber-stripe {
+  height: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-gold) 0 14px,
+    var(--color-ink) 14px 22px,
+    var(--color-bone) 22px 30px,
+    var(--color-ink) 30px 38px,
+    var(--color-wine) 38px 46px,
+    var(--color-ink) 46px 54px
+  );
+  opacity: 0.85;
+}
+
+/* Palabra-marca gigante de fondo (contorno, sin relleno) */
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(201, 162, 75, 0.14);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Esquina cortada estilo placa metálica para tarjetas destacadas */
+.clip-corner {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+}
+
 /* Scrollbar sobria en el panel admin */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-ink-3) transparent;
 }
 
-/* Grano sutil para la dirección de arte de alto contraste */
-.grain::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
 /* Utilidades de foco accesible con acento dorado */
 .focus-gold:focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Animaciones CSS ligeras (panel admin y microdetalles)
+   ========================================================================== */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
 }

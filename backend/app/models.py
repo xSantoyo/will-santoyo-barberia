@@ -59,6 +59,8 @@ class Barber(Base):
     name: Mapped[str] = mapped_column(String(120))
     photo_key: Mapped[str | None] = mapped_column(String(300))
     specialty: Mapped[str | None] = mapped_column(String(200))
+    # Handle (@usuario) o URL completa del Instagram del barbero
+    instagram: Mapped[str | None] = mapped_column(String(120))
     # Horario semanal: {"mon": {"start": "09:00", "end": "19:00"}, ..., "sun": null}
     # null / clave ausente = día de descanso recurrente
     schedule: Mapped[dict] = mapped_column(JsonCol, default=dict)

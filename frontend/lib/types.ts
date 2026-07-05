@@ -23,6 +23,7 @@ export interface BarberPublic {
   id: number;
   name: string;
   specialty: string | null;
+  instagram: string | null;
   photo_url: string | null;
   schedule: WeeklySchedule;
 }
@@ -89,6 +90,7 @@ export interface BarberAdmin {
   id: number;
   name: string;
   specialty: string | null;
+  instagram: string | null;
   photo_key: string | null;
   photo_url: string | null;
   schedule: WeeklySchedule;

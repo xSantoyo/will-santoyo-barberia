@@ -1,9 +1,14 @@
 /** Pruebas de componentes clave del sitio público y utilidades. */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Services, Location } from "@/components/public/Sections";
+import { Barbers, Services, Location } from "@/components/public/Sections";
 import { StatusBadge } from "@/components/admin/shared";
-import { formatCOP, type ServicePublic, type TenantPublic } from "@/lib/types";
+import {
+  formatCOP,
+  type BarberPublic,
+  type ServicePublic,
+  type TenantPublic,
+} from "@/lib/types";
 
 const SERVICES: ServicePublic[] = [
   { id: 1, name: "Corte clásico", price_cop: 30000, duration_min: 45 },
@@ -56,6 +61,46 @@ describe("Location (horarios del negocio)", () => {
     expect(screen.getByText("09:00 – 19:00")).toBeInTheDocument();
     expect(screen.getByText("Domingo")).toBeInTheDocument();
     expect(screen.getAllByText("Cerrado").length).toBeGreaterThan(0);
+  });
+});
+
+describe("Barbers (tarjetas del equipo)", () => {
+  const BARBERS: BarberPublic[] = [
+    {
+      id: 1,
+      name: "Barbero 1",
+      specialty: "Fades",
+      instagram: "@badboys.barbero1",
+      photo_url: null,
+      schedule: {},
+    },
+    {
+      id: 2,
+      name: "Barbero 2",
+      specialty: "Barba",
+      instagram: null,
+      photo_url: null,
+      schedule: {},
+    },
+  ];
+
+  it("muestra el enlace de Instagram cuando el barbero lo tiene", () => {
+    render(<Barbers barbers={BARBERS} />);
+    const link = screen.getByRole("link", { name: /instagram de barbero 1/i });
+    expect(link).toHaveAttribute("href", "https://instagram.com/badboys.barbero1");
+    expect(link).toHaveAttribute("target", "_blank");
+    // Barbero 2 no tiene Instagram: no debe renderizar el enlace
+    expect(
+      screen.queryByRole("link", { name: /instagram de barbero 2/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("mantiene el botón de agendar por barbero", () => {
+    render(<Barbers barbers={BARBERS} />);
+    // El CTA usa el primer nombre: "Agendar con Barbero"
+    const links = screen.getAllByRole("link", { name: /agendar con/i });
+    expect(links[0]).toHaveAttribute("href", "/agendar?barbero=1");
+    expect(links[1]).toHaveAttribute("href", "/agendar?barbero=2");
   });
 });
 

@@ -30,7 +30,8 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 className="display text-4xl text-bone">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-bone-2">{subtitle}</p>}
+        <div className="gold-rule mt-2" />
+        {subtitle && <p className="mt-2 text-sm text-bone-2">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -54,8 +55,9 @@ export function Modal({
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 350, damping: 28 }}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-sm border border-ink-3 bg-ink-2 p-6"
+        className="clip-corner grain relative max-h-[90vh] w-full max-w-lg overflow-y-auto border border-gold/25 bg-ink-2 p-6"
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="display text-2xl text-bone">{title}</h2>
@@ -72,6 +74,6 @@ export function Modal({
 export const inputClass =
   "focus-gold w-full rounded-sm border border-ink-3 bg-ink px-3 py-2.5 text-sm text-bone placeholder:text-bone-2/50";
 export const buttonPrimary =
-  "display rounded-sm bg-gold px-5 py-2.5 text-ink transition-transform enabled:hover:scale-[1.02] disabled:opacity-50";
+  "display rounded-sm bg-gold px-5 py-2.5 text-ink transition-all enabled:hover:scale-[1.02] enabled:hover:shadow-[0_0_20px_rgba(201,162,75,0.3)] enabled:active:scale-95 disabled:opacity-50";
 export const buttonGhost =
-  "rounded-sm border border-ink-3 px-4 py-2 text-sm text-bone-2 transition-colors hover:border-gold/40 hover:text-bone";
+  "rounded-sm border border-ink-3 px-4 py-2 text-sm text-bone-2 transition-all hover:border-gold/40 hover:text-bone active:scale-95";

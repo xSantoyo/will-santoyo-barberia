@@ -187,26 +187,36 @@ export default function Wizard() {
     step === 4;
 
   return (
-    <div className="mx-auto max-w-3xl px-5 pb-24">
+    <div className="mx-auto max-w-3xl px-5 pb-32 sm:pb-24">
       {/* Barra de progreso */}
-      <ol className="mb-10 flex items-center gap-1 text-[11px] uppercase tracking-wider sm:gap-2 sm:text-xs">
+      <ol className="mb-3 flex items-center gap-1 text-[11px] uppercase tracking-wider sm:gap-2 sm:text-xs">
         {STEPS.map((label, i) => (
           <li key={label} className="flex flex-1 flex-col items-center gap-2">
-            <span
-              className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm ${
+            <motion.span
+              animate={{ scale: i === step ? 1.12 : 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm ${
                 i < step
                   ? "border-gold bg-gold text-ink"
                   : i === step
-                    ? "border-gold text-gold"
+                    ? "border-gold text-gold shadow-[0_0_16px_rgba(201,162,75,0.25)]"
                     : "border-ink-3 text-bone-2"
               }`}
             >
               {i < step ? <Check size={14} /> : i + 1}
-            </span>
+            </motion.span>
             <span className={i === step ? "text-gold" : "text-bone-2/70"}>{label}</span>
           </li>
         ))}
       </ol>
+      {/* Línea de avance dorada */}
+      <div className="mb-10 h-0.5 w-full overflow-hidden rounded-full bg-ink-3">
+        <motion.div
+          className="h-full bg-gold"
+          animate={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 22 }}
+        />
+      </div>
 
       {error && (
         <div className="mb-6 rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm text-bone">
@@ -217,43 +227,56 @@ export default function Wizard() {
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 24 }}
+          initial={{ opacity: 0, x: 42 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.25 }}
+          exit={{ opacity: 0, x: -42 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
           {step === 0 && (
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
               {barbers.map((candidate) => (
                 <button
                   key={candidate.id}
                   onClick={() => setBarber(candidate)}
-                  className={`group overflow-hidden rounded-sm border text-left transition-colors ${
+                  className={`group clip-corner flex items-center gap-4 overflow-hidden border p-3 text-left transition-all duration-300 active:scale-[0.98] sm:block sm:p-0 ${
                     barber?.id === candidate.id
-                      ? "border-gold bg-ink-2"
-                      : "border-ink-3 bg-ink-2 hover:border-gold/50"
+                      ? "border-gold bg-gold/10 sm:bg-ink-2"
+                      : "border-ink-3 bg-ink-2 hover:border-gold/50 sm:hover:-translate-y-1"
                   }`}
                 >
-                  <div className="aspect-square bg-ink-3">
+                  {/* Móvil: tarjeta horizontal compacta (zona táctil ancha);
+                      desktop: tarjeta vertical con foto grande */}
+                  <div className="grain relative h-20 w-20 shrink-0 overflow-hidden rounded-sm bg-ink-3 sm:aspect-square sm:h-auto sm:w-full sm:rounded-none">
                     {candidate.photo_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={mediaUrl(candidate.photo_url) ?? ""}
                         alt={candidate.name}
-                        className="h-full w-full object-cover grayscale group-hover:grayscale-0"
+                        className="h-full w-full object-cover grayscale transition duration-500 group-hover:grayscale-0"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <span className="display text-6xl text-ink">
+                      <div className="texture-pinstripe flex h-full items-center justify-center">
+                        <span className="display text-outline text-4xl sm:text-8xl">
                           {candidate.name.charAt(0)}
                         </span>
                       </div>
                     )}
                   </div>
-                  <div className="p-4">
+                  <div className="min-w-0 sm:p-4">
                     <p className="display text-xl text-bone">{candidate.name}</p>
-                    <p className="mt-1 text-xs text-bone-2">{candidate.specialty}</p>
+                    <p className="mt-1 truncate text-xs text-bone-2 sm:whitespace-normal">
+                      {candidate.specialty}
+                    </p>
                   </div>
+                  <span
+                    className={`ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full border sm:hidden ${
+                      barber?.id === candidate.id
+                        ? "border-gold bg-gold text-ink"
+                        : "border-ink-3 text-transparent"
+                    }`}
+                  >
+                    <Check size={15} />
+                  </span>
                 </button>
               ))}
             </div>
@@ -273,24 +296,24 @@ export default function Wizard() {
                           : [...current, service.id],
                       )
                     }
-                    className={`flex w-full items-center justify-between rounded-sm border px-5 py-4 text-left transition-colors ${
+                    className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-sm border px-4 py-4 text-left transition-all duration-200 active:scale-[0.99] sm:px-5 ${
                       active ? "border-gold bg-gold/10" : "border-ink-3 bg-ink-2 hover:border-gold/40"
                     }`}
                   >
-                    <span>
-                      <span className="block text-bone">{service.name}</span>
+                    <span className="min-w-0">
+                      <span className="block text-base text-bone">{service.name}</span>
                       <span className="text-xs text-bone-2">{service.duration_min} min</span>
                     </span>
-                    <span className="flex items-center gap-3">
+                    <span className="flex shrink-0 items-center gap-3">
                       <span className="display text-xl text-gold">
                         {formatCOP(service.price_cop)}
                       </span>
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                           active ? "border-gold bg-gold text-ink" : "border-ink-3"
                         }`}
                       >
-                        {active && <Check size={14} />}
+                        {active && <Check size={15} />}
                       </span>
                     </span>
                   </button>
@@ -330,14 +353,14 @@ export default function Wizard() {
                     No quedan horarios ese día. Prueba otra fecha.
                   </p>
                 ) : (
-                  <div className="grid max-h-80 grid-cols-3 gap-2 overflow-y-auto pr-1">
+                  <div className="grid max-h-80 grid-cols-3 gap-2.5 overflow-y-auto pr-1">
                     {availability?.slots.map((slot) => (
                       <button
                         key={slot}
                         onClick={() => setTime(slot)}
-                        className={`rounded-sm border px-3 py-2.5 text-sm transition-colors ${
+                        className={`min-h-12 rounded-sm border px-3 text-base transition-all duration-150 active:scale-95 sm:min-h-0 sm:py-2.5 sm:text-sm ${
                           time === slot
-                            ? "border-gold bg-gold text-ink"
+                            ? "border-gold bg-gold text-ink shadow-[0_0_16px_rgba(201,162,75,0.3)]"
                             : "border-ink-3 bg-ink-2 text-bone hover:border-gold/50"
                         }`}
                       >
@@ -352,13 +375,15 @@ export default function Wizard() {
 
           {step === 3 && (
             <div className="mx-auto max-w-md space-y-5">
+              {/* text-base (16px) evita el zoom automático de iOS al enfocar */}
               <label className="block">
                 <span className="mb-1.5 block text-sm text-bone-2">Tu nombre</span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Nombre y apellido"
-                  className="focus-gold w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3 text-bone placeholder:text-bone-2/50"
+                  autoComplete="name"
+                  className="focus-gold min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base text-bone placeholder:text-bone-2/50"
                 />
               </label>
               <label className="block">
@@ -368,7 +393,8 @@ export default function Wizard() {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="300 123 4567"
                   inputMode="tel"
-                  className="focus-gold w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3 text-bone placeholder:text-bone-2/50"
+                  autoComplete="tel"
+                  className="focus-gold min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base text-bone placeholder:text-bone-2/50"
                 />
                 <span className="mt-1.5 block text-xs text-bone-2/70">
                   Solo lo usamos si necesitamos contactarte por tu turno.
@@ -402,33 +428,40 @@ export default function Wizard() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Navegación */}
-      <div className="mt-10 flex items-center justify-between">
-        <button
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
-          disabled={step === 0}
-          className="flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-bone disabled:invisible"
-        >
-          <ArrowLeft size={16} /> Atrás
-        </button>
-        {step < 4 ? (
+      {/* Navegación: barra fija inferior en móvil (zona del pulgar),
+          en línea en desktop */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-3 bg-ink/95 px-5 py-3 backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <button
-            onClick={() => canContinue && setStep((s) => s + 1)}
-            disabled={!canContinue}
-            className="display flex items-center gap-2 rounded-sm bg-gold px-8 py-3 text-lg text-ink transition-all enabled:hover:scale-[1.03] disabled:opacity-40"
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            disabled={step === 0}
+            className="-m-2 flex min-h-12 items-center gap-2 p-2 text-sm text-bone-2 transition-colors hover:text-bone disabled:invisible"
           >
-            Continuar <ArrowRight size={18} />
+            <ArrowLeft size={16} /> Atrás
           </button>
-        ) : (
-          <button
-            onClick={submit}
-            disabled={submitting}
-            className="display flex items-center gap-2 rounded-sm bg-gold px-8 py-3 text-lg text-ink transition-all enabled:hover:scale-[1.03] disabled:opacity-60"
-          >
-            {submitting && <Loader2 className="animate-spin" size={18} />}
-            Confirmar turno
-          </button>
-        )}
+          {step < 4 ? (
+            <motion.button
+              whileHover={canContinue ? { scale: 1.03 } : undefined}
+              whileTap={canContinue ? { scale: 0.96 } : undefined}
+              onClick={() => canContinue && setStep((s) => s + 1)}
+              disabled={!canContinue}
+              className="display flex min-h-13 flex-1 items-center justify-center gap-2 rounded-sm bg-gold px-8 text-lg text-ink transition-shadow enabled:hover:shadow-[0_0_24px_rgba(201,162,75,0.3)] disabled:opacity-40 sm:flex-none"
+            >
+              Continuar <ArrowRight size={18} />
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={submit}
+              disabled={submitting}
+              className="display flex min-h-13 flex-1 items-center justify-center gap-2 rounded-sm bg-gold px-8 text-lg text-ink transition-shadow enabled:hover:shadow-[0_0_24px_rgba(201,162,75,0.3)] disabled:opacity-60 sm:flex-none"
+            >
+              {submitting && <Loader2 className="animate-spin" size={18} />}
+              Confirmar turno
+            </motion.button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -476,20 +509,20 @@ function Calendar({
       <div className="mb-3 flex items-center justify-between">
         <button
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
-          className="p-1 text-bone-2 transition-colors hover:text-gold"
+          className="flex h-11 w-11 items-center justify-center text-bone-2 transition-colors hover:text-gold"
           aria-label="Mes anterior"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} />
         </button>
         <p className="display text-lg text-bone">
           {MONTHS[month.getMonth()]} {month.getFullYear()}
         </p>
         <button
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
-          className="p-1 text-bone-2 transition-colors hover:text-gold"
+          className="flex h-11 w-11 items-center justify-center text-bone-2 transition-colors hover:text-gold"
           aria-label="Mes siguiente"
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={20} />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-xs text-bone-2">
@@ -532,11 +565,11 @@ function CalendarDay({
     <button
       disabled={!selectable}
       onClick={() => onSelect(iso)}
-      className={`aspect-square rounded-sm text-sm transition-colors ${
+      className={`aspect-square min-h-10 rounded-sm text-base transition-all duration-150 sm:text-sm ${
         selected === iso
-          ? "bg-gold text-ink"
+          ? "scale-105 bg-gold text-ink shadow-[0_0_14px_rgba(201,162,75,0.35)]"
           : selectable
-            ? "text-bone hover:bg-ink-3"
+            ? "text-bone hover:bg-ink-3 active:scale-95"
             : "cursor-not-allowed text-bone-2/25 line-through"
       }`}
     >

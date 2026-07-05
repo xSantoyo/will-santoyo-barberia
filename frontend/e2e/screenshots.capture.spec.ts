@@ -7,7 +7,7 @@
  *   CAPTURE=1 npx playwright test screenshots.capture
  *   (PowerShell:  $env:CAPTURE="1"; npx playwright test screenshots.capture)
  */
-import { expect, test, type Page } from "@playwright/test";
+import { devices, expect, test, type Page } from "@playwright/test";
 
 const OUT = "../docs/screenshots";
 const capture = process.env.CAPTURE === "1";
@@ -106,6 +106,55 @@ test("wizard de agendamiento paso a paso + confirmación con código", async ({ 
   await page.goto(`/turno/${code}`);
   await expect(page.getByText("Confirmado")).toBeVisible();
   await shot(page, "11-gestion-turno");
+});
+
+test("wizard en celular emulado (iPhone 13, táctil real)", async ({ browser }) => {
+  // Emulación de dispositivo completa: viewport, DPR, touch y user agent —
+  // no solo achicar la ventana (feedback R1 #4).
+  const context = await browser.newContext({ ...devices["iPhone 13"] });
+  const page = await context.newPage();
+
+  await page.goto("/agendar");
+  await expect(page.getByRole("button", { name: /barbero 1/i }).first()).toBeVisible();
+  await shot(page, "19-mobile-wizard-1-barbero");
+  await page.getByRole("button", { name: /barbero 1/i }).first().tap();
+  await page.getByRole("button", { name: /continuar/i }).tap();
+
+  await page.getByRole("button", { name: /corte clásico/i }).tap();
+  await shot(page, "20-mobile-wizard-2-servicios");
+  await page.getByRole("button", { name: /continuar/i }).tap();
+
+  await expect(page.getByText(/elige un día/i)).toBeVisible();
+  const days = page.locator("button:not([disabled])[class*='aspect-square']");
+  await expect(days.first()).toBeVisible({ timeout: 10_000 });
+  const count = await days.count();
+  let picked = false;
+  for (let i = 0; i < count && !picked; i++) {
+    await days.nth(i).tap();
+    const slot = page.locator("div.grid button", { hasText: /^\d{2}:\d{2}$/ }).first();
+    try {
+      await slot.waitFor({ state: "visible", timeout: 4000 });
+      await shot(page, "21-mobile-wizard-3-fecha-hora", true);
+      await slot.tap();
+      picked = true;
+    } catch {
+      /* día lleno */
+    }
+  }
+  expect(picked).toBe(true);
+  await page.getByRole("button", { name: /continuar/i }).tap();
+
+  await page.getByPlaceholder("Nombre y apellido").fill("Cliente Móvil");
+  await page.getByPlaceholder("300 123 4567").fill("3015551234");
+  await shot(page, "22-mobile-wizard-4-datos");
+  await page.getByRole("button", { name: /continuar/i }).tap();
+
+  await expect(page.getByText(/resumen de tu turno/i)).toBeVisible();
+  await page.getByRole("button", { name: /confirmar turno/i }).tap();
+  await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
+  await shot(page, "23-mobile-confirmacion", true);
+
+  await context.close();
 });
 
 test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", async ({ page }) => {
