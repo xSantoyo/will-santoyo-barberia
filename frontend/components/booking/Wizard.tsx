@@ -693,7 +693,13 @@ function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
           href={`/turno/${appointment.manage_code}`}
           className="display rounded-sm bg-gold px-6 py-3 text-lg text-ink"
         >
-          Ver mi turno
+          Ver mi tiquete vivo
+        </Link>
+        <Link
+          href="/hoy"
+          className="data text-xs uppercase tracking-widest text-bone-2 transition-colors hover:text-gold"
+        >
+          ¿Cómo va la fila hoy? →
         </Link>
         <Link href="/" className="text-sm text-bone-2 transition-colors hover:text-gold">
           Volver al inicio

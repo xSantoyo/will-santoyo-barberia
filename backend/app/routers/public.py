@@ -1,4 +1,5 @@
-"""API pública (sin autenticación): sitio web y flujo de agendamiento.
+"""API pública (sin autenticación): sitio web, flujo de agendamiento y
+la Fila en vivo (tablero de turnos del día).
 
 Prefijo: /api/v1/public/{tenant_slug}
 Los endpoints de escritura llevan rate limiting por IP.
@@ -6,14 +7,23 @@ Los endpoints de escritura llevan rate limiting por IP.
 from __future__ import annotations
 
 from datetime import date
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from ..db import get_db
+from ..db import get_db, utcnow
 from ..deps import booking_rate_limiter, get_tenant_by_slug
-from ..models import Appointment, Barber, BarberTimeOff, MediaAsset, Service, Tenant
+from ..models import (
+    ACTIVE_STATUSES,
+    Appointment,
+    Barber,
+    BarberTimeOff,
+    MediaAsset,
+    Service,
+    Tenant,
+)
 from ..schemas import (
     AppointmentFind,
     AppointmentPublic,
@@ -188,6 +198,127 @@ def cancel_appointment(
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     return appointment_to_public(appointment, tenant)
+
+
+# ---------------------------------------------------------------- La Fila
+
+def _weekday_key(day: date) -> str:
+    return ("mon", "tue", "wed", "thu", "fri", "sat", "sun")[day.weekday()]
+
+
+@router.get("/queue")
+def today_queue(
+    tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
+):
+    """La Fila en vivo: estado de los turnos de HOY por barbero.
+
+    Pensado para el tablero público (/hoy) y la pantalla del local.
+    Privacidad: solo números de turno, horas y estados — nunca nombres
+    ni teléfonos de clientes.
+    """
+    from ..services.appointments import local_day_bounds
+    from ..services.availability import is_time_off
+
+    tz = ZoneInfo(tenant.timezone)
+    now = utcnow()
+    today = now.astimezone(tz).date()
+    day_start, day_end = local_day_bounds(tenant, today)
+
+    barbers = db.scalars(
+        select(Barber)
+        .where(Barber.tenant_id == tenant.id, Barber.is_active.is_(True))
+        .order_by(Barber.sort_order, Barber.id)
+    )
+    appointments = list(
+        db.scalars(
+            select(Appointment)
+            .where(
+                Appointment.tenant_id == tenant.id,
+                Appointment.starts_at >= day_start,
+                Appointment.starts_at < day_end,
+            )
+            .order_by(Appointment.starts_at)
+        )
+    )
+
+    lanes = []
+    for barber in barbers:
+        own = [a for a in appointments if a.barber_id == barber.id]
+        current = next((a for a in own if a.status == "en_curso"), None)
+        waiting = [
+            a for a in own
+            if a.status in ("pendiente", "confirmado") and a.ends_at > now
+        ]
+        done = [a for a in own if a.status == "completado"]
+        is_off = (barber.schedule or {}).get(_weekday_key(today)) is None or is_time_off(
+            db, barber.id, today
+        )
+        lanes.append(
+            {
+                "barber": {"id": barber.id, "name": barber.name},
+                "is_day_off": is_off,
+                "current": (
+                    {
+                        "number": current.daily_number,
+                        "time_local": current.starts_at.astimezone(tz).strftime("%H:%M"),
+                    }
+                    if current
+                    else None
+                ),
+                "waiting": [
+                    {
+                        "number": a.daily_number,
+                        "time_local": a.starts_at.astimezone(tz).strftime("%H:%M"),
+                    }
+                    for a in waiting
+                ],
+                "served_count": len(done),
+                "last_served_number": max((a.daily_number for a in done), default=None),
+            }
+        )
+    return {
+        "date_local": today.isoformat(),
+        "now_local": now.astimezone(tz).strftime("%H:%M"),
+        "lanes": lanes,
+    }
+
+
+@router.get("/appointments/{manage_code}/queue")
+def appointment_queue_position(
+    manage_code: str,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Posición en la fila para el tiquete vivo del cliente: cuántos turnos
+    activos van antes del suyo (mismo barbero, mismo día local)."""
+    appointment = _load_by_code(db, tenant, manage_code)
+    tz = ZoneInfo(tenant.timezone)
+    local_day = appointment.starts_at.astimezone(tz).date()
+    is_today = local_day == utcnow().astimezone(tz).date()
+
+    ahead = db.scalars(
+        select(Appointment).where(
+            Appointment.barber_id == appointment.barber_id,
+            Appointment.status.in_(ACTIVE_STATUSES),
+            Appointment.starts_at < appointment.starts_at,
+            Appointment.starts_at
+            >= appointment.starts_at.astimezone(tz).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ),
+        )
+    )
+    ahead_list = list(ahead)
+    now_serving = next((a.daily_number for a in ahead_list if a.status == "en_curso"), None)
+
+    return {
+        "is_today": is_today,
+        "status": appointment.status,
+        "number": appointment.daily_number,
+        "barber_name": appointment.barber.name,
+        "time_local": appointment.starts_at.astimezone(tz).strftime("%H:%M"),
+        "ahead_count": len(ahead_list) if appointment.status in ACTIVE_STATUSES else 0,
+        "now_serving": now_serving,
+    }
 
 
 @router.get("/media", response_model=list[MediaAssetOut])

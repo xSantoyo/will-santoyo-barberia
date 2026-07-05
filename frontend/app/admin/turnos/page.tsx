@@ -150,9 +150,11 @@ export default function TurnosPage() {
             <tbody className="divide-y divide-ink-3">
               {appointments.map((appointment) => (
                 <tr key={appointment.id} className="bg-ink transition-colors hover:bg-ink-2">
-                  <td className="px-4 py-3 text-bone-2">{appointment.date_local}</td>
-                  <td className="display px-4 py-3 text-gold">{appointment.time_local}</td>
-                  <td className="px-4 py-3 text-bone-2">#{appointment.daily_number}</td>
+                  <td className="data px-4 py-3 text-bone-2">{appointment.date_local}</td>
+                  <td className="data px-4 py-3 font-medium text-gold">
+                    {appointment.time_local}
+                  </td>
+                  <td className="data px-4 py-3 text-bone-2">#{appointment.daily_number}</td>
                   <td className="px-4 py-3">
                     <p className="text-bone">{appointment.customer_name}</p>
                     <p className="text-xs text-bone-2">{appointment.customer_whatsapp}</p>
@@ -161,7 +163,7 @@ export default function TurnosPage() {
                   <td className="max-w-44 truncate px-4 py-3 text-bone-2">
                     {appointment.services.map((s) => s.name).join(", ")}
                   </td>
-                  <td className="px-4 py-3 text-bone">{formatCOP(appointment.total_cop)}</td>
+                  <td className="data px-4 py-3 text-bone">{formatCOP(appointment.total_cop)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={appointment.status} />
                   </td>

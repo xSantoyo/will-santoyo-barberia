@@ -7,6 +7,7 @@
  *   CAPTURE=1 npx playwright test screenshots.capture
  *   (PowerShell:  $env:CAPTURE="1"; npx playwright test screenshots.capture)
  */
+import { readFileSync } from "node:fs";
 import { devices, expect, test, type Page } from "@playwright/test";
 
 const OUT = "../docs/screenshots";
@@ -94,6 +95,7 @@ test("wizard de agendamiento paso a paso + confirmación con código", async ({ 
   // Confirmación: el código debe ser protagonista
   await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId("manage-code")).toBeVisible();
+  await page.waitForTimeout(1900); // deja terminar la pasada de navaja + troquelado
   await shot(page, "09-confirmacion-codigo-en-pantalla");
 
   // Mobile de la confirmación (la pantalla más crítica del nuevo flujo)
@@ -152,9 +154,53 @@ test("wizard en celular emulado (iPhone 13, táctil real)", async ({ browser }) 
   await expect(page.getByText(/resumen de tu turno/i)).toBeVisible();
   await page.getByRole("button", { name: /confirmar turno/i }).tap();
   await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(1900); // deja terminar la pasada de navaja + troquelado
   await shot(page, "23-mobile-confirmacion", true);
 
   await context.close();
+});
+
+test("la fila en vivo: tablero y tiquete (desktop + móvil)", async ({ page }) => {
+  // Requiere la fila de demostración: python scratchpad/demo_queue.py
+  let ticketCode: string | null = null;
+  try {
+    ticketCode = JSON.parse(readFileSync("e2e/.demo-queue.json", "utf-8")).ticket_code;
+  } catch {
+    /* sin demo: se capturan tablero vacío y sin tiquete */
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/hoy");
+  await expect(page.getByRole("heading", { name: /la fila/i })).toBeVisible();
+  await expect(page.getByText(/en el sillón/i).first()).toBeVisible({ timeout: 10_000 });
+  await shot(page, "24-fila-tablero");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/hoy");
+  await expect(page.getByText(/en el sillón/i).first()).toBeVisible({ timeout: 10_000 });
+  await shot(page, "25-fila-tablero-mobile", true);
+
+  if (ticketCode) {
+    await page.goto(`/turno/${ticketCode}`);
+    await expect(page.getByText(/la fila hoy/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/faltan/i)).toBeVisible();
+    await shot(page, "26-tiquete-vivo-mobile", true);
+  }
+});
+
+test("anchos móviles reales: 375px y 428px", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 }); // iPhone SE/Mini
+  await page.goto("/agendar");
+  await expect(page.getByRole("button", { name: /barbero 1/i }).first()).toBeVisible();
+  await shot(page, "27-wizard-375");
+
+  await page.setViewportSize({ width: 428, height: 926 }); // iPhone Plus/Max
+  await page.goto("/agendar");
+  await expect(page.getByRole("button", { name: /barbero 1/i }).first()).toBeVisible();
+  await shot(page, "28-wizard-428");
+
+  await page.goto("/");
+  await shot(page, "29-home-428", true);
 });
 
 test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", async ({ page }) => {

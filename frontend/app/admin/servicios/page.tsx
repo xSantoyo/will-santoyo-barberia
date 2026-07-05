@@ -56,10 +56,10 @@ export default function ServiciosPage() {
             {services.map((service) => (
               <tr key={service.id} className="bg-ink hover:bg-ink-2">
                 <td className="px-4 py-3 text-bone">{service.name}</td>
-                <td className="display px-4 py-3 text-lg text-gold">
+                <td className="data px-4 py-3 font-semibold text-gold">
                   {formatCOP(service.price_cop)}
                 </td>
-                <td className="px-4 py-3 text-bone-2">{service.duration_min} min</td>
+                <td className="data px-4 py-3 text-bone-2">{service.duration_min} min</td>
                 <td className="px-4 py-3">
                   {service.is_active ? (
                     <span className="text-xs text-emerald-400">Activo</span>

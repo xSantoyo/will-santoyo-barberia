@@ -173,7 +173,9 @@ export default function DashboardPage() {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm text-bone">
-                      <span className="display mr-2 text-gold">{appointment.time_local}</span>
+                      <span className="data mr-2 font-medium text-gold">
+                        {appointment.time_local}
+                      </span>
                       {appointment.customer_name}
                     </p>
                     <p className="truncate text-xs text-bone-2">

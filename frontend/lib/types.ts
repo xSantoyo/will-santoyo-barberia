@@ -133,6 +133,38 @@ export interface DashboardData {
   barbers: DashboardBarberBlock[];
 }
 
+/* --- La Fila en vivo --- */
+
+export interface QueueEntry {
+  number: number;
+  time_local: string;
+}
+
+export interface QueueLane {
+  barber: { id: number; name: string };
+  is_day_off: boolean;
+  current: QueueEntry | null;
+  waiting: QueueEntry[];
+  served_count: number;
+  last_served_number: number | null;
+}
+
+export interface QueueBoard {
+  date_local: string;
+  now_local: string;
+  lanes: QueueLane[];
+}
+
+export interface TicketQueue {
+  is_today: boolean;
+  status: AppointmentStatus;
+  number: number;
+  barber_name: string;
+  time_local: string;
+  ahead_count: number;
+  now_serving: number | null;
+}
+
 export interface TokenPair {
   access_token: string;
   refresh_token: string;

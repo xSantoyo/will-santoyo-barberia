@@ -18,7 +18,7 @@ const BADGE: Record<AppointmentStatus, string> = {
 export function StatusBadge({ status }: { status: AppointmentStatus }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wider ${BADGE[status]}`}
+      className={`data inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wider ${BADGE[status]}`}
     >
       {STATUS_LABELS[status]}
     </span>

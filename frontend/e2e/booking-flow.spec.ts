@@ -60,8 +60,8 @@ test("flujo completo: agendar → confirmar → gestionar → cancelar", async (
   const code = (await page.getByTestId("manage-code").textContent())!.trim();
   expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
-  // 8. Gestionar por enlace único y cancelar
-  await page.getByRole("link", { name: /ver mi turno/i }).click();
+  // 8. Gestionar por enlace único (tiquete vivo) y cancelar
+  await page.getByRole("link", { name: /ver mi tiquete/i }).click();
   await expect(page).toHaveURL(new RegExp(`/turno/${code}`));
   await expect(page.getByText("Confirmado")).toBeVisible();
 

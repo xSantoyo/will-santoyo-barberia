@@ -10,8 +10,10 @@ import type {
   BarberPublic,
   DayAvailability,
   MediaAsset,
+  QueueBoard,
   ServicePublic,
   TenantPublic,
+  TicketQueue,
 } from "./types";
 
 export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "bad-boys";
@@ -111,5 +113,12 @@ export const publicApi = {
     request<AppointmentPublic>(
       `${PUBLIC}/appointments/${encodeURIComponent(code)}/cancel`,
       { method: "POST", body: JSON.stringify({ reason: reason ?? null }) },
+    ),
+  /* La Fila en vivo */
+  queue: () => request<QueueBoard>(`${PUBLIC}/queue`, { cache: "no-store" }),
+  ticketQueue: (code: string) =>
+    request<TicketQueue>(
+      `${PUBLIC}/appointments/${encodeURIComponent(code)}/queue`,
+      { cache: "no-store" },
     ),
 };

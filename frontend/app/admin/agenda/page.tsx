@@ -151,7 +151,9 @@ export default function AgendaPage() {
                               .join(", ")}`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="display text-gold">{appointment.time_local}</span>
+                              <span className="data font-medium text-gold">
+                                {appointment.time_local}
+                              </span>
                               <StatusBadge status={appointment.status} />
                             </div>
                             <p className="mt-0.5 truncate text-bone">

@@ -17,6 +17,7 @@ import {
   type TenantPublic,
 } from "@/lib/types";
 import Reveal, { StaggerGroup, StaggerItem } from "./Reveal";
+import { RazorDivider } from "./Razor";
 
 function instagramUrl(handle: string): string {
   return handle.startsWith("http")
@@ -39,7 +40,7 @@ function Watermark({ word }: { word: string }) {
 function SectionTitle({ kicker, title }: { kicker: string; title: string }) {
   return (
     <Reveal>
-      <p className="mb-2 text-xs uppercase tracking-[0.3em] text-gold">{kicker}</p>
+      <p className="data mb-2 text-xs uppercase tracking-[0.3em] text-gold">{kicker}</p>
       <h2 className="display text-4xl text-bone sm:text-5xl">{title}</h2>
       <div className="gold-rule mt-4" />
     </Reveal>
@@ -86,6 +87,7 @@ export function Services({ services }: { services: ServicePublic[] }) {
     >
       <Watermark word="PRECIOS" />
       <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
+        <RazorDivider className="mb-10 !px-0" />
         <SectionTitle kicker="Servicios" title="Precios claros" />
         <StaggerGroup className="mt-12 grid gap-x-10 gap-y-1 sm:grid-cols-2">
           {services.map((service) => (
@@ -95,9 +97,9 @@ export function Services({ services }: { services: ServicePublic[] }) {
                   <h3 className="text-lg text-bone transition-colors group-hover:text-gold">
                     {service.name}
                   </h3>
-                  <p className="text-sm text-bone-2">{service.duration_min} min</p>
+                  <p className="data text-sm text-bone-2">{service.duration_min} min</p>
                 </div>
-                <p className="display whitespace-nowrap text-2xl text-gold transition-transform duration-300 group-hover:scale-110">
+                <p className="data whitespace-nowrap text-xl font-semibold text-gold transition-transform duration-300 group-hover:scale-110">
                   {formatCOP(service.price_cop)}
                 </p>
               </div>
@@ -188,6 +190,7 @@ export function Gallery({ items }: { items: MediaAsset[] }) {
     >
       <Watermark word="GALERÍA" />
       <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
+        <RazorDivider className="mb-10 !px-0" />
         <SectionTitle kicker="Galería" title="Nuestro trabajo" />
         {items.length === 0 ? (
           <Reveal delay={0.1}>
@@ -275,7 +278,7 @@ export function Location({ tenant }: { tenant: TenantPublic }) {
                     className="flex justify-between py-2.5 text-sm transition-colors hover:bg-gold/[0.04]"
                   >
                     <span className="text-bone-2">{label}</span>
-                    <span className={block ? "text-bone" : "text-wine"}>
+                    <span className={`data ${block ? "text-bone" : "text-wine"}`}>
                       {block ? `${block.start} – ${block.end}` : "Cerrado"}
                     </span>
                   </li>

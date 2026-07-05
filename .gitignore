@@ -50,5 +50,6 @@ Thumbs.db
 # --- Datos locales ---
 *.db
 *.sqlite3
+frontend/e2e/.demo-queue.json
 n8n-data/
 pg-data/

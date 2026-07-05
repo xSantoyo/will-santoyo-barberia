@@ -1,12 +1,18 @@
 "use client";
 
 /** Gestión del turno vía enlace único (enviado por WhatsApp) o tras buscarlo. */
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CalendarX2, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarX2, Check, Loader2, Radio } from "lucide-react";
 import { publicApi } from "@/lib/api";
-import { formatCOP, STATUS_LABELS, type AppointmentPublic } from "@/lib/types";
+import FlipNumber from "@/components/public/FlipNumber";
+import {
+  formatCOP,
+  STATUS_LABELS,
+  type AppointmentPublic,
+  type TicketQueue,
+} from "@/lib/types";
 
 const STATUS_COLORS: Record<string, string> = {
   confirmado: "text-gold border-gold/40 bg-gold/10",
@@ -24,6 +30,7 @@ export default function ManageAppointmentPage({
 }) {
   const { code } = use(params);
   const [appointment, setAppointment] = useState<AppointmentPublic | null>(null);
+  const [ticket, setTicket] = useState<TicketQueue | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -31,13 +38,23 @@ export default function ManageAppointmentPage({
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadTicket = useCallback(() => {
+    publicApi
+      .ticketQueue(code)
+      .then(setTicket)
+      .catch(() => setTicket(null));
+  }, [code]);
+
   useEffect(() => {
     publicApi
       .appointment(code)
       .then(setAppointment)
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [code]);
+    loadTicket();
+    const timer = setInterval(loadTicket, 25_000); // el tiquete vive: la fila avanza
+    return () => clearInterval(timer);
+  }, [code, loadTicket]);
 
   async function cancel() {
     setCancelling(true);
@@ -74,6 +91,11 @@ export default function ManageAppointmentPage({
   }
 
   const isCancellable = appointment.status === "confirmado" || appointment.status === "pendiente";
+  const isActive =
+    appointment.status === "confirmado" ||
+    appointment.status === "pendiente" ||
+    appointment.status === "en_curso";
+  const showLiveQueue = ticket !== null && ticket.is_today && isActive;
 
   return (
     <main className="min-h-svh pt-10">
@@ -84,6 +106,50 @@ export default function ManageAppointmentPage({
         >
           <ArrowLeft size={16} /> Bad Boys Barbershop
         </Link>
+
+        {/* Tiquete vivo: hoy la fila avanza en tiempo real */}
+        {showLiveQueue && (
+          <div className="plate clip-corner mt-8 p-5 text-center">
+            <p className="data flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.3em] text-gold">
+              <Radio size={13} className="animate-pulse" /> La fila hoy
+            </p>
+            {appointment.status === "en_curso" ? (
+              <p className="display mt-3 text-3xl text-gold">Estás en el sillón</p>
+            ) : ticket.ahead_count === 0 ? (
+              <p className="display mt-3 text-3xl text-gold">¡Sigues tú!</p>
+            ) : (
+              <>
+                <p className="stamped mt-2 text-5xl text-bone">
+                  {ticket.now_serving !== null ? (
+                    <>
+                      <span className="text-gold">#</span>
+                      <FlipNumber value={String(ticket.now_serving)} />
+                    </>
+                  ) : (
+                    <span className="data text-2xl text-bone-2">silla libre</span>
+                  )}
+                </p>
+                <p className="data mt-1 text-xs uppercase tracking-widest text-bone-2">
+                  {ticket.now_serving !== null ? "en el sillón" : "aún no empieza tu barbero"}
+                </p>
+                <p className="mt-3 text-sm text-bone">
+                  Faltan{" "}
+                  <span className="data font-semibold text-gold">
+                    {ticket.ahead_count}
+                  </span>{" "}
+                  turno{ticket.ahead_count === 1 ? "" : "s"} para el tuyo (
+                  <span className="data">#{ticket.number}</span>)
+                </p>
+              </>
+            )}
+            <Link
+              href="/hoy"
+              className="data mt-4 inline-block text-xs uppercase tracking-widest text-bone-2 underline-offset-4 transition-colors hover:text-gold hover:underline"
+            >
+              Ver el tablero completo →
+            </Link>
+          </div>
+        )}
 
         <div className="mt-8 rounded-sm border border-ink-3 bg-ink-2 p-6">
           <div className="flex items-start justify-between gap-4">
