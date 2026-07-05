@@ -4,7 +4,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CalendarX2, Check, Loader2, Radio } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, CalendarX2, Check, Loader2, Radio } from "lucide-react";
 import { publicApi } from "@/lib/api";
 import FlipNumber from "@/components/public/FlipNumber";
 import AddToCalendar from "@/components/public/AddToCalendar";
@@ -37,6 +37,7 @@ export default function ManageAppointmentPage({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadTicket = useCallback(() => {
@@ -56,6 +57,19 @@ export default function ManageAppointmentPage({
     const timer = setInterval(loadTicket, 25_000); // el tiquete vive: la fila avanza
     return () => clearInterval(timer);
   }, [code, loadTicket]);
+
+  async function confirmAttendance() {
+    setConfirming(true);
+    setError(null);
+    try {
+      const updated = await publicApi.confirmAttendance(code);
+      setAppointment(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos registrar la confirmación.");
+    } finally {
+      setConfirming(false);
+    }
+  }
 
   async function cancel() {
     setCancelling(true);
@@ -107,6 +121,40 @@ export default function ManageAppointmentPage({
         >
           <ArrowLeft size={16} /> Bad Boys Barbershop
         </Link>
+
+        {/* Confirmación de asistencia: si no confirma, el turno se libera */}
+        {appointment.attendance_pending && (
+          <div className="clip-corner mt-8 border-2 border-gold bg-gold/10 p-5 text-center">
+            <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+              Confirma tu asistencia
+            </p>
+            <p className="mt-2 text-sm text-bone">
+              ¿Sigues en pie para tu turno? Confírmalo antes de las{" "}
+              <span className="data font-semibold text-gold">
+                {appointment.attendance_deadline_local}
+              </span>
+              {" — "}si no, el horario se libera para otra persona.
+            </p>
+            <button
+              onClick={confirmAttendance}
+              disabled={confirming}
+              className="display mx-auto mt-4 flex min-h-12 items-center gap-2 rounded-sm bg-gold px-8 text-lg text-ink transition-all enabled:hover:scale-[1.03] disabled:opacity-60"
+            >
+              {confirming ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <CalendarCheck2 size={18} />
+              )}
+              Sí, voy a ir
+            </button>
+          </div>
+        )}
+
+        {appointment.attendance_confirmed && isActive && (
+          <p className="data mt-6 flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-gold">
+            <Check size={14} /> Asistencia confirmada — te esperamos
+          </p>
+        )}
 
         {/* Tiquete vivo: hoy la fila avanza en tiempo real */}
         {showLiveQueue && (

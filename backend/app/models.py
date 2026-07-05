@@ -118,7 +118,8 @@ class Appointment(Base):
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
     barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id"), index=True)
     customer_name: Mapped[str] = mapped_column(String(120))
-    customer_whatsapp: Mapped[str] = mapped_column(String(20), index=True)
+    # Nullable: un walk-in puede no dejar teléfono (la reserva pública sí lo exige)
+    customer_whatsapp: Mapped[str | None] = mapped_column(String(20), index=True)
     starts_at: Mapped[datetime] = mapped_column(TZDateTime)
     ends_at: Mapped[datetime] = mapped_column(TZDateTime)
     status: Mapped[str] = mapped_column(String(20), default="confirmado", index=True)
@@ -127,6 +128,8 @@ class Appointment(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     cancel_reason: Mapped[str | None] = mapped_column(String(300))
     cancelled_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+    # Confirmación de asistencia (el cliente confirma desde su tiquete el día antes)
+    attendance_confirmed_at: Mapped[datetime | None] = mapped_column(TZDateTime)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
 

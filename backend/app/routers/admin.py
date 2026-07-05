@@ -47,6 +47,7 @@ from ..schemas import (
     StatusUpdate,
     TimeOffCreate,
     TimeOffOut,
+    WalkInCreate,
 )
 from ..services import appointments as booking
 from ..services import audit
@@ -86,6 +87,7 @@ def dashboard(
     db: Session = Depends(get_db),
 ):
     """Turnos de HOY por barbero: turno en curso, próximos, completados."""
+    booking.release_unconfirmed(db, tenant)  # el dashboard siempre al día
     tz = ZoneInfo(tenant.timezone)
     now = utcnow()
     today = now.astimezone(tz).date()
@@ -253,6 +255,35 @@ def create_manual(
         raise _handle_booking_error(exc) from None
     audit.record(db, user, "appointment.create_manual", "appointment", appointment.id,
                  {"customer": data.customer_name, "date": str(data.date), "time": data.time})
+    db.commit()
+    return appointment_to_admin(appointment, tenant)
+
+
+@router.post("/appointments/walk-in", response_model=AppointmentAdmin, status_code=201)
+def create_walk_in(
+    data: WalkInCreate,
+    user: AdminUser = Depends(get_current_user),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Walk-in (Tanda 2): cliente en el local sin cita — toma el próximo hueco
+    de HOY y entra a La Fila. El barbero también puede registrarlo (su propia
+    silla)."""
+    if user.role == "barbero" and user.barber_id != data.barber_id:
+        raise HTTPException(403, "Solo puedes registrar walk-ins en tu propia silla")
+    try:
+        appointment = booking.create_walk_in(
+            db,
+            tenant,
+            barber_id=data.barber_id,
+            service_ids=data.service_ids,
+            customer_name=data.customer_name,
+            customer_whatsapp=data.customer_whatsapp,
+        )
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    audit.record(db, user, "appointment.walk_in", "appointment", appointment.id,
+                 {"customer": data.customer_name, "barber_id": data.barber_id})
     db.commit()
     return appointment_to_admin(appointment, tenant)
 

@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     booking_lead_minutes: int = 30      # antelación mínima para reservar
     booking_horizon_days: int = 30      # hasta cuántos días adelante se puede reservar
     no_show_grace_minutes: int = 15     # tolerancia antes de alertar no-show
+    # Confirmación de asistencia: aplica a reservas hechas con >= opens_hours de
+    # antelación; se abre opens_hours antes del turno y si no confirma cuando
+    # faltan deadline_hours, el turno se libera automáticamente.
+    attendance_opens_hours: int = 24
+    attendance_deadline_hours: int = 3
 
     # --- Rate limiting (endpoints públicos) ---
     rate_limit_requests: int = 10

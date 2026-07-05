@@ -57,6 +57,9 @@ export interface AppointmentPublic {
   barber_name: string;
   services: AppointmentServiceOut[];
   total_cop: number;
+  attendance_pending: boolean;
+  attendance_confirmed: boolean;
+  attendance_deadline_local: string | null;
 }
 
 export type AppointmentStatus =
@@ -72,8 +75,10 @@ export interface AppointmentAdmin {
   barber_id: number;
   barber_name: string;
   customer_name: string;
-  customer_whatsapp: string;
+  customer_whatsapp: string | null;
   status: AppointmentStatus;
+  attendance_confirmed: boolean;
+  attendance_pending: boolean;
   daily_number: number;
   manage_code: string;
   date_local: string;

@@ -186,6 +186,19 @@ test("la fila en vivo: tablero y tiquete (desktop + móvil)", async ({ page }) =
     await expect(page.getByText(/faltan/i)).toBeVisible();
     await shot(page, "26-tiquete-vivo-mobile", true);
   }
+
+  // Tanda 2: confirmación de asistencia pendiente en el tiquete
+  let confirmCode: string | null = null;
+  try {
+    confirmCode = JSON.parse(readFileSync("e2e/.demo-queue.json", "utf-8")).confirm_code;
+  } catch {
+    /* sin demo */
+  }
+  if (confirmCode) {
+    await page.goto(`/turno/${confirmCode}`);
+    await expect(page.getByText(/confirma tu asistencia/i)).toBeVisible({ timeout: 10_000 });
+    await shot(page, "30-confirmar-asistencia-mobile", true);
+  }
 });
 
 test("anchos móviles reales: 375px y 428px", async ({ page }) => {
@@ -213,6 +226,19 @@ test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", as
 
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await shot(page, "13-admin-dashboard");
+
+  // Tanda 2: walk-in (visible si algún barbero atiende hoy)
+  const walkInButton = page.getByRole("button", { name: /walk-in/i }).first();
+  if ((await walkInButton.count()) > 0) {
+    await walkInButton.click();
+    await expect(page.getByText(/próximo hueco de hoy/i)).toBeVisible();
+    await page.getByPlaceholder(/nombre del cliente/i).fill("Cliente Mostrador");
+    await shot(page, "31-walkin-modal");
+    await page.getByRole("button", { name: /dar turno ahora/i }).click();
+    await expect(page.getByText(/en la fila de hoy/i)).toBeVisible({ timeout: 10_000 });
+    await shot(page, "32-walkin-tiquete");
+    await page.getByRole("button", { name: /^listo$/i }).click();
+  }
 
   await page.getByRole("link", { name: /agenda/i }).click();
   await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();

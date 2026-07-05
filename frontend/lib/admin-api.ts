@@ -140,6 +140,16 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  walkIn: (payload: {
+    barber_id: number;
+    service_ids: number[];
+    customer_name: string;
+    customer_whatsapp?: string | null;
+  }) =>
+    request<AppointmentAdmin>("/api/v1/admin/appointments/walk-in", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   reschedule: (id: number, payload: { barber_id?: number; date: string; time: string }) =>
     request<AppointmentAdmin>(`/api/v1/admin/appointments/${id}/reschedule`, {
       method: "PATCH",

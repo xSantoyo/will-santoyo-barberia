@@ -114,6 +114,11 @@ export const publicApi = {
       `${PUBLIC}/appointments/${encodeURIComponent(code)}/cancel`,
       { method: "POST", body: JSON.stringify({ reason: reason ?? null }) },
     ),
+  confirmAttendance: (code: string) =>
+    request<AppointmentPublic>(
+      `${PUBLIC}/appointments/${encodeURIComponent(code)}/confirm`,
+      { method: "POST" },
+    ),
   /* La Fila en vivo */
   queue: () => request<QueueBoard>(`${PUBLIC}/queue`, { cache: "no-store" }),
   ticketQueue: (code: string) =>

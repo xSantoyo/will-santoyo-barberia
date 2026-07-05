@@ -102,6 +102,11 @@ class AppointmentPublic(ORMModel):
     barber_name: str
     services: list[AppointmentServiceOut]
     total_cop: int
+    # Confirmación de asistencia (Tanda 2): el tiquete muestra el aviso cuando
+    # está pendiente y la hora límite local antes de la liberación automática
+    attendance_pending: bool = False
+    attendance_confirmed: bool = False
+    attendance_deadline_local: str | None = None
 
 
 class AppointmentFind(BaseModel):
@@ -212,8 +217,10 @@ class AppointmentAdmin(ORMModel):
     barber_id: int
     barber_name: str
     customer_name: str
-    customer_whatsapp: str
+    customer_whatsapp: str | None
     status: str
+    attendance_confirmed: bool = False
+    attendance_pending: bool = False
     daily_number: int
     manage_code: str
     date_local: str
@@ -230,6 +237,29 @@ class ManualBookingCreate(BookingCreate):
     """El admin puede crear turnos manuales (teléfono/presencial) y saltarse
     la antelación mínima, pero nunca la prevención de solapamientos."""
     notes: str | None = Field(default=None, max_length=500)
+
+
+class WalkInCreate(BaseModel):
+    """Walk-in: cliente en el local, sin cita. Toma el próximo hueco de hoy."""
+    barber_id: int
+    service_ids: list[int] = Field(min_length=1, max_length=6)
+    customer_name: str = Field(min_length=2, max_length=120)
+    customer_whatsapp: str | None = None  # opcional: puede no dejar teléfono
+
+    @field_validator("customer_whatsapp")
+    @classmethod
+    def _phone(cls, v: str | None) -> str | None:
+        if v is None or not v.strip():
+            return None
+        return normalize_phone(v)
+
+    @field_validator("customer_name")
+    @classmethod
+    def _name(cls, v: str) -> str:
+        clean = v.strip()
+        if not re.match(r"^[\w\sáéíóúÁÉÍÓÚñÑüÜ.'-]+$", clean):
+            raise ValueError("El nombre contiene caracteres no permitidos")
+        return clean
 
 
 class RescheduleRequest(BaseModel):

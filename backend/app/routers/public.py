@@ -109,6 +109,7 @@ def availability(
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
+    booking.release_unconfirmed(db, tenant)  # libera huecos vencidos antes de mostrar
     try:
         barber = booking.load_barber(db, tenant, query.barber_id)
         services = booking.load_services(db, tenant, query.service_ids)
@@ -132,6 +133,7 @@ def create_booking(
 ):
     # El código de gestión devuelto aquí es el ÚNICO canal de gestión del
     # cliente (ADR-009): el frontend lo muestra de forma prominente.
+    booking.release_unconfirmed(db, tenant)
     try:
         appointment = booking.create_appointment(db, tenant, data)
     except booking.BookingError as exc:
@@ -180,6 +182,25 @@ def find_appointment(
 
 
 @router.post(
+    "/appointments/{manage_code}/confirm",
+    response_model=AppointmentPublic,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def confirm_attendance(
+    manage_code: str,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """El cliente confirma desde su tiquete que sigue en pie (Tanda 2)."""
+    appointment = _load_by_code(db, tenant, manage_code)
+    try:
+        appointment = booking.confirm_attendance(db, appointment)
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    return appointment_to_public(appointment, tenant)
+
+
+@router.post(
     "/appointments/{manage_code}/cancel",
     response_model=AppointmentPublic,
     dependencies=[Depends(booking_rate_limiter)],
@@ -218,6 +239,8 @@ def today_queue(
     """
     from ..services.appointments import local_day_bounds
     from ..services.availability import is_time_off
+
+    booking.release_unconfirmed(db, tenant)
 
     tz = ZoneInfo(tenant.timezone)
     now = utcnow()

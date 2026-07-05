@@ -298,6 +298,182 @@ def reschedule_appointment(
     return appointment
 
 
+# ---------------------------------------------------------- asistencia
+
+def attendance_state(appointment: Appointment) -> dict:
+    """Estado de confirmación de asistencia de un turno.
+
+    Solo se exige a reservas hechas con >= opens_hours de antelación (las de
+    último minuto y los walk-ins no la necesitan). La ventana va desde
+    opens_hours antes del turno hasta deadline_hours antes.
+    """
+    settings = get_settings()
+    opens = timedelta(hours=settings.attendance_opens_hours)
+    deadline = appointment.starts_at - timedelta(hours=settings.attendance_deadline_hours)
+    required = (
+        appointment.status == "confirmado"
+        and appointment.created_at is not None
+        and appointment.created_at <= appointment.starts_at - opens
+    )
+    confirmed = appointment.attendance_confirmed_at is not None
+    now = utcnow()
+    pending = (
+        required
+        and not confirmed
+        and appointment.starts_at - opens <= now < deadline
+    )
+    return {
+        "required": required,
+        "confirmed": confirmed,
+        "pending": pending,
+        "deadline": deadline if required else None,
+    }
+
+
+def confirm_attendance(db: Session, appointment: Appointment) -> Appointment:
+    if appointment.attendance_confirmed_at is not None:
+        return appointment  # idempotente: ya confirmó
+    if appointment.status != "confirmado":
+        raise BookingError(
+            f"El turno está en estado '{appointment.status}' y no admite confirmación.",
+            409, "not_confirmable",
+        )
+    state = attendance_state(appointment)
+    if not state["required"]:
+        raise BookingError("Este turno no requiere confirmación de asistencia.", 409,
+                           "not_required")
+    now = utcnow()
+    settings = get_settings()
+    if now < appointment.starts_at - timedelta(hours=settings.attendance_opens_hours):
+        raise BookingError(
+            f"La confirmación se abre {settings.attendance_opens_hours} horas antes del turno.",
+            409, "too_early",
+        )
+    if now >= state["deadline"]:
+        raise BookingError(
+            "La ventana de confirmación ya cerró.", 409, "too_late",
+        )
+    appointment.attendance_confirmed_at = now
+    db.commit()
+    db.refresh(appointment)
+    return appointment
+
+
+def release_unconfirmed(db: Session, tenant: Tenant) -> int:
+    """Libera turnos confirmados que no confirmaron asistencia a tiempo.
+
+    Sin cron: se invoca de forma perezosa desde los puntos de lectura/reserva
+    (disponibilidad, fila, creación de turnos, dashboard) — el hueco queda
+    disponible justo cuando alguien lo puede ver o tomar.
+    """
+    settings = get_settings()
+    now = utcnow()
+    opens = timedelta(hours=settings.attendance_opens_hours)
+    deadline = timedelta(hours=settings.attendance_deadline_hours)
+
+    candidates = db.scalars(
+        select(Appointment).where(
+            Appointment.tenant_id == tenant.id,
+            Appointment.status == "confirmado",
+            Appointment.attendance_confirmed_at.is_(None),
+            Appointment.starts_at > now,               # aún no empieza
+            Appointment.starts_at <= now + deadline,   # ya venció su ventana
+        )
+    )
+    released = 0
+    for appointment in candidates:
+        # Filtro de antelación en Python: SQLite no hace aritmética de intervalos
+        if appointment.created_at > appointment.starts_at - opens:
+            continue  # reserva de último minuto: no requería confirmación
+        appointment.status = "cancelado"
+        appointment.cancel_reason = "Liberado automáticamente: no confirmó asistencia"
+        appointment.cancelled_at = now
+        released += 1
+    if released:
+        db.commit()
+    return released
+
+
+# ---------------------------------------------------------- walk-ins
+
+def create_walk_in(
+    db: Session,
+    tenant: Tenant,
+    *,
+    barber_id: int,
+    service_ids: list[int],
+    customer_name: str,
+    customer_whatsapp: str | None,
+) -> Appointment:
+    """Walk-in: el cliente está parado en el local. Toma el PRÓXIMO hueco de
+    hoy en la agenda del barbero y entra a La Fila con su número y código."""
+    from .availability import compute_slots
+
+    barber = load_barber(db, tenant, barber_id)
+    services = load_services(db, tenant, service_ids)
+    duration_min = sum(s.duration_min for s in services)
+
+    release_unconfirmed(db, tenant)  # primero libera huecos vencidos
+
+    tz = ZoneInfo(tenant.timezone)
+    now = utcnow()
+    today = now.astimezone(tz).date()
+    is_day_off, slots = compute_slots(
+        db, tenant, barber, today, duration_min, enforce_lead=False
+    )
+    if is_day_off:
+        raise BookingError(f"{barber.name} no trabaja hoy.", 409, "day_off")
+
+    next_slot = next(
+        (
+            s for s in slots
+            if datetime.combine(today, parse_hhmm(s), tzinfo=tz) >= now
+        ),
+        None,
+    )
+    if next_slot is None:
+        raise BookingError(
+            f"No queda espacio hoy en la agenda de {barber.name}.", 409, "full"
+        )
+
+    starts_at, ends_at = _validate_slot(
+        tenant, barber, db, today, next_slot, duration_min, enforce_lead=False
+    )
+    if _overlap_exists(db, barber.id, starts_at, ends_at):
+        raise BookingError("El hueco acaba de ocuparse, intenta de nuevo.", 409, "overlap")
+
+    appointment = Appointment(
+        tenant_id=tenant.id,
+        barber_id=barber.id,
+        customer_name=customer_name,
+        customer_whatsapp=customer_whatsapp,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        status="confirmado",
+        daily_number=next_daily_number(db, tenant, barber.id, today),
+        manage_code=generate_manage_code(db),
+        notes="Walk-in",
+    )
+    for service in services:
+        appointment.services.append(
+            AppointmentService(
+                service_id=service.id,
+                name=service.name,
+                price_cop=service.price_cop,
+                duration_min=service.duration_min,
+            )
+        )
+    db.add(appointment)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise BookingError("El hueco acaba de ocuparse, intenta de nuevo.", 409,
+                           "overlap") from None
+    db.refresh(appointment)
+    return appointment
+
+
 def transition_status(db: Session, appointment: Appointment, new_status: str) -> Appointment:
     allowed = STATUS_TRANSITIONS.get(appointment.status, set())
     if new_status not in allowed:
