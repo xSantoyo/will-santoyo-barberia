@@ -7,7 +7,7 @@
  * El calendario deshabilita: días de descanso semanal del barbero, excepciones
  * puntuales (time-off), fechas pasadas y fuera del horizonte de reserva.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -22,6 +22,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { ApiError, mediaUrl, publicApi } from "@/lib/api";
+import { RazorReveal } from "@/components/public/Razor";
 import {
   formatCOP,
   WEEKDAY_KEYS,
@@ -40,9 +41,24 @@ function toISODate(date: Date): string {
   ).padStart(2, "0")}`;
 }
 
+/** En móvil el wizard se comporta como flujo nativo: auto-avanza en las
+ * selecciones únicas (barbero, hora) y hace scroll al contenido relevante. */
+function isMobileViewport(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
+}
+
 export default function Wizard() {
   const params = useSearchParams();
-  const [step, setStep] = useState(0);
+  const [step, setStepRaw] = useState(0);
+  const slotsPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // Cada paso arranca desde arriba (sensación de pantalla nueva en móvil)
+  const setStep = useCallback((next: number | ((s: number) => number)) => {
+    setStepRaw(next);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
   const [barbers, setBarbers] = useState<BarberPublic[]>([]);
   const [services, setServices] = useState<ServicePublic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +139,26 @@ export default function Wizard() {
   function selectDate(isoDate: string) {
     setDate(isoDate);
     loadSlots(isoDate);
+    // En móvil el panel de horarios queda bajo el calendario: llevar al usuario
+    if (isMobileViewport()) {
+      setTimeout(() => {
+        slotsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    }
+  }
+
+  function selectBarber(candidate: BarberPublic) {
+    setBarber(candidate);
+    if (isMobileViewport()) {
+      setTimeout(() => setStep(1), 280); // selección única → avance nativo
+    }
+  }
+
+  function selectTime(slot: string) {
+    setTime(slot);
+    if (isMobileViewport()) {
+      setTimeout(() => setStep(3), 280);
+    }
   }
 
   function isSelectableDay(candidate: Date): boolean {
@@ -188,8 +224,16 @@ export default function Wizard() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-32 sm:pb-24">
-      {/* Barra de progreso */}
-      <ol className="mb-3 flex items-center gap-1 text-[11px] uppercase tracking-wider sm:gap-2 sm:text-xs">
+      {/* Stepper móvil: compacto, tipo app nativa */}
+      <div className="mb-3 flex items-baseline justify-between sm:hidden">
+        <span className="data text-[11px] uppercase tracking-[0.25em] text-gold">
+          Paso {step + 1}/{STEPS.length}
+        </span>
+        <span className="display text-2xl text-bone">{STEPS[step]}</span>
+      </div>
+
+      {/* Stepper desktop: círculos con etiquetas */}
+      <ol className="mb-3 hidden items-center gap-1 text-[11px] uppercase tracking-wider sm:flex sm:gap-2 sm:text-xs">
         {STEPS.map((label, i) => (
           <li key={label} className="flex flex-1 flex-col items-center gap-2">
             <motion.span
@@ -237,7 +281,7 @@ export default function Wizard() {
               {barbers.map((candidate) => (
                 <button
                   key={candidate.id}
-                  onClick={() => setBarber(candidate)}
+                  onClick={() => selectBarber(candidate)}
                   className={`group clip-corner flex items-center gap-4 overflow-hidden border p-3 text-left transition-all duration-300 active:scale-[0.98] sm:block sm:p-0 ${
                     barber?.id === candidate.id
                       ? "border-gold bg-gold/10 sm:bg-ink-2"
@@ -305,7 +349,7 @@ export default function Wizard() {
                       <span className="text-xs text-bone-2">{service.duration_min} min</span>
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
-                      <span className="display text-xl text-gold">
+                      <span className="data text-lg font-semibold text-gold">
                         {formatCOP(service.price_cop)}
                       </span>
                       <span
@@ -321,9 +365,12 @@ export default function Wizard() {
               })}
               {totals.chosen.length > 0 && (
                 <p className="pt-2 text-right text-sm text-bone-2">
-                  Total: <span className="display text-xl text-gold">{formatCOP(totals.price)}</span>
+                  Total:{" "}
+                  <span className="data text-lg font-semibold text-gold">
+                    {formatCOP(totals.price)}
+                  </span>
                   {" · "}
-                  {totals.minutes} min
+                  <span className="data">{totals.minutes} min</span>
                 </p>
               )}
             </div>
@@ -338,9 +385,9 @@ export default function Wizard() {
                 isSelectable={isSelectableDay}
                 onSelect={selectDate}
               />
-              <div>
-                <p className="mb-3 text-sm uppercase tracking-widest text-bone-2">
-                  {date ? `Horarios para ${date}` : "Elige un día"}
+              <div ref={slotsPanelRef} className="scroll-mt-4">
+                <p className="data mb-3 text-sm uppercase tracking-widest text-bone-2">
+                  {date ? `Horarios · ${date}` : "Elige un día"}
                 </p>
                 {slotsLoading ? (
                   <Loader2 className="animate-spin text-gold" />
@@ -357,8 +404,8 @@ export default function Wizard() {
                     {availability?.slots.map((slot) => (
                       <button
                         key={slot}
-                        onClick={() => setTime(slot)}
-                        className={`min-h-12 rounded-sm border px-3 text-base transition-all duration-150 active:scale-95 sm:min-h-0 sm:py-2.5 sm:text-sm ${
+                        onClick={() => selectTime(slot)}
+                        className={`data min-h-12 rounded-sm border px-3 text-base transition-all duration-150 active:scale-95 sm:min-h-0 sm:py-2.5 sm:text-sm ${
                           time === slot
                             ? "border-gold bg-gold text-ink shadow-[0_0_16px_rgba(201,162,75,0.3)]"
                             : "border-ink-3 bg-ink-2 text-bone hover:border-gold/50"
@@ -430,7 +477,7 @@ export default function Wizard() {
 
       {/* Navegación: barra fija inferior en móvil (zona del pulgar),
           en línea en desktop */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-3 bg-ink/95 px-5 py-3 backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-3 bg-ink/95 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <button
             onClick={() => setStep((s) => Math.max(0, s - 1))}
@@ -601,27 +648,25 @@ function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
         <Check size={32} className="text-ink" />
       </div>
       <h2 className="display text-4xl text-bone">¡Turno confirmado!</h2>
-      <p className="mt-3 text-bone-2">
-        {appointment.customer_name}, te esperamos el{" "}
-        <span className="text-bone">{appointment.date_local}</span> a las{" "}
-        <span className="text-bone">{appointment.time_local}</span> con{" "}
+      <p className="mt-2 text-lg text-gold">La silla es tuya, {appointment.customer_name.split(" ")[0]}.</p>
+      <p className="mt-2 text-bone-2">
+        Te esperamos el <span className="data text-bone">{appointment.date_local}</span> a las{" "}
+        <span className="data text-bone">{appointment.time_local}</span> con{" "}
         <span className="text-bone">{appointment.barber_name}</span>.
       </p>
 
-      {/* El código es el ÚNICO medio para gestionar el turno: protagonista. */}
-      <div className="mt-8 rounded-sm border-2 border-gold bg-gold/10 p-6">
-        <p className="text-xs uppercase tracking-widest text-gold">
+      {/* EL MOMENTO SEÑAL: la navaja abre la placa y el código queda troquelado.
+          Es el único medio de gestión del turno: protagonista absoluto. */}
+      <div className="plate clip-corner mt-8 p-5 sm:p-6">
+        <p className="data text-xs uppercase tracking-[0.3em] text-gold">
           Tu código de gestión
         </p>
-        <p
-          data-testid="manage-code"
-          className="display mt-2 text-6xl tracking-[0.18em] text-bone"
-        >
-          {appointment.manage_code}
-        </p>
+        <RazorReveal code={appointment.manage_code} className="mt-4">
+          <div className="texture-pinstripe h-28 rounded-sm border border-ink-3 bg-ink/60" />
+        </RazorReveal>
         <button
           onClick={copyCode}
-          className="mx-auto mt-4 flex items-center gap-2 rounded-sm border border-gold px-4 py-2 text-sm text-gold transition-colors hover:bg-gold hover:text-ink"
+          className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-sm border border-gold px-5 text-sm text-gold transition-colors hover:bg-gold hover:text-ink"
         >
           {copied ? <Check size={15} /> : <Copy size={15} />}
           {copied ? "¡Copiado!" : "Copiar código"}
@@ -636,9 +681,11 @@ function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
         </p>
       </div>
 
-      <div className="mt-6 rounded-sm border border-ink-3 bg-ink-2 px-6 py-4">
-        <p className="text-xs uppercase tracking-widest text-bone-2">Turno del día</p>
-        <p className="display mt-1 text-4xl text-gold">#{appointment.daily_number}</p>
+      <div className="clip-corner mt-6 border border-ink-3 bg-ink-2 px-6 py-4">
+        <p className="data text-xs uppercase tracking-widest text-bone-2">Turno del día</p>
+        <p className="data mt-1 text-4xl font-semibold text-gold">
+          #{appointment.daily_number}
+        </p>
       </div>
 
       <div className="mt-8 flex flex-col gap-3">

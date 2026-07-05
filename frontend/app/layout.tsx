@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, Inter } from "next/font/google";
+import { Anton, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 const anton = Anton({
@@ -15,6 +15,15 @@ const inter = Inter({
   display: "swap",
 });
 
+// Utilitaria de datos: precios, horas, códigos, etiquetas — el vocabulario
+// material de la barbería (etiqueta de precio, recibo, números de guarda).
+const plexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+  variable: "--font-plex-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "Bad Boys Barbershop — Elegancia con actitud",
@@ -26,7 +35,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${anton.variable} ${inter.variable}`}>
+    <html lang="es" className={`${anton.variable} ${inter.variable} ${plexMono.variable}`}>
       <body className="min-h-screen bg-ink text-bone antialiased">{children}</body>
     </html>
   );
