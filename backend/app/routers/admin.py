@@ -28,7 +28,9 @@ from ..models import (
     Barber,
     BarberTimeOff,
     ClientNote,
+    GiftCode,
     MediaAsset,
+    Product,
     Service,
     Tenant,
 )
@@ -40,6 +42,11 @@ from ..schemas import (
     CancelRequest,
     ClientNoteCreate,
     ClientNoteOut,
+    GiftCodeCreate,
+    GiftCodeOut,
+    ProductAdmin,
+    ProductCreate,
+    ProductUpdate,
     ManualBookingCreate,
     MediaAssetOut,
     PresignRequest,
@@ -624,6 +631,125 @@ def update_service(
     return service
 
 
+# ------------------------------------------------------------------ productos
+
+def _product_out(product: Product) -> ProductAdmin:
+    item = ProductAdmin.model_validate(product)
+    item.photo_url = get_storage().public_url(product.photo_key) if product.photo_key else None
+    return item
+
+
+@router.get("/products", response_model=list[ProductAdmin])
+def list_products(
+    _: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    return [
+        _product_out(p)
+        for p in db.scalars(
+            select(Product).where(Product.tenant_id == tenant.id)
+            .order_by(Product.sort_order, Product.id)
+        )
+    ]
+
+
+@router.post("/products", response_model=ProductAdmin, status_code=201)
+def create_product(
+    data: ProductCreate,
+    user: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    product = Product(tenant_id=tenant.id, **data.model_dump())
+    db.add(product)
+    db.flush()
+    audit.record(db, user, "product.create", "product", product.id, data.model_dump())
+    db.commit()
+    db.refresh(product)
+    return _product_out(product)
+
+
+@router.patch("/products/{product_id}", response_model=ProductAdmin)
+def update_product(
+    product_id: int,
+    data: ProductUpdate,
+    user: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    product = db.scalar(
+        select(Product).where(Product.id == product_id, Product.tenant_id == tenant.id)
+    )
+    if product is None:
+        raise HTTPException(404, "Producto no encontrado")
+    changes = data.model_dump(exclude_unset=True)
+    for field, value in changes.items():
+        setattr(product, field, value)
+    audit.record(db, user, "product.update", "product", product.id, changes)
+    db.commit()
+    db.refresh(product)
+    return _product_out(product)
+
+
+# ------------------------------------------------------------------ regalos
+
+@router.get("/gift-codes", response_model=list[GiftCodeOut])
+def list_gift_codes(
+    _: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    return list(
+        db.scalars(
+            select(GiftCode).where(GiftCode.tenant_id == tenant.id)
+            .order_by(GiftCode.id.desc()).limit(100)
+        )
+    )
+
+
+@router.post("/gift-codes", response_model=GiftCodeOut, status_code=201)
+def create_gift_code(
+    data: GiftCodeCreate,
+    user: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """El negocio genera el código cuando alguien PAGÓ EN EL LOCAL un regalo.
+    Sin venta ni cobro en línea: esto solo emite el comprobante digital."""
+    import secrets as _secrets
+    from datetime import timedelta as _timedelta
+
+    from ..db import utcnow as _utcnow
+    from ..services.appointments import CODE_ALPHABET
+
+    code = None
+    for _ in range(20):
+        candidate = "G-" + "".join(_secrets.choice(CODE_ALPHABET) for _ in range(6))
+        if not db.scalar(select(GiftCode.id).where(GiftCode.code == candidate)):
+            code = candidate
+            break
+    if code is None:
+        raise HTTPException(500, "No fue posible generar un código único")
+
+    gift = GiftCode(
+        tenant_id=tenant.id,
+        code=code,
+        description=data.description.strip(),
+        created_by=user.username,
+        expires_at=(
+            _utcnow() + _timedelta(days=data.expires_days) if data.expires_days else None
+        ),
+    )
+    db.add(gift)
+    db.flush()
+    audit.record(db, user, "gift.create", "gift_code", gift.id,
+                 {"code": code, "description": gift.description})
+    db.commit()
+    db.refresh(gift)
+    return gift
+
+
 # ------------------------------------------------------------------ galería
 
 @router.get("/media", response_model=list[MediaAssetOut])
@@ -675,7 +801,7 @@ async def upload_direct(
     storage = get_storage()
     if storage.upload_mode != "direct":
         raise HTTPException(400, "En producción usa /media/presign (subida directa a S3)")
-    if kind not in ("gallery", "barber", "cut"):
+    if kind not in ("gallery", "barber", "cut", "product"):
         raise HTTPException(400, "kind inválido")
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(415, "Formato no soportado (jpeg/png/webp/avif)")
@@ -705,7 +831,7 @@ def confirm_upload(
 ):
     """Tras subir a S3 con la URL pre-firmada, registra el asset en DB."""
     key, kind = data.get("key", ""), data.get("kind", "")
-    if kind not in ("gallery", "barber", "cut") or not key.startswith(f"tenants/{tenant.slug}/"):
+    if kind not in ("gallery", "barber", "cut", "product") or not key.startswith(f"tenants/{tenant.slug}/"):
         raise HTTPException(400, "key o kind inválidos")
     storage = get_storage()
     if storage.upload_mode == "presigned" and not storage.exists(key):

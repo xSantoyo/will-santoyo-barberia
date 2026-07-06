@@ -7,15 +7,58 @@ la recompensa viven en tenant.brand_config (editables sin código):
 """
 from __future__ import annotations
 
+import secrets
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import Appointment, Barber, ClientNote, Tenant
+from ..models import Appointment, Barber, ClientNote, ClientReferralCode, Tenant
 
 DEFAULT_TARGET = 10
 DEFAULT_REWARD = "El corte 10 va por la casa"
+REFERRAL_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def get_or_create_referral_code(db: Session, tenant: Tenant, phone: str) -> str:
+    """Código único de referido por cliente (Tanda 4, B2), estilo BB-XXXX."""
+    existing = db.scalar(
+        select(ClientReferralCode).where(
+            ClientReferralCode.tenant_id == tenant.id,
+            ClientReferralCode.customer_whatsapp == phone,
+        )
+    )
+    if existing:
+        return existing.code
+    for _ in range(20):
+        code = "BB-" + "".join(secrets.choice(REFERRAL_ALPHABET) for _ in range(4))
+        if not db.scalar(select(ClientReferralCode).where(ClientReferralCode.code == code)):
+            row = ClientReferralCode(
+                tenant_id=tenant.id, customer_whatsapp=phone, code=code
+            )
+            db.add(row)
+            db.commit()
+            return code
+    raise RuntimeError("No fue posible generar un código de referido único")
+
+
+def referral_bonus(db: Session, tenant: Tenant, phone: str) -> int:
+    """Tijeras extra: referidos DISTINTOS que ya completaron al menos un corte."""
+    my_code = db.scalar(
+        select(ClientReferralCode.code).where(
+            ClientReferralCode.tenant_id == tenant.id,
+            ClientReferralCode.customer_whatsapp == phone,
+        )
+    )
+    if not my_code:
+        return 0
+    return db.scalar(
+        select(func.count(func.distinct(Appointment.customer_whatsapp))).where(
+            Appointment.tenant_id == tenant.id,
+            Appointment.referred_by_code == my_code,
+            Appointment.status == "completado",
+        )
+    ) or 0
 
 
 def loyalty_status(db: Session, tenant: Tenant, phone: str) -> dict:
@@ -31,13 +74,16 @@ def loyalty_status(db: Session, tenant: Tenant, phone: str) -> dict:
             Appointment.status == "completado",
         )
     ) or 0
-    progress = completed % target
+    bonus = referral_bonus(db, tenant, phone)
+    total = completed + bonus
+    progress = total % target
     return {
         "completed_count": completed,
+        "referral_bonus": bonus,
         "target": target,
         "progress": progress,
         "remaining": target - progress,
-        "earned_rewards": completed // target,
+        "earned_rewards": total // target,
         "reward": reward,
     }
 

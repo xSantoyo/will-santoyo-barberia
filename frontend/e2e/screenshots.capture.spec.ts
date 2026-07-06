@@ -234,6 +234,50 @@ test("tanda 3: portal, reseñas y widget de reseña", async ({ page }) => {
   await section.screenshot({ path: `${OUT}/34-resenas-home.png` });
 });
 
+test("tanda 4: portafolio, vitrina y regalos", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+
+  // Portafolio del barbero 1 (mini-sitio)
+  await page.goto("/barbero/1");
+  await expect(page.getByRole("heading", { name: /barbero 1/i })).toBeVisible({
+    timeout: 10_000,
+  });
+  await page.waitForTimeout(900);
+  await shot(page, "37-portafolio-barbero", true);
+
+  // La vitrina en el home
+  await page.goto("/");
+  const vitrina = page.locator("#vitrina");
+  if ((await vitrina.count()) > 0) {
+    await vitrina.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(900);
+    await vitrina.screenshot({ path: `${OUT}/38-vitrina-home.png` });
+  }
+
+  // Widget embebible
+  await page.setViewportSize({ width: 340, height: 210 });
+  await page.goto("/embed");
+  await expect(page.getByRole("link", { name: /agendar mi turno/i })).toBeVisible();
+  await page.waitForTimeout(600);
+  await shot(page, "39-embed-widget");
+
+  // Admin: regalos
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/admin");
+  await page.getByLabel(/usuario/i).fill("admin");
+  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByRole("button", { name: /entrar/i }).click();
+  await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("link", { name: /regalos/i }).click();
+  await expect(page.getByRole("heading", { name: "Regalos" })).toBeVisible();
+  await page.waitForTimeout(700);
+  await shot(page, "40-admin-regalos");
+  await page.getByRole("link", { name: /vitrina/i }).click();
+  await expect(page.getByRole("heading", { name: "Vitrina" })).toBeVisible();
+  await page.waitForTimeout(700);
+  await shot(page, "41-admin-vitrina");
+});
+
 test("anchos móviles reales: 375px y 428px", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 }); // iPhone SE/Mini
   await page.goto("/agendar");

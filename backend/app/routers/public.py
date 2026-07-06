@@ -21,6 +21,7 @@ from ..models import (
     Barber,
     BarberTimeOff,
     MediaAsset,
+    Product,
     Review,
     Service,
     Tenant,
@@ -33,8 +34,11 @@ from ..schemas import (
     BookingCreate,
     CancelRequest,
     DayAvailability,
+    GroupBookingCreate,
     MediaAssetOut,
     PortalRequest,
+    ProductPublic,
+    RebookRequest,
     ReviewCreate,
     ReviewPublic,
     ServicePublic,
@@ -120,7 +124,7 @@ def availability(
         services = booking.load_services(db, tenant, query.service_ids)
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
-    duration = sum(s.duration_min for s in services)
+    duration = sum(s.duration_min for s in services) * query.party
     is_day_off, slots = compute_slots(db, tenant, barber, query.date, duration)
     return DayAvailability(date=query.date, is_day_off=is_day_off, slots=slots)
 
@@ -226,6 +230,124 @@ def cancel_appointment(
     return appointment_to_public(appointment, tenant)
 
 
+# ------------------------------------------------------------- tanda 4
+
+@router.post(
+    "/appointments/group",
+    status_code=201,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def create_group_booking(
+    data: GroupBookingCreate,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Reserva grupal: turnos seguidos con el mismo barbero, todo o nada."""
+    booking.release_unconfirmed(db, tenant)
+    try:
+        created = booking.create_group_appointment(db, tenant, data)
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    return {"appointments": [appointment_to_public(a, tenant) for a in created]}
+
+
+@router.post(
+    "/appointments/{manage_code}/rebook",
+    response_model=AppointmentPublic,
+    status_code=201,
+    dependencies=[Depends(booking_rate_limiter)],
+)
+def rebook(
+    manage_code: str,
+    data: RebookRequest,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Repetir turno: mismo barbero, misma hora y servicios, N semanas después."""
+    appointment = _load_by_code(db, tenant, manage_code)
+    try:
+        new_appointment = booking.rebook_appointment(db, tenant, appointment, data.weeks)
+    except booking.BookingError as exc:
+        raise _handle_booking_error(exc) from None
+    return appointment_to_public(new_appointment, tenant)
+
+
+@router.get("/products", response_model=list[ProductPublic])
+def list_products(
+    tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
+):
+    """La vitrina: solo consulta — los productos se compran en el local."""
+    storage = get_storage()
+    result = []
+    for product in db.scalars(
+        select(Product)
+        .where(Product.tenant_id == tenant.id, Product.is_active.is_(True))
+        .order_by(Product.sort_order, Product.id)
+    ):
+        item = ProductPublic.model_validate(product)
+        item.photo_url = storage.public_url(product.photo_key) if product.photo_key else None
+        result.append(item)
+    return result
+
+
+@router.get("/barbers/{barber_id}/portfolio")
+def barber_portfolio(
+    barber_id: int,
+    tenant: Tenant = Depends(get_tenant_by_slug),
+    db: Session = Depends(get_db),
+):
+    """Portafolio del barbero (Tanda 4, C5): su mini-sitio para compartir."""
+    from sqlalchemy import func
+
+    barber = db.scalar(
+        select(Barber).where(
+            Barber.id == barber_id, Barber.tenant_id == tenant.id, Barber.is_active.is_(True)
+        )
+    )
+    if barber is None:
+        raise HTTPException(404, "Barbero no encontrado")
+
+    rating_row = db.execute(
+        select(func.avg(Review.rating), func.count(Review.id)).where(
+            Review.tenant_id == tenant.id,
+            Review.barber_id == barber.id,
+            Review.is_public.is_(True),
+        )
+    ).one()
+    completed = db.scalar(
+        select(func.count()).select_from(Appointment).where(
+            Appointment.barber_id == barber.id, Appointment.status == "completado"
+        )
+    ) or 0
+    reviews = db.scalars(
+        select(Review)
+        .options(selectinload(Review.appointment).selectinload(Appointment.barber))
+        .where(Review.tenant_id == tenant.id, Review.barber_id == barber.id,
+               Review.is_public.is_(True))
+        .order_by(Review.id.desc())
+        .limit(8)
+    )
+    storage = get_storage()
+    cuts = db.scalars(
+        select(MediaAsset)
+        .where(MediaAsset.tenant_id == tenant.id, MediaAsset.kind == "cut")
+        .order_by(MediaAsset.sort_order, MediaAsset.id.desc())
+        .limit(12)
+    )
+    item = BarberPublic.model_validate(barber)
+    item.photo_url = barber_photo_url(barber)
+    return {
+        "barber": item,
+        "stats": {
+            "rating": round(float(rating_row[0]), 1) if rating_row[0] else None,
+            "review_count": rating_row[1],
+            "completed_count": completed,
+        },
+        "reviews": [_review_to_public(r, tenant) for r in reviews],
+        "cuts": [storage.public_url(c.s3_key) for c in cuts],
+    }
+
+
 # ------------------------------------------------------------- tanda 3
 
 def _review_label(name: str) -> str:
@@ -289,6 +411,10 @@ def client_portal(
         "customer_name": key_appointment.customer_name,
         "appointments": history,
         "loyalty": clients_service.loyalty_status(db, tenant, data.customer_whatsapp),
+        # Tanda 4: código de referido propio — se crea la primera vez que entra
+        "referral_code": clients_service.get_or_create_referral_code(
+            db, tenant, data.customer_whatsapp
+        ),
     }
 
 

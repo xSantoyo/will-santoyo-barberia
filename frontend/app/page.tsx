@@ -9,11 +9,13 @@ import {
   Location,
   Reviews,
   Services,
+  Vitrina,
 } from "@/components/public/Sections";
 import { publicApi } from "@/lib/api";
 import type {
   BarberPublic,
   MediaAsset,
+  ProductPublic,
   ReviewsResponse,
   ServicePublic,
   TenantPublic,
@@ -38,14 +40,16 @@ export default async function HomePage() {
   let services: ServicePublic[] = [];
   let gallery: MediaAsset[] = [];
   let reviews: ReviewsResponse | null = null;
+  let products: ProductPublic[] = [];
 
   try {
-    [tenant, barbers, services, gallery, reviews] = await Promise.all([
+    [tenant, barbers, services, gallery, reviews, products] = await Promise.all([
       publicApi.tenant(),
       publicApi.barbers(),
       publicApi.services(),
       publicApi.media("gallery"),
       publicApi.reviews(),
+      publicApi.products(),
     ]);
   } catch {
     // Backend no disponible: el sitio degrada con elegancia en vez de romperse.
@@ -65,6 +69,7 @@ export default async function HomePage() {
         <Barbers barbers={barbers} ratings={reviews?.per_barber} />
         <Gallery items={gallery} />
         <Reviews data={reviews} />
+        <Vitrina products={products} />
         <Location tenant={tenant} />
       </main>
       <Footer tenant={tenant} />

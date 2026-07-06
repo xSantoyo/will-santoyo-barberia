@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..config import get_settings
 
-KIND_DIRS = {"gallery": "gallery", "barber": "barbers", "cut": "cuts"}
+KIND_DIRS = {"gallery": "gallery", "barber": "barbers", "cut": "cuts", "product": "products"}
 ALLOWED_CONTENT_TYPES = {
     "image/jpeg": ".jpg",
     "image/png": ".png",

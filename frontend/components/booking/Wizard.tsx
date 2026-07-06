@@ -72,6 +72,12 @@ export default function Wizard() {
   const [time, setTime] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  // Tanda 4: parche (turnos seguidos) y códigos de crecimiento
+  const [companions, setCompanions] = useState<string[]>([]);
+  const [giftCode, setGiftCode] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [codesOpen, setCodesOpen] = useState(false);
+  const [groupExtras, setGroupExtras] = useState<AppointmentPublic[]>([]);
 
   // Estado del calendario
   const today = useMemo(() => new Date(), []);
@@ -95,6 +101,15 @@ export default function Wizard() {
             setBarber(found);
             setStep(1);
           }
+        }
+        // Preselección de servicios (?servicios=1,2) para repetir/compartir
+        const preServices = params.get("servicios");
+        if (preServices) {
+          const valid = preServices
+            .split(",")
+            .map(Number)
+            .filter((id) => loadedServices.some((s) => s.id === id));
+          if (valid.length > 0) setSelectedServices(valid);
         }
       })
       .catch(() => setError("No pudimos cargar la información. Intenta de nuevo en un momento."))
@@ -129,12 +144,12 @@ export default function Wizard() {
       setSlotsLoading(true);
       setTime(null);
       publicApi
-        .availability(barber.id, isoDate, selectedServices)
+        .availability(barber.id, isoDate, selectedServices, 1 + companions.length)
         .then(setAvailability)
         .catch(() => setAvailability(null))
         .finally(() => setSlotsLoading(false));
     },
-    [barber, selectedServices],
+    [barber, selectedServices, companions.length],
   );
 
   function selectDate(isoDate: string) {
@@ -180,6 +195,25 @@ export default function Wizard() {
     setSubmitting(true);
     setError(null);
     try {
+      if (companions.length > 0) {
+        // Parche: turnos seguidos, todo o nada
+        const group = await publicApi.bookGroup({
+          barber_id: barber.id,
+          date,
+          time,
+          customer_whatsapp: phone.trim(),
+          customers: [
+            { name: name.trim(), service_ids: selectedServices },
+            ...companions.map((companion) => ({
+              name: companion.trim(),
+              service_ids: selectedServices,
+            })),
+          ],
+        });
+        setGroupExtras(group.appointments.slice(1));
+        setConfirmed(group.appointments[0]);
+        return;
+      }
       const appointment = await publicApi.book({
         barber_id: barber.id,
         service_ids: selectedServices,
@@ -187,6 +221,8 @@ export default function Wizard() {
         time,
         customer_name: name.trim(),
         customer_whatsapp: phone.trim(),
+        gift_code: giftCode.trim() || null,
+        referral_code: referralCode.trim() || null,
       });
       setConfirmed(appointment);
     } catch (err) {
@@ -213,14 +249,18 @@ export default function Wizard() {
   }
 
   if (confirmed) {
-    return <Confirmation appointment={confirmed} />;
+    return <Confirmation appointment={confirmed} groupExtras={groupExtras} />;
   }
 
+  const companionsReady = companions.every((companion) => companion.trim().length >= 2);
   const canContinue =
     (step === 0 && barber !== null) ||
     (step === 1 && selectedServices.length > 0) ||
     (step === 2 && date !== null && time !== null) ||
-    (step === 3 && name.trim().length >= 2 && phone.replace(/\D/g, "").length >= 10) ||
+    (step === 3 &&
+      name.trim().length >= 2 &&
+      phone.replace(/\D/g, "").length >= 10 &&
+      companionsReady) ||
     step === 4;
 
   return (
@@ -366,14 +406,43 @@ export default function Wizard() {
               })}
               {totals.chosen.length > 0 && (
                 <p className="pt-2 text-right text-sm text-bone-2">
-                  Total:{" "}
+                  Total{companions.length > 0 ? ` × ${1 + companions.length} personas` : ""}:{" "}
                   <span className="data text-lg font-semibold text-gold">
-                    {formatCOP(totals.price)}
+                    {formatCOP(totals.price * (1 + companions.length))}
                   </span>
                   {" · "}
-                  <span className="data">{totals.minutes} min</span>
+                  <span className="data">{totals.minutes * (1 + companions.length)} min</span>
                 </p>
               )}
+
+              {/* Parche: turnos seguidos con el mismo barbero */}
+              <div className="mt-4 rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5">
+                <p className="data text-[11px] uppercase tracking-[0.25em] text-bone-2">
+                  ¿Cuántos se cortan? <span className="text-gold">turnos seguidos</span>
+                </p>
+                <div className="mt-2.5 flex gap-2">
+                  {[1, 2, 3].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() =>
+                        setCompanions(Array.from({ length: size - 1 }, (_, i) => companions[i] ?? ""))
+                      }
+                      className={`data min-h-11 flex-1 rounded-sm border text-sm transition-all active:scale-95 ${
+                        companions.length === size - 1
+                          ? "border-gold bg-gold/10 text-gold"
+                          : "border-ink-3 text-bone-2 hover:border-gold/40"
+                      }`}
+                    >
+                      {size === 1 ? "Solo yo" : `${size} personas`}
+                    </button>
+                  ))}
+                </div>
+                {companions.length > 0 && (
+                  <p className="mt-2 text-[11px] text-bone-2/70">
+                    Mismos servicios para todos, uno detrás del otro (padre e hijo, parche).
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -448,6 +517,60 @@ export default function Wizard() {
                   Solo lo usamos si necesitamos contactarte por tu turno.
                 </span>
               </label>
+
+              {/* Nombres del parche */}
+              {companions.map((companion, index) => (
+                <label key={index} className="block">
+                  <span className="mb-1.5 block text-sm text-bone-2">
+                    Acompañante {index + 1}
+                  </span>
+                  <input
+                    value={companion}
+                    onChange={(e) =>
+                      setCompanions((current) =>
+                        current.map((c, i) => (i === index ? e.target.value : c)),
+                      )
+                    }
+                    placeholder="Su nombre"
+                    className="focus-gold min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base text-bone placeholder:text-bone-2/50"
+                  />
+                </label>
+              ))}
+
+              {/* Códigos de regalo / amigo (solo reservas individuales) */}
+              {companions.length === 0 && (
+                <div className="rounded-sm border border-ink-3 bg-ink-2 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setCodesOpen(!codesOpen)}
+                    className="data w-full text-left text-[11px] uppercase tracking-[0.25em] text-bone-2 transition-colors hover:text-gold"
+                  >
+                    ¿Tienes código de regalo o de amigo? {codesOpen ? "−" : "+"}
+                  </button>
+                  {codesOpen && (
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="mb-1 block text-xs text-bone-2">Regalo</span>
+                        <input
+                          value={giftCode}
+                          onChange={(e) => setGiftCode(e.target.value.toUpperCase())}
+                          placeholder="G-XXXXXX"
+                          className="focus-gold data min-h-12 w-full rounded-sm border border-ink-3 bg-ink px-3 text-sm uppercase text-bone placeholder:text-bone-2/40"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-xs text-bone-2">Código de amigo</span>
+                        <input
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          placeholder="BB-XXXX"
+                          className="focus-gold data min-h-12 w-full rounded-sm border border-ink-3 bg-ink px-3 text-sm uppercase text-bone placeholder:text-bone-2/40"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -460,6 +583,12 @@ export default function Wizard() {
                   label="Servicios"
                   value={totals.chosen.map((s) => s.name).join(", ")}
                 />
+                {companions.length > 0 && (
+                  <Row
+                    label="Parche"
+                    value={`${name}${companions.length ? ", " + companions.join(", ") : ""} (turnos seguidos)`}
+                  />
+                )}
                 <Row label="Fecha" value={date ?? ""} />
                 <Row label="Hora" value={`${time} (${totals.minutes} min aprox.)`} />
                 <Row label="Nombre" value={name} />
@@ -626,7 +755,13 @@ function CalendarDay({
   );
 }
 
-function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
+function Confirmation({
+  appointment,
+  groupExtras = [],
+}: {
+  appointment: AppointmentPublic;
+  groupExtras?: AppointmentPublic[];
+}) {
   const [copied, setCopied] = useState(false);
 
   async function copyCode() {
@@ -688,6 +823,39 @@ function Confirmation({ appointment }: { appointment: AppointmentPublic }) {
           #{appointment.daily_number}
         </p>
       </div>
+
+      {appointment.gift_description && (
+        <p className="data mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+          🎁 Regalo aplicado: {appointment.gift_description} — se redime en el local
+        </p>
+      )}
+
+      {groupExtras.length > 0 && (
+        <div className="clip-corner mt-4 border border-ink-3 bg-ink-2 p-4 text-left">
+          <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+            Los turnos del parche
+          </p>
+          <ul className="mt-2 space-y-2">
+            {groupExtras.map((extra) => (
+              <li
+                key={extra.manage_code}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="truncate text-bone">
+                  {extra.customer_name} ·{" "}
+                  <span className="data text-gold">{extra.time_local}</span>
+                </span>
+                <span className="data selectable tracking-[0.2em] text-bone">
+                  {extra.manage_code}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-bone-2/70">
+            Cada uno gestiona su turno con su propio código.
+          </p>
+        </div>
+      )}
 
       <div className="mt-4">
         <AddToCalendar

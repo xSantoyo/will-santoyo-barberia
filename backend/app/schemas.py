@@ -56,6 +56,8 @@ class AvailabilityQuery(BaseModel):
     barber_id: int
     date: date
     service_ids: list[int] = Field(min_length=1)
+    # Reserva grupal: cuántas personas se cortan seguidas (mismos servicios)
+    party: int = Field(default=1, ge=1, le=3)
 
 
 class DayAvailability(BaseModel):
@@ -71,6 +73,9 @@ class BookingCreate(BaseModel):
     time: str = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")  # HH:MM local
     customer_name: str = Field(min_length=2, max_length=120)
     customer_whatsapp: str
+    # Tanda 4: opcionales de crecimiento — sin dinero en línea
+    referral_code: str | None = Field(default=None, max_length=16)
+    gift_code: str | None = Field(default=None, max_length=16)
 
     @field_validator("customer_whatsapp")
     @classmethod
@@ -110,6 +115,7 @@ class AppointmentPublic(ORMModel):
     # Reseñas verificadas (Tanda 3): el tiquete invita a reseñar al completar
     can_review: bool = False
     review_rating: int | None = None
+    gift_description: str | None = None  # regalo aplicado (se redime en el local)
 
 
 class AppointmentFind(BaseModel):
@@ -284,6 +290,85 @@ class StatusUpdate(BaseModel):
         return v
 
 
+# ---------------------------------------------------------------- tanda 4
+
+class GroupMember(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    service_ids: list[int] = Field(min_length=1, max_length=6)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, v: str) -> str:
+        clean = v.strip()
+        if not re.match(r"^[\w\sáéíóúÁÉÍÓÚñÑüÜ.'-]+$", clean):
+            raise ValueError("El nombre contiene caracteres no permitidos")
+        return clean
+
+
+class GroupBookingCreate(BaseModel):
+    """Turnos seguidos con el mismo barbero (padre e hijo, parche de amigos)."""
+    barber_id: int
+    date: date
+    time: str = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
+    customer_whatsapp: str  # un teléfono responsable del grupo
+    customers: list[GroupMember] = Field(min_length=1, max_length=3)
+
+    @field_validator("customer_whatsapp")
+    @classmethod
+    def _phone(cls, v: str) -> str:
+        return normalize_phone(v)
+
+
+class RebookRequest(BaseModel):
+    weeks: int = Field(ge=1, le=4)  # dentro del horizonte de reserva
+
+
+class ProductPublic(ORMModel):
+    id: int
+    name: str
+    description: str | None
+    price_cop: int
+    photo_url: str | None = None
+
+
+class ProductAdmin(ProductPublic):
+    photo_key: str | None
+    is_active: bool
+    sort_order: int
+
+
+class ProductCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    description: str | None = Field(default=None, max_length=300)
+    price_cop: int = Field(gt=0, le=10_000_000)
+    sort_order: int = 0
+
+
+class ProductUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    description: str | None = Field(default=None, max_length=300)
+    price_cop: int | None = Field(default=None, gt=0, le=10_000_000)
+    photo_key: str | None = None
+    is_active: bool | None = None
+    sort_order: int | None = None
+
+
+class GiftCodeCreate(BaseModel):
+    description: str = Field(min_length=3, max_length=200)
+    expires_days: int | None = Field(default=None, ge=1, le=365)
+
+
+class GiftCodeOut(ORMModel):
+    id: int
+    code: str
+    description: str
+    created_by: str
+    created_at: datetime
+    expires_at: datetime | None
+    held_by_appointment_id: int | None
+    redeemed_at: datetime | None
+
+
 # ---------------------------------------------------------------- tanda 3
 
 class PortalRequest(BaseModel):
@@ -331,7 +416,7 @@ class MediaAssetOut(ORMModel):
 
 
 class PresignRequest(BaseModel):
-    kind: str = Field(pattern="^(gallery|barber|cut)$")
+    kind: str = Field(pattern="^(gallery|barber|cut|product)$")
     filename: str = Field(min_length=1, max_length=200)
     content_type: str = Field(pattern="^image/(jpeg|png|webp|avif)$")
 

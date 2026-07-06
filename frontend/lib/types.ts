@@ -62,6 +62,41 @@ export interface AppointmentPublic {
   attendance_deadline_local: string | null;
   can_review: boolean;
   review_rating: number | null;
+  gift_description: string | null;
+}
+
+/* --- Tanda 4: crecimiento --- */
+
+export interface ProductPublic {
+  id: number;
+  name: string;
+  description: string | null;
+  price_cop: number;
+  photo_url: string | null;
+}
+
+export interface ProductAdmin extends ProductPublic {
+  photo_key: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface GiftCodeAdmin {
+  id: number;
+  code: string;
+  description: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string | null;
+  held_by_appointment_id: number | null;
+  redeemed_at: string | null;
+}
+
+export interface BarberPortfolio {
+  barber: BarberPublic;
+  stats: { rating: number | null; review_count: number; completed_count: number };
+  reviews: ReviewPublic[];
+  cuts: string[];
 }
 
 /* --- Tanda 3: cliente con memoria --- */
@@ -82,6 +117,7 @@ export interface ReviewsResponse {
 
 export interface LoyaltyStatus {
   completed_count: number;
+  referral_bonus: number;
   target: number;
   progress: number;
   remaining: number;
@@ -105,6 +141,7 @@ export interface PortalResponse {
   customer_name: string;
   appointments: PortalAppointment[];
   loyalty: LoyaltyStatus;
+  referral_code: string;
 }
 
 export interface ClientNote {

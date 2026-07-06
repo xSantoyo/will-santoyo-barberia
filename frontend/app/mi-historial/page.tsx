@@ -139,6 +139,26 @@ export default function PortalPage() {
               )}
             </div>
 
+            {/* Código de referido: recomienda y suma tijeras */}
+            <div className="clip-corner mt-4 border border-ink-3 bg-ink-2 p-5">
+              <p className="data text-[11px] uppercase tracking-[0.3em] text-bone-2">
+                Tu código de amigo
+              </p>
+              <p className="stamped selectable mt-2 text-3xl tracking-[0.2em] text-gold">
+                {data.referral_code}
+              </p>
+              <p className="mt-2 text-xs text-bone-2">
+                Compártelo: cuando un amigo nuevo agende con tu código y complete su
+                corte, <span className="text-gold">tú sumas una tijera</span> en la
+                tarjeta.
+                {data.loyalty.referral_bonus > 0 && (
+                  <span className="data ml-1 text-gold">
+                    Ya llevas {data.loyalty.referral_bonus}.
+                  </span>
+                )}
+              </p>
+            </div>
+
             {/* Historial */}
             <p className="data mt-8 text-[11px] uppercase tracking-[0.3em] text-bone-2">
               Tus turnos ({data.appointments.length})

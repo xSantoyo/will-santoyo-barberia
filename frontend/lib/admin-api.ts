@@ -10,7 +10,9 @@ import type {
   ClientNote,
   ClientProfile,
   DashboardData,
+  GiftCodeAdmin,
   MediaAsset,
+  ProductAdmin,
   ServiceAdmin,
   TimeOff,
   TokenPair,
@@ -208,6 +210,25 @@ export const adminApi = {
     request<ServiceAdmin>(`/api/v1/admin/services/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }),
+
+  products: () => request<ProductAdmin[]>("/api/v1/admin/products"),
+  createProduct: (payload: object) =>
+    request<ProductAdmin>("/api/v1/admin/products", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateProduct: (id: number, payload: object) =>
+    request<ProductAdmin>(`/api/v1/admin/products/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  giftCodes: () => request<GiftCodeAdmin[]>("/api/v1/admin/gift-codes"),
+  createGiftCode: (description: string, expiresDays?: number) =>
+    request<GiftCodeAdmin>("/api/v1/admin/gift-codes", {
+      method: "POST",
+      body: JSON.stringify({ description, expires_days: expiresDays ?? null }),
     }),
 
   media: (kind?: string) =>

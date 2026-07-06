@@ -320,6 +320,17 @@ export default function ManageAppointmentPage({
           )}
         </AnimatePresence>
 
+        {appointment.gift_description && (
+          <p className="data mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+            🎁 {appointment.gift_description} — se redime en el local
+          </p>
+        )}
+
+        {/* Repetir turno: la recurrencia honesta, un toque y listo */}
+        {appointment.status === "completado" && (
+          <RebookWidget code={code} barberName={appointment.barber_name} />
+        )}
+
         {/* Reseña verificada: solo citas completadas, una por cita */}
         {appointment.can_review && (
           <ReviewWidget
@@ -353,6 +364,71 @@ export default function ManageAppointmentPage({
         </Link>
       </div>
     </main>
+  );
+}
+
+function RebookWidget({ code, barberName }: { code: string; barberName: string }) {
+  const [busy, setBusy] = useState<number | null>(null);
+  const [done, setDone] = useState<{ code: string; date: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function rebook(weeks: number) {
+    setBusy(weeks);
+    setError(null);
+    try {
+      const next = await publicApi.rebook(code, weeks);
+      setDone({ code: next.manage_code, date: next.date_local });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `${err.message} Prueba otra semana o agenda desde el inicio.`
+          : "No se pudo repetir.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (done) {
+    return (
+      <div className="clip-corner mt-6 border border-gold/40 bg-gold/[0.06] p-5 text-center">
+        <p className="display text-2xl text-gold">¡Silla apartada!</p>
+        <p className="mt-1 text-sm text-bone">
+          Mismo corte con {barberName} el <span className="data">{done.date}</span>.
+        </p>
+        <Link
+          href={`/turno/${done.code}`}
+          className="display mt-3 inline-block rounded-sm bg-gold px-6 py-2.5 text-ink"
+        >
+          Ver mi nuevo tiquete
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="clip-corner mt-6 border border-ink-3 bg-ink-2 p-5 text-center">
+      <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+        ¿Repetimos? Misma hora, mismo barbero
+      </p>
+      <div className="mt-3 flex justify-center gap-2">
+        {[2, 3, 4].map((weeks) => (
+          <button
+            key={weeks}
+            onClick={() => rebook(weeks)}
+            disabled={busy !== null}
+            className="data min-h-11 flex-1 rounded-sm border border-gold/50 px-3 text-sm text-gold transition-all hover:bg-gold hover:text-ink active:scale-95 disabled:opacity-50"
+          >
+            {busy === weeks ? (
+              <Loader2 className="mx-auto animate-spin" size={15} />
+            ) : (
+              `En ${weeks} semanas`
+            )}
+          </button>
+        ))}
+      </div>
+      {error && <p className="mt-2 text-xs text-wine">{error}</p>}
+    </div>
   );
 }
 

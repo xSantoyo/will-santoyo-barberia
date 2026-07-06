@@ -130,6 +130,9 @@ class Appointment(Base):
     cancelled_at: Mapped[datetime | None] = mapped_column(TZDateTime)
     # Confirmación de asistencia (el cliente confirma desde su tiquete el día antes)
     attendance_confirmed_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+    # Crecimiento (Tanda 4): quién lo refirió y qué regalo aplicó
+    referred_by_code: Mapped[str | None] = mapped_column(String(20))
+    gift_code_id: Mapped[int | None] = mapped_column(ForeignKey("gift_codes.id"))
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
 
@@ -138,6 +141,7 @@ class Appointment(Base):
         back_populates="appointment", cascade="all, delete-orphan"
     )
     review: Mapped[Review | None] = relationship(back_populates="appointment", uselist=False)
+    gift: Mapped[GiftCode | None] = relationship("GiftCode", foreign_keys="Appointment.gift_code_id")
 
     @property
     def total_cop(self) -> int:
@@ -237,6 +241,59 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
 
     appointment: Mapped[Appointment] = relationship(back_populates="review")
+
+
+class Product(Base):
+    """Vitrina del local (Tanda 4, D4): solo consulta — se compra en el local."""
+
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(String(300))
+    price_cop: Mapped[int] = mapped_column(Integer)
+    photo_key: Mapped[str | None] = mapped_column(String(300))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+
+
+class GiftCode(Base):
+    """Código de regalo (Tanda 4, B4): el negocio lo genera manualmente cuando
+    alguien PAGÓ EN EL LOCAL; quien lo recibe lo redime al agendar. Nunca hay
+    venta ni cobro en línea."""
+
+    __tablename__ = "gift_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
+    description: Mapped[str] = mapped_column(String(200))  # ej. "Corte clásico de regalo"
+    created_by: Mapped[str] = mapped_column(String(60))
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+    # Reservado por una cita activa (se libera si esa cita se cancela).
+    # Sin FK: evita la dependencia circular appointments↔gift_codes.
+    held_by_appointment_id: Mapped[int | None] = mapped_column(Integer)
+    # …y consumido definitivamente cuando la cita se completa
+    redeemed_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+
+
+class ClientReferralCode(Base):
+    """Código de referido único por cliente (Tanda 4, B2), llave = teléfono.
+    La recompensa es en tijeras de fidelidad, sin dinero de por medio."""
+
+    __tablename__ = "client_referral_codes"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "customer_whatsapp", name="uq_referral_phone"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    customer_whatsapp: Mapped[str] = mapped_column(String(20))
+    code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
 
 
 class AuditLog(Base):

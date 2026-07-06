@@ -9,10 +9,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
+  Gift,
   Images,
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Package,
   Scissors,
   Users,
 } from "lucide-react";
@@ -24,6 +26,8 @@ const NAV = [
   { href: "/admin/turnos", label: "Turnos", icon: ListChecks, roles: ["admin"] },
   { href: "/admin/barberos", label: "Barberos", icon: Users, roles: ["admin"] },
   { href: "/admin/servicios", label: "Servicios", icon: Scissors, roles: ["admin"] },
+  { href: "/admin/productos", label: "Vitrina", icon: Package, roles: ["admin"] },
+  { href: "/admin/regalos", label: "Regalos", icon: Gift, roles: ["admin"] },
   { href: "/admin/galeria", label: "Galería", icon: Images, roles: ["admin"] },
 ];
 

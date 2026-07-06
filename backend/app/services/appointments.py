@@ -22,6 +22,8 @@ from ..models import (
     Appointment,
     AppointmentService,
     Barber,
+    ClientReferralCode,
+    GiftCode,
     Service,
     Tenant,
 )
@@ -174,6 +176,36 @@ def load_services(db: Session, tenant: Tenant, service_ids: list[int]) -> list[S
     return services
 
 
+def _resolve_referral(db: Session, tenant: Tenant, code: str, phone: str) -> str:
+    row = db.scalar(
+        select(ClientReferralCode).where(
+            ClientReferralCode.tenant_id == tenant.id,
+            ClientReferralCode.code == code.strip().upper(),
+        )
+    )
+    if row is None:
+        raise BookingError("Ese código de amigo no existe. Revísalo o déjalo vacío.",
+                           404, "referral_invalid")
+    if row.customer_whatsapp == phone:
+        raise BookingError("El código de amigo no puede ser el tuyo.", 409, "referral_own")
+    return row.code
+
+
+def _hold_gift(db: Session, tenant: Tenant, code: str) -> GiftCode:
+    gift = db.scalar(
+        select(GiftCode).where(
+            GiftCode.tenant_id == tenant.id, GiftCode.code == code.strip().upper()
+        )
+    )
+    if gift is None:
+        raise BookingError("Ese código de regalo no existe.", 404, "gift_invalid")
+    if gift.redeemed_at is not None or gift.held_by_appointment_id is not None:
+        raise BookingError("Ese código de regalo ya fue usado.", 409, "gift_used")
+    if gift.expires_at is not None and gift.expires_at < utcnow():
+        raise BookingError("Ese código de regalo ya venció.", 409, "gift_expired")
+    return gift
+
+
 def create_appointment(
     db: Session,
     tenant: Tenant,
@@ -196,6 +228,13 @@ def create_appointment(
             "Ese horario acaba de ser tomado por otra persona. Elige otro.", 409, "overlap"
         )
 
+    referred_by = (
+        _resolve_referral(db, tenant, data.referral_code, data.customer_whatsapp)
+        if data.referral_code
+        else None
+    )
+    gift = _hold_gift(db, tenant, data.gift_code) if data.gift_code else None
+
     appointment = Appointment(
         tenant_id=tenant.id,
         barber_id=barber.id,
@@ -207,6 +246,8 @@ def create_appointment(
         daily_number=next_daily_number(db, tenant, barber.id, data.date),
         manage_code=generate_manage_code(db),
         notes=notes,
+        referred_by_code=referred_by,
+        gift_code_id=gift.id if gift else None,
     )
     for service in services:
         appointment.services.append(
@@ -227,6 +268,9 @@ def create_appointment(
         raise BookingError(
             "Ese horario acaba de ser tomado por otra persona. Elige otro.", 409, "overlap"
         ) from None
+    if gift:
+        gift.held_by_appointment_id = appointment.id  # queda reservado, no consumido
+        db.commit()
     db.refresh(appointment)
     return appointment
 
@@ -252,9 +296,20 @@ def cancel_appointment(
     appointment.status = "cancelado"
     appointment.cancel_reason = reason
     appointment.cancelled_at = utcnow()
+    _release_gift_hold(db, appointment)
     db.commit()
     db.refresh(appointment)
     return appointment
+
+
+def _release_gift_hold(db: Session, appointment: Appointment) -> None:
+    """Si la cita tenía un regalo reservado (no consumido), vuelve a quedar libre."""
+    if appointment.gift_code_id is None:
+        return
+    gift = db.get(GiftCode, appointment.gift_code_id)
+    if gift and gift.redeemed_at is None:
+        gift.held_by_appointment_id = None
+        appointment.gift_code_id = None
 
 
 def reschedule_appointment(
@@ -483,6 +538,96 @@ def transition_status(db: Session, appointment: Appointment, new_status: str) ->
     appointment.status = new_status
     if new_status == "cancelado":
         appointment.cancelled_at = utcnow()
+        _release_gift_hold(db, appointment)
+    if new_status == "completado" and appointment.gift_code_id is not None:
+        gift = db.get(GiftCode, appointment.gift_code_id)
+        if gift and gift.redeemed_at is None:
+            gift.redeemed_at = utcnow()  # el regalo se consume al completar la cita
     db.commit()
     db.refresh(appointment)
     return appointment
+
+
+# ---------------------------------------------------------- grupo y repetición
+
+def create_group_appointment(db: Session, tenant: Tenant, data) -> list[Appointment]:
+    """Reserva grupal (Tanda 4, A7): turnos SEGUIDOS con el mismo barbero
+    (padre e hijo, parche de amigos). Todo o nada: si un tramo no cabe,
+    no se crea ninguno."""
+    barber = load_barber(db, tenant, data.barber_id)
+    created: list[Appointment] = []
+    cursor_time = data.time
+    base_number = next_daily_number(db, tenant, barber.id, data.date)
+    tz = ZoneInfo(tenant.timezone)
+
+    for index, member in enumerate(data.customers):
+        services = load_services(db, tenant, member.service_ids)
+        duration_min = sum(s.duration_min for s in services)
+        starts_at, ends_at = _validate_slot(
+            tenant, barber, db, data.date, cursor_time, duration_min,
+            enforce_lead=(index == 0),
+        )
+        if _overlap_exists(db, barber.id, starts_at, ends_at):
+            raise BookingError(
+                f"El tramo de {member.name} ({cursor_time}) ya está ocupado. "
+                "Elige otra hora de inicio.",
+                409, "overlap",
+            )
+        appointment = Appointment(
+            tenant_id=tenant.id,
+            barber_id=barber.id,
+            customer_name=member.name,
+            customer_whatsapp=data.customer_whatsapp,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            status="confirmado",
+            daily_number=base_number + index,
+            manage_code=generate_manage_code(db),
+            notes="Reserva grupal" if len(data.customers) > 1 else None,
+        )
+        for service in services:
+            appointment.services.append(
+                AppointmentService(
+                    service_id=service.id, name=service.name,
+                    price_cop=service.price_cop, duration_min=service.duration_min,
+                )
+            )
+        db.add(appointment)
+        created.append(appointment)
+        cursor_time = ends_at.astimezone(tz).strftime("%H:%M")
+
+    try:
+        db.commit()  # una sola transacción: el constraint protege todos los tramos
+    except IntegrityError:
+        db.rollback()
+        raise BookingError(
+            "Alguno de los tramos acaba de ocuparse. Elige otra hora.", 409, "overlap"
+        ) from None
+    for appointment in created:
+        db.refresh(appointment)
+    return created
+
+
+def rebook_appointment(db: Session, tenant: Tenant, appointment: Appointment,
+                       weeks: int) -> Appointment:
+    """Repetir turno (Tanda 4, A6): mismo barbero, misma hora, mismos servicios,
+    N semanas después — la recurrencia honesta sin cron ni cobros."""
+    if appointment.customer_whatsapp is None:
+        raise BookingError("Este turno no tiene teléfono asociado.", 409, "no_phone")
+    service_ids = [s.service_id for s in appointment.services if s.service_id is not None]
+    if not service_ids:
+        raise BookingError(
+            "Los servicios de este turno ya no existen; agenda desde el inicio.",
+            409, "services_gone",
+        )
+    tz = ZoneInfo(tenant.timezone)
+    local_start = appointment.starts_at.astimezone(tz)
+    data = BookingCreate(
+        barber_id=appointment.barber_id,
+        service_ids=service_ids,
+        date=(local_start + timedelta(weeks=weeks)).date(),
+        time=local_start.strftime("%H:%M"),
+        customer_name=appointment.customer_name,
+        customer_whatsapp=appointment.customer_whatsapp,
+    )
+    return create_appointment(db, tenant, data)

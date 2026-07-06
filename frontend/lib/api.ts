@@ -7,10 +7,12 @@
  */
 import type {
   AppointmentPublic,
+  BarberPortfolio,
   BarberPublic,
   DayAvailability,
   MediaAsset,
   PortalResponse,
+  ProductPublic,
   QueueBoard,
   ReviewPublic,
   ReviewsResponse,
@@ -86,10 +88,10 @@ export const publicApi = {
       `${PUBLIC}/barbers/${barberId}/time-off?start=${start}&end=${end}`,
       { cache: "no-store" },
     ),
-  availability: (barberId: number, date: string, serviceIds: number[]) =>
+  availability: (barberId: number, date: string, serviceIds: number[], party = 1) =>
     request<DayAvailability>(`${PUBLIC}/availability`, {
       method: "POST",
-      body: JSON.stringify({ barber_id: barberId, date, service_ids: serviceIds }),
+      body: JSON.stringify({ barber_id: barberId, date, service_ids: serviceIds, party }),
     }),
   book: (payload: {
     barber_id: number;
@@ -98,10 +100,34 @@ export const publicApi = {
     time: string;
     customer_name: string;
     customer_whatsapp: string;
+    referral_code?: string | null;
+    gift_code?: string | null;
   }) =>
     request<AppointmentPublic>(`${PUBLIC}/appointments`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  bookGroup: (payload: {
+    barber_id: number;
+    date: string;
+    time: string;
+    customer_whatsapp: string;
+    customers: { name: string; service_ids: number[] }[];
+  }) =>
+    request<{ appointments: AppointmentPublic[] }>(`${PUBLIC}/appointments/group`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  rebook: (code: string, weeks: number) =>
+    request<AppointmentPublic>(
+      `${PUBLIC}/appointments/${encodeURIComponent(code)}/rebook`,
+      { method: "POST", body: JSON.stringify({ weeks }) },
+    ),
+  products: () =>
+    request<ProductPublic[]>(`${PUBLIC}/products`, { cache: "no-store" }),
+  portfolio: (barberId: number) =>
+    request<BarberPortfolio>(`${PUBLIC}/barbers/${barberId}/portfolio`, {
+      cache: "no-store",
     }),
   appointment: (code: string) =>
     request<AppointmentPublic>(`${PUBLIC}/appointments/${encodeURIComponent(code)}`, {

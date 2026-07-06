@@ -13,6 +13,7 @@ import {
   WEEKDAY_LABELS,
   type BarberPublic,
   type MediaAsset,
+  type ProductPublic,
   type ReviewsResponse,
   type ServicePublic,
   type TenantPublic,
@@ -183,13 +184,21 @@ export function Barbers({
                     )}
                   </div>
                   <p className="mt-1 text-sm text-bone-2">{barber.specialty}</p>
-                  <div className="mt-1.5 min-h-5">
-                    {ratings?.[String(barber.id)] && (
+                  <div className="mt-1.5 flex min-h-5 items-center justify-between gap-2">
+                    {ratings?.[String(barber.id)] ? (
                       <Stars
                         average={ratings[String(barber.id)].average}
                         count={ratings[String(barber.id)].count}
                       />
+                    ) : (
+                      <span />
                     )}
+                    <Link
+                      href={`/barbero/${barber.id}`}
+                      className="data text-[10px] uppercase tracking-wider text-bone-2 transition-colors hover:text-gold"
+                    >
+                      Portafolio →
+                    </Link>
                   </div>
                   <Link
                     href={`/agendar?barbero=${barber.id}`}
@@ -291,6 +300,57 @@ export function Reviews({ data }: { data: ReviewsResponse | null }) {
           <p className="mt-8 text-xs text-bone-2/70">
             Solo pueden reseñar clientes con cita completada en el sistema — cero
             reseñas inventadas.
+          </p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+export function Vitrina({ products }: { products: ProductPublic[] }) {
+  if (products.length === 0) return null;
+  return (
+    <section
+      id="vitrina"
+      className="grain texture-pinstripe relative overflow-hidden border-y border-ink-3 bg-ink-2"
+    >
+      <Watermark word="VITRINA" />
+      <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
+        <SectionTitle kicker="Productos del local" title="La vitrina" />
+        <StaggerGroup className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((product) => (
+            <StaggerItem key={product.id}>
+              <div className="clip-corner group h-full border border-ink-3 bg-ink transition-all duration-300 hover:-translate-y-1 hover:border-gold/40">
+                <div className="grain relative aspect-square overflow-hidden bg-ink-3">
+                  {product.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mediaUrl(product.photo_url) ?? ""}
+                      alt={product.name}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="texture-pinstripe flex h-full items-center justify-center">
+                      <span className="display text-outline text-6xl">BB</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="text-bone">{product.name}</h3>
+                  {product.description && (
+                    <p className="mt-1 text-xs text-bone-2">{product.description}</p>
+                  )}
+                  <p className="data mt-2 text-lg font-semibold text-gold">
+                    {formatCOP(product.price_cop)}
+                  </p>
+                </div>
+              </div>
+            </StaggerItem>
+          ))}
+        </StaggerGroup>
+        <Reveal delay={0.15}>
+          <p className="mt-8 text-xs text-bone-2/70">
+            Se consiguen en el local — pregunta en tu próxima visita.
           </p>
         </Reveal>
       </div>
