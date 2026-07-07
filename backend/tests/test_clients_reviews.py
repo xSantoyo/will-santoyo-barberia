@@ -120,6 +120,14 @@ def test_verified_reviews_flow(client, client_history, barbers):
     assert ticket["review_rating"] == 5
     assert ticket["can_review"] is False
 
+    # B5: la reseña suma una tijera en la fidelidad
+    portal = client.post(
+        f"{BASE}/portal",
+        json={"customer_whatsapp": PHONE, "manage_code": completed_code},
+    ).json()
+    assert portal["loyalty"]["review_bonus"] == 1
+    assert portal["loyalty"]["progress"] == 4  # 3 cortes + 1 reseña
+
 
 def test_style_notes_and_profile(client, admin_headers, barbero_headers, client_history,
                                  barbers):

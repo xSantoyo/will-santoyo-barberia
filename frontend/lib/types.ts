@@ -156,6 +156,7 @@ export interface ReviewsResponse {
 export interface LoyaltyStatus {
   completed_count: number;
   referral_bonus: number;
+  review_bonus: number;
   target: number;
   progress: number;
   remaining: number;

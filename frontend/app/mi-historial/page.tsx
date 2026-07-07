@@ -123,7 +123,19 @@ export default function PortalPage() {
                 <span className="data font-semibold text-gold">
                   {data.loyalty.progress}
                 </span>{" "}
-                de <span className="data">{data.loyalty.target}</span> —{" "}
+                de <span className="data">{data.loyalty.target}</span>
+                {(data.loyalty.referral_bonus > 0 || data.loyalty.review_bonus > 0) && (
+                  <span className="text-bone-2">
+                    {" "}
+                    (cortes {data.loyalty.completed_count}
+                    {data.loyalty.referral_bonus > 0 &&
+                      ` + ${data.loyalty.referral_bonus} por referidos`}
+                    {data.loyalty.review_bonus > 0 &&
+                      ` + ${data.loyalty.review_bonus} por reseñas`}
+                    )
+                  </span>
+                )}{" "}
+                —{" "}
                 {data.loyalty.remaining === data.loyalty.target
                   ? "arranca tu ronda."
                   : `te faltan ${data.loyalty.remaining} para: `}

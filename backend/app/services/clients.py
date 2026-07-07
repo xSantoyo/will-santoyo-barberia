@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import Appointment, Barber, ClientNote, ClientReferralCode, Tenant
+from ..models import Appointment, Barber, ClientNote, ClientReferralCode, Review, Tenant
 
 DEFAULT_TARGET = 10
 DEFAULT_REWARD = "El corte 10 va por la casa"
@@ -75,11 +75,19 @@ def loyalty_status(db: Session, tenant: Tenant, phone: str) -> dict:
         )
     ) or 0
     bonus = referral_bonus(db, tenant, phone)
-    total = completed + bonus
+    # Recompensa por reseñar (B5): cada reseña dejada suma una tijera
+    review_bonus = db.scalar(
+        select(func.count()).select_from(Review).where(
+            Review.tenant_id == tenant.id,
+            Review.customer_whatsapp == phone,
+        )
+    ) or 0
+    total = completed + bonus + review_bonus
     progress = total % target
     return {
         "completed_count": completed,
         "referral_bonus": bonus,
+        "review_bonus": review_bonus,
         "target": target,
         "progress": progress,
         "remaining": target - progress,

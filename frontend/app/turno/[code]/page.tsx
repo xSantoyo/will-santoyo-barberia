@@ -529,7 +529,8 @@ function ReviewWidget({
         Publicar reseña
       </button>
       <p className="mt-2 text-[11px] text-bone-2/70">
-        Reseña verificada: viene de tu cita real en la barbería.
+        Reseña verificada: viene de tu cita real — y suma una tijera en tu
+        tarjeta de fidelidad.
       </p>
     </div>
   );
