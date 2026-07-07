@@ -49,6 +49,16 @@ class Settings(BaseSettings):
     attendance_opens_hours: int = 24
     attendance_deadline_hours: int = 3
 
+    # --- Pasarela de pagos (Wompi) ---
+    # mock: simulador local (sin llaves) · sandbox/production: Wompi real.
+    # Las llaves reales las conecta el dueño cuando tenga la cuenta de comercio.
+    wompi_mode: str = "mock"  # mock | sandbox | production
+    wompi_public_key: str = ""
+    wompi_private_key: str = ""
+    wompi_integrity_secret: str = ""
+    wompi_events_secret: str = ""
+    deposit_ttl_minutes: int = 30  # tiempo para pagar el anticipo antes de liberar
+
     # --- Rate limiting (endpoints públicos) ---
     rate_limit_requests: int = 10
     rate_limit_window_seconds: int = 60

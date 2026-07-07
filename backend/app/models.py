@@ -142,6 +142,7 @@ class Appointment(Base):
     )
     review: Mapped[Review | None] = relationship(back_populates="appointment", uselist=False)
     gift: Mapped[GiftCode | None] = relationship("GiftCode", foreign_keys="Appointment.gift_code_id")
+    payments: Mapped[list[Payment]] = relationship(back_populates="appointment")
 
     @property
     def total_cop(self) -> int:
@@ -278,6 +279,44 @@ class GiftCode(Base):
     held_by_appointment_id: Mapped[int | None] = mapped_column(Integer)
     # …y consumido definitivamente cuando la cita se completa
     redeemed_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+
+
+class Payment(Base):
+    """Pago en línea vía pasarela (Wompi) o simulador local.
+
+    Casos de uso: anticipo anti no-show de una reserva (kind=deposit) y compra
+    de códigos de regalo en línea (kind=gift). El corte en sí se sigue pagando
+    en el local: la pasarela cubre solo estos dos flujos.
+    """
+
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # deposit | gift
+    reference: Mapped[str] = mapped_column(String(60), unique=True, index=True)
+    amount_cents: Mapped[int] = mapped_column(Integer)  # Wompi trabaja en centavos
+    currency: Mapped[str] = mapped_column(String(3), default="COP")
+    # pendiente | aprobado | rechazado | anulado | expirado | error
+    status: Mapped[str] = mapped_column(String(20), default="pendiente", index=True)
+    provider: Mapped[str] = mapped_column(String(20), default="mock")  # mock | wompi
+    provider_transaction_id: Mapped[str | None] = mapped_column(String(80))
+    payment_method: Mapped[str | None] = mapped_column(String(40))  # CARD, NEQUI, PSE…
+    appointment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("appointments.id"), index=True
+    )
+    gift_code_id: Mapped[int | None] = mapped_column(Integer)  # se llena al aprobar
+    payer_name: Mapped[str | None] = mapped_column(String(120))
+    payer_whatsapp: Mapped[str | None] = mapped_column(String(20))
+    detail: Mapped[dict] = mapped_column(JsonCol, default=dict)  # snapshot del evento
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
+
+    appointment: Mapped[Appointment | None] = relationship(back_populates="payments")
+
+    @property
+    def amount_cop(self) -> int:
+        return self.amount_cents // 100
 
 
 class ClientReferralCode(Base):
