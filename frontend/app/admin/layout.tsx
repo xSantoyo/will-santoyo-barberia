@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
+  CreditCard,
   Gift,
   Images,
   LayoutDashboard,
@@ -28,6 +29,7 @@ const NAV = [
   { href: "/admin/servicios", label: "Servicios", icon: Scissors, roles: ["admin"] },
   { href: "/admin/productos", label: "Vitrina", icon: Package, roles: ["admin"] },
   { href: "/admin/regalos", label: "Regalos", icon: Gift, roles: ["admin"] },
+  { href: "/admin/pagos", label: "Pagos", icon: CreditCard, roles: ["admin"] },
   { href: "/admin/galeria", label: "Galería", icon: Images, roles: ["admin"] },
 ];
 

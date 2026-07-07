@@ -93,7 +93,9 @@ test("wizard de agendamiento paso a paso + confirmación con código", async ({ 
   await page.getByRole("button", { name: /confirmar turno/i }).click();
 
   // Confirmación: el código debe ser protagonista
-  await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/turno (confirmado|apartado)/i)).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByTestId("manage-code")).toBeVisible();
   await page.waitForTimeout(1900); // deja terminar la pasada de navaja + troquelado
   await shot(page, "09-confirmacion-codigo-en-pantalla");
@@ -153,7 +155,9 @@ test("wizard en celular emulado (iPhone 13, táctil real)", async ({ browser }) 
 
   await expect(page.getByText(/resumen de tu turno/i)).toBeVisible();
   await page.getByRole("button", { name: /confirmar turno/i }).tap();
-  await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/turno (confirmado|apartado)/i)).toBeVisible({
+    timeout: 15_000,
+  });
   await page.waitForTimeout(1900); // deja terminar la pasada de navaja + troquelado
   await shot(page, "23-mobile-confirmacion", true);
 
@@ -182,9 +186,13 @@ test("la fila en vivo: tablero y tiquete (desktop + móvil)", async ({ page }) =
 
   if (ticketCode) {
     await page.goto(`/turno/${ticketCode}`);
-    await expect(page.getByText(/la fila hoy/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/faltan/i)).toBeVisible();
-    await shot(page, "26-tiquete-vivo-mobile", true);
+    await expect(page.getByText(/del día/i).first()).toBeVisible({ timeout: 10_000 });
+    // El bloque en vivo solo aplica si el turno sigue siendo HOY (cerca de
+    // medianoche la demo "+55 min" puede caer mañana: no es un fallo)
+    await page.waitForTimeout(1200);
+    if ((await page.getByText(/la fila hoy/i).count()) > 0) {
+      await shot(page, "26-tiquete-vivo-mobile", true);
+    }
   }
 
   // Tanda 2: confirmación de asistencia pendiente en el tiquete
@@ -278,6 +286,79 @@ test("tanda 4: portafolio, vitrina y regalos", async ({ page }) => {
   await shot(page, "41-admin-vitrina");
 });
 
+test("pagos: anticipo en simulador, retorno y regalos", async ({ page }) => {
+  // Reserva rápida hasta la confirmación con anticipo (deposits ON en demo)
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/agendar");
+  await page.getByRole("button", { name: /barbero 1/i }).first().click();
+  await page.getByRole("button", { name: /corte clásico/i }).click();
+  await page.getByRole("button", { name: /continuar/i }).click();
+  await expect(page.getByText(/elige un día/i)).toBeVisible();
+  const days = page.locator("button:not([disabled])[class*='aspect-square']");
+  await expect(days.first()).toBeVisible({ timeout: 10_000 });
+  const count = await days.count();
+  let picked = false;
+  for (let i = 0; i < count && !picked; i++) {
+    await days.nth(i).click();
+    const slot = page.locator("div.grid button", { hasText: /^\d{2}:\d{2}$/ }).first();
+    try {
+      await slot.waitFor({ state: "visible", timeout: 4000 });
+      await slot.click();
+      picked = true;
+    } catch {
+      /* día lleno */
+    }
+  }
+  expect(picked).toBe(true);
+  await page.getByPlaceholder("Nombre y apellido").fill("Cliente Pago");
+  await page.getByPlaceholder("300 123 4567").fill("3182220001");
+  await page.getByRole("button", { name: /continuar/i }).click();
+  await page.getByRole("button", { name: /confirmar turno/i }).click();
+  await expect(page.getByText(/turno (confirmado|apartado)/i)).toBeVisible({
+    timeout: 15_000,
+  });
+
+  const payButton = page.getByRole("link", { name: /pagar anticipo/i });
+  test.skip((await payButton.count()) === 0, "Anticipos apagados en esta demo");
+  await page.waitForTimeout(1900);
+  await shot(page, "42-confirmacion-con-anticipo", true);
+
+  await payButton.click();
+  await expect(page.getByText(/simulador · modo pruebas/i)).toBeVisible({
+    timeout: 10_000,
+  });
+  await shot(page, "43-pago-simulador");
+  await page.getByRole("button", { name: /aprobar/i }).click();
+  await expect(page.getByText(/pago aprobado/i)).toBeVisible({ timeout: 15_000 });
+  await shot(page, "44-pago-retorno-aprobado");
+
+  // Regalos: comprar un corte de regalo y ver el código revelado
+  await page.goto("/regalos");
+  await expect(page.getByRole("heading", { name: /regala un/i })).toBeVisible();
+  await page.getByPlaceholder("Nombre y apellido").fill("María Regaladora");
+  await shot(page, "45-regalos-tienda", true);
+  await page.getByRole("button", { name: /pagar .* y recibir el código/i }).click();
+  await expect(page.getByText(/simulador · modo pruebas/i)).toBeVisible({
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: /aprobar/i }).click();
+  await expect(page.getByText(/pago aprobado/i)).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(1900); // navaja revelando el código del regalo
+  await shot(page, "46-regalo-codigo-revelado", true);
+
+  // Admin: página de Pagos con el registro
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/admin");
+  await page.getByLabel(/usuario/i).fill("admin");
+  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByRole("button", { name: /entrar/i }).click();
+  await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("link", { name: /pagos/i }).click();
+  await expect(page.getByRole("heading", { name: "Pagos" })).toBeVisible();
+  await page.waitForTimeout(700);
+  await shot(page, "47-admin-pagos");
+});
+
 test("anchos móviles reales: 375px y 428px", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 }); // iPhone SE/Mini
   await page.goto("/agendar");
@@ -312,9 +393,16 @@ test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", as
     await page.getByPlaceholder(/nombre del cliente/i).fill("Cliente Mostrador");
     await shot(page, "31-walkin-modal");
     await page.getByRole("button", { name: /dar turno ahora/i }).click();
-    await expect(page.getByText(/en la fila de hoy/i)).toBeVisible({ timeout: 10_000 });
-    await shot(page, "32-walkin-tiquete");
-    await page.getByRole("button", { name: /^listo$/i }).click();
+    // Cerca de medianoche puede no quedar hueco HOY (409 legítimo): tolerante
+    try {
+      await page
+        .getByText(/en la fila de hoy/i)
+        .waitFor({ state: "visible", timeout: 8000 });
+      await shot(page, "32-walkin-tiquete");
+      await page.getByRole("button", { name: /^listo$/i }).click();
+    } catch {
+      await page.getByRole("button", { name: /cerrar/i }).click();
+    }
   }
 
   // Tanda 3: perfil del cliente (clic en el nombre → historial + notas)

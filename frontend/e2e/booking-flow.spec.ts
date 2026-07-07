@@ -55,15 +55,29 @@ test("flujo completo: agendar → confirmar → gestionar → cancelar", async (
 
   // 7. Confirmación: el código de gestión debe ser prominente en pantalla
   // (ADR-009: es el único canal del cliente para gestionar su turno)
-  await expect(page.getByText(/turno confirmado/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/turno (confirmado|apartado)/i)).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByText(/guarda este código/i)).toBeVisible();
   const code = (await page.getByTestId("manage-code").textContent())!.trim();
   expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
-  // 8. Gestionar por enlace único (tiquete vivo) y cancelar
-  await page.getByRole("link", { name: /ver mi tiquete/i }).click();
+  // 7b. Si el negocio exige anticipo: pagar en el simulador (flujo Wompi mock)
+  const payButton = page.getByRole("link", { name: /pagar anticipo/i });
+  if ((await payButton.count()) > 0) {
+    await payButton.click();
+    await expect(page.getByText(/simulador · modo pruebas/i)).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.getByRole("button", { name: /aprobar/i }).click();
+    await expect(page.getByText(/pago aprobado/i)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("link", { name: /ver mi tiquete/i }).click();
+  } else {
+    // 8. Gestionar por enlace único (tiquete vivo)
+    await page.getByRole("link", { name: /ver mi tiquete/i }).click();
+  }
   await expect(page).toHaveURL(new RegExp(`/turno/${code}`));
-  await expect(page.getByText("Confirmado")).toBeVisible();
+  await expect(page.getByText("Confirmado")).toBeVisible({ timeout: 10_000 });
 
   await page.getByRole("button", { name: /cancelar mi turno/i }).click();
   await page.getByRole("button", { name: /sí, cancelar/i }).click();

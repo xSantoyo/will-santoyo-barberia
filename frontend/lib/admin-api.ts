@@ -12,6 +12,8 @@ import type {
   DashboardData,
   GiftCodeAdmin,
   MediaAsset,
+  PaymentAdminRow,
+  PaymentSettingsAdmin,
   ProductAdmin,
   ServiceAdmin,
   TimeOff,
@@ -223,6 +225,15 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+
+  paymentSettings: () =>
+    request<PaymentSettingsAdmin>("/api/v1/admin/payment-settings"),
+  updatePaymentSettings: (payload: Partial<PaymentSettingsAdmin>) =>
+    request<PaymentSettingsAdmin>("/api/v1/admin/payment-settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  payments: () => request<PaymentAdminRow[]>("/api/v1/admin/payments"),
 
   giftCodes: () => request<GiftCodeAdmin[]>("/api/v1/admin/gift-codes"),
   createGiftCode: (description: string, expiresDays?: number) =>

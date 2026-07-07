@@ -114,7 +114,11 @@ export function RazorReveal({
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <p
           data-testid="manage-code"
-          className="stamped selectable pointer-events-auto text-5xl font-semibold tracking-[0.22em] sm:text-6xl"
+          className={`stamped selectable pointer-events-auto font-semibold ${
+            code.length > 6
+              ? "text-3xl tracking-[0.18em] sm:text-5xl"
+              : "text-5xl tracking-[0.22em] sm:text-6xl"
+          }`}
         >
           {code.split("").map((char, i) => (
             <motion.span

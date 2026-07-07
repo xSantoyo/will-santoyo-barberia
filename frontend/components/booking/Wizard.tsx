@@ -783,13 +783,45 @@ function Confirmation({
       <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gold">
         <Check size={32} className="text-ink" />
       </div>
-      <h2 className="display text-4xl text-bone">¡Turno confirmado!</h2>
-      <p className="mt-2 text-lg text-gold">La silla es tuya, {appointment.customer_name.split(" ")[0]}.</p>
+      <h2 className="display text-4xl text-bone">
+        {appointment.status === "pendiente" ? "¡Turno apartado!" : "¡Turno confirmado!"}
+      </h2>
+      <p className="mt-2 text-lg text-gold">
+        {appointment.status === "pendiente"
+          ? `Falta un paso, ${appointment.customer_name.split(" ")[0]}.`
+          : `La silla es tuya, ${appointment.customer_name.split(" ")[0]}.`}
+      </p>
       <p className="mt-2 text-bone-2">
         Te esperamos el <span className="data text-bone">{appointment.date_local}</span> a las{" "}
         <span className="data text-bone">{appointment.time_local}</span> con{" "}
         <span className="text-bone">{appointment.barber_name}</span>.
       </p>
+
+      {/* Anticipo (si el negocio lo exige): asegurar la silla pagando */}
+      {appointment.payment && appointment.payment.checkout_url && (
+        <div className="clip-corner mt-8 border-2 border-gold bg-gold/10 p-5">
+          <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+            Asegura tu silla
+          </p>
+          <p className="mt-2 text-sm text-bone">
+            Tu turno quedó apartado. Págalo con el anticipo de{" "}
+            <span className="data font-semibold text-gold">
+              {formatCOP(appointment.payment.amount_cop)}
+            </span>{" "}
+            (se descuenta del corte) — tienes 30 minutos antes de que el hueco se
+            libere.
+          </p>
+          <a
+            href={appointment.payment.checkout_url}
+            className="display mx-auto mt-4 flex min-h-13 w-full max-w-xs items-center justify-center rounded-sm bg-gold px-8 text-lg text-ink transition-all hover:scale-[1.02] active:scale-95"
+          >
+            Pagar anticipo
+          </a>
+          <p className="data mt-2 text-center text-[10px] uppercase tracking-wider text-bone-2">
+            Nequi · PSE · Tarjetas — vía Wompi
+          </p>
+        </div>
+      )}
 
       {/* EL MOMENTO SEÑAL: la navaja abre la placa y el código queda troquelado.
           Es el único medio de gestión del turno: protagonista absoluto. */}

@@ -63,6 +63,44 @@ export interface AppointmentPublic {
   can_review: boolean;
   review_rating: number | null;
   gift_description: string | null;
+  payment: PaymentPublic | null;
+}
+
+/* --- Pagos (Wompi / simulador) --- */
+
+export interface PaymentPublic {
+  reference: string;
+  kind: "deposit" | "gift";
+  status: "pendiente" | "aprobado" | "rechazado" | "anulado" | "expirado" | "error";
+  amount_cop: number;
+  checkout_url: string | null;
+  gift_code?: string | null;
+}
+
+export interface PaymentStatusResponse extends PaymentPublic {
+  payment_method: string | null;
+  gift_description: string | null;
+  appointment_code: string | null;
+  appointment_status: AppointmentStatus | null;
+}
+
+export interface PaymentSettingsAdmin {
+  deposits_enabled: boolean;
+  deposit_cop: number;
+  gift_shop_enabled: boolean;
+  wompi_mode?: "mock" | "sandbox" | "production";
+}
+
+export interface PaymentAdminRow {
+  id: number;
+  reference: string;
+  kind: string;
+  status: string;
+  amount_cop: number;
+  payment_method: string | null;
+  payer_name: string | null;
+  appointment_id: number | null;
+  created_at: string;
 }
 
 /* --- Tanda 4: crecimiento --- */

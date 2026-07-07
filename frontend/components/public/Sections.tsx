@@ -109,12 +109,20 @@ export function Services({ services }: { services: ServicePublic[] }) {
           ))}
         </StaggerGroup>
         <Reveal delay={0.2}>
-          <Link
-            href="/agendar"
-            className="display mt-12 inline-block rounded-sm bg-gold px-8 py-4 text-lg text-ink transition-all hover:scale-[1.03] hover:shadow-[0_0_32px_rgba(201,162,75,0.25)] active:scale-95"
-          >
-            Reservar ahora
-          </Link>
+          <div className="mt-12 flex flex-wrap items-center gap-5">
+            <Link
+              href="/agendar"
+              className="display inline-block rounded-sm bg-gold px-8 py-4 text-lg text-ink transition-all hover:scale-[1.03] hover:shadow-[0_0_32px_rgba(201,162,75,0.25)] active:scale-95"
+            >
+              Reservar ahora
+            </Link>
+            <Link
+              href="/regalos"
+              className="data text-xs uppercase tracking-[0.2em] text-bone-2 underline-offset-4 transition-colors hover:text-gold hover:underline"
+            >
+              🎁 Regala un corte →
+            </Link>
+          </div>
         </Reveal>
       </div>
     </section>

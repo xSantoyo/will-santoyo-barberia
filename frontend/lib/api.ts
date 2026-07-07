@@ -11,6 +11,7 @@ import type {
   BarberPublic,
   DayAvailability,
   MediaAsset,
+  PaymentStatusResponse,
   PortalResponse,
   ProductPublic,
   QueueBoard,
@@ -125,6 +126,26 @@ export const publicApi = {
     ),
   products: () =>
     request<ProductPublic[]>(`${PUBLIC}/products`, { cache: "no-store" }),
+  /* Pagos (Wompi / simulador) */
+  giftCheckout: (payload: {
+    service_id: number;
+    payer_name: string;
+    payer_whatsapp?: string | null;
+  }) =>
+    request<PaymentStatusResponse>(`${PUBLIC}/gifts/checkout`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  paymentStatus: (reference: string) =>
+    request<PaymentStatusResponse>(
+      `${PUBLIC}/payments/${encodeURIComponent(reference)}`,
+      { cache: "no-store" },
+    ),
+  simulatePayment: (reference: string, approve: boolean) =>
+    request<PaymentStatusResponse>(
+      `${PUBLIC}/payments/${encodeURIComponent(reference)}/simulate`,
+      { method: "POST", body: JSON.stringify({ approve }) },
+    ),
   portfolio: (barberId: number) =>
     request<BarberPortfolio>(`${PUBLIC}/barbers/${barberId}/portfolio`, {
       cache: "no-store",

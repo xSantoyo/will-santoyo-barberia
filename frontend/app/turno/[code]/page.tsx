@@ -320,6 +320,35 @@ export default function ManageAppointmentPage({
           )}
         </AnimatePresence>
 
+        {/* Anticipo pendiente de pago */}
+        {appointment.payment?.checkout_url && appointment.status === "pendiente" && (
+          <div className="clip-corner mt-8 border-2 border-gold bg-gold/10 p-5 text-center">
+            <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+              Tu turno está apartado, no confirmado
+            </p>
+            <p className="mt-2 text-sm text-bone">
+              Paga el anticipo de{" "}
+              <span className="data font-semibold text-gold">
+                {formatCOP(appointment.payment.amount_cop)}
+              </span>{" "}
+              para asegurar la silla — se descuenta del corte.
+            </p>
+            <a
+              href={appointment.payment.checkout_url}
+              className="display mx-auto mt-4 flex min-h-12 w-full max-w-xs items-center justify-center rounded-sm bg-gold px-8 text-lg text-ink transition-all hover:scale-[1.02]"
+            >
+              Pagar anticipo
+            </a>
+          </div>
+        )}
+
+        {appointment.payment?.status === "aprobado" && (
+          <p className="data mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+            ✓ Anticipo pagado ({formatCOP(appointment.payment.amount_cop)}) — se
+            descuenta del corte en el local
+          </p>
+        )}
+
         {appointment.gift_description && (
           <p className="data mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
             🎁 {appointment.gift_description} — se redime en el local
