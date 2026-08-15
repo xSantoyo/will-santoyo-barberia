@@ -2,56 +2,70 @@
 
 **Fecha:** 15 de agosto de 2026
 **Rama:** `master`
-**Estado:** Fase 0 completada · Fase 1 completada · **ejecución detenida por blocker de entorno**
-
-> ## 🛑 BLOCKER — no hay Python en esta máquina
->
-> El intérprete de `backend/.venv` apunta a
-> `C:\Users\Elizabeth\AppData\Local\Programs\Python\Python313\python.exe`, que **ya no
-> existe**: de esa instalación solo quedan las carpetas `Lib` y `Scripts`, sin binario.
-> Tampoco hay Python de sistema (`py -3` → *"No installed Python found"*).
->
-> **Consecuencia:** no puedo ejecutar `pytest`, ni `alembic`, ni siquiera un chequeo de
-> sintaxis del backend. El criterio de aceptación *"build, lint y typecheck en verde"* es
-> inverificable en el backend hasta que se reinstale Python 3.12+ y se recree el venv:
->
-> ```
-> winget install Python.Python.3.13
-> cd backend; python -m venv .venv; .venv\Scripts\pip install -e ".[dev]"
-> ```
->
-> El frontend **sí** es verificable: Node 24.18 portable funciona en `.tools/node`.
+**Estado:** backend completo y verde · frontend a mitad de camino
 
 ### Progreso real
 
 | Fase | Estado |
 |---|---|
 | 0 · Auditoría | ✅ completa (este documento) |
-| 1 · Modelo y semilla | ✅ completa, **sin verificar** (ver blocker) |
-| 2 · API backend | ⏳ a medias — esquemas y serializadores listos; faltan los 3 routers |
-| 3–11 | ⬜ pendientes |
+| 1 · Modelo y semilla | ✅ completa · commit `fecc741` |
+| 2 · API backend | ✅ completa · commit `fecc741` |
+| 9a · Tests backend | ✅ **70/70 en verde** |
+| 3 · Contratos frontend | 🟡 `types.ts` y `api.ts` listos; falta `admin-api.ts` |
+| 4 · Borrado de rutas | ✅ `/barbero/[id]` y `/admin/barberos` eliminadas |
+| 5–8, 9b, 10, 11 | ⬜ pendientes |
 
-**Hecho en la Fase 1:**
+### Backend — terminado y verificado
 
-- `Barber` → `Professional` (tabla `professional`, registro único), `BarberTimeOff` → `TimeOff`
+- `Barber` → `Professional` (tabla de registro único), `BarberTimeOff` → `TimeOff`
 - `barber_id` → `professional_id` en `appointments`, `reviews`, `time_off`
-- `AdminUser.barber_id` eliminado del modelo; rol `barbero` retirado
-- `services/professional.py` — resolver único, frontera del concepto
-- `seed.py` reescrito: Will Santoyo, Bogotá, sus redes y horario (lun–sáb)
+- `AdminUser` pierde `barber_id`; el rol `barbero` se retira por completo
+- `services/professional.py` — resolver único: **ningún identificador de profesional
+  cruza la frontera HTTP**
+- Endpoints eliminados: `GET/POST/PATCH /barbers`, `/barbers/{id}/portfolio`,
+  `/barbers` público. Nuevos: `/professional`, `/profile`, `/time-off`, `/trayectoria`
+- `dashboard`, `agenda`, `queue` y `stats` colapsan a un bloque único; `reviews` pierde
+  `per_barber`
+- `seed.py`: Will Santoyo, Bogotá, sus redes, horario lunes a sábado
 - `content/bad-boys/` → `content/will-santoyo/{gallery,profile,cuts,products}`
-- `KIND_DIRS`: `barber` → `profile`
-- `schemas.py`: podados `professional_id`/`professional_name` de 9 esquemas;
-  `BarberCreate` eliminado; `BarberUpdate` → `ProfessionalUpdate`
-- `routers/common.py`: nuevo `professional_to_public()`, serializadores sin barbero
-- Migración `0009` (renombrados, no destructiva, **lista para ejecutar**)
-- Migración `0010` (destructiva) en `alembic/proposed/`, **fuera del alcance de
-  `alembic upgrade head`** hasta que la apruebes
+- Migración `0009` (renombrados, no destructiva) **lista para ejecutar**
+- Migración `0010` (destructiva) en `alembic/proposed/` con extensión `.proposed`:
+  **fuera del alcance de `alembic upgrade head`** hasta que la apruebes
+- 13 tests del rol barbero y del CRUD de barberos retirados por quedar sin objeto
 
-**Deuda inmediata (backend no compila todavía):** quedan 39 referencias a `barber` en
-`app/` y 31 archivos de test por actualizar. Los routers `public.py` (831 líneas),
-`admin.py` (1105) y el servicio `appointments.py` (639) están a medio renombrar: tienen
-los identificadores cambiados por sustitución mecánica, pero **falta eliminar los
-endpoints de barberos y colapsar dashboard, agenda, fila y estadísticas**.
+> ⚠️ **Nota de entorno resuelta:** el venv apuntaba a un Python 3.13 borrado. Se recreó
+> con Python 3.14.7. Si `pytest` falla con "no se encuentra el ejecutable", recrear:
+> `cd backend; py -3 -m venv .venv; .venv\Scripts\pip install -e ".[dev]"`
+
+### Frontend — 63 errores de tipo pendientes
+
+`types.ts` y `api.ts` ya reflejan la API nueva, y las dos rutas de barberos están
+borradas. Eso deja al descubierto todo lo que aún habla el idioma viejo:
+
+| Archivo | Errores | Trabajo |
+|---|---:|---|
+| `app/admin/page.tsx` | 19 | Dashboard: `barbers[]` → bloque único |
+| `components/booking/Wizard.tsx` | 10 | **5 pasos → 3** + rediseño |
+| `app/hoy/page.tsx` | 5 | La Fila: carriles → carril único |
+| `app/turno/[code]/page.tsx` | 3 | Quitar `barber_name` del tiquete |
+| `lib/admin-api.ts` | 3 | Quitar `barbers()`, `createBarber()`, `updateBarber()` |
+| `app/page.tsx` | 3 | Home reconstruida alrededor de Will |
+| `components/admin/ClientProfileModal.tsx` | 3 | Quitar "barbero favorito" |
+| `app/embed/page.tsx` | 3 | Widget sin carriles |
+| `app/admin/turnos/page.tsx` | 3 | Sin filtro ni columna de barbero |
+| `components/public/LiveStrip.tsx` | 3 | "N sillas libres" → estado único |
+| `app/admin/mi-desempeno/page.tsx` | 3 | `BarberStats` → `PerformanceStats` |
+| `components/public/Sections.tsx` | 2 | **Borrar la sección `Barbers`** |
+| `app/mi-historial/page.tsx` | 1 | Quitar `barber_name` |
+| `app/admin/agenda/page.tsx` | 1 | Una sola columna |
+| `tests/components.test.tsx` | 1 | Actualizar |
+
+**Pendiente además del tipado:** el rediseño visual (Fases 5–8) y el QA de movimiento
+(Fase 10), que exigen leer y aplicar `prototype`, `apple-design`, `emil-design-eng`,
+`animate`, `ask-sonner`, `find-animation-opportunities`, `improve-animations` y
+`review-animations`. **Todavía no se ha escrito UI nueva**, así que la regla dura del
+encargo sigue intacta: nada de UI sin pasar por esas skills.
 
 ---
 

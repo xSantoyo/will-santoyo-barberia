@@ -7,8 +7,8 @@
  */
 import type {
   AppointmentPublic,
-  BarberPortfolio,
-  BarberPublic,
+  ProfessionalPublic,
+  Trayectoria,
   DayAvailability,
   MediaAsset,
   PaymentStatusResponse,
@@ -78,29 +78,30 @@ const PUBLIC = `/api/v1/public/${TENANT_SLUG}`;
 
 export const publicApi = {
   tenant: () => request<TenantPublic>(PUBLIC, { next: { revalidate: 300 } } as RequestInit),
-  barbers: () => request<BarberPublic[]>(`${PUBLIC}/barbers`, { cache: "no-store" }),
+  professional: () =>
+    request<ProfessionalPublic>(`${PUBLIC}/professional`, { cache: "no-store" }),
   services: () => request<ServicePublic[]>(`${PUBLIC}/services`, { cache: "no-store" }),
   media: (kind?: string) =>
     request<MediaAsset[]>(`${PUBLIC}/media${kind ? `?kind=${kind}` : ""}`, {
       cache: "no-store",
     }),
-  timeOff: (barberId: number, start: string, end: string) =>
+  timeOff: (start: string, end: string) =>
     request<{ dates: string[] }>(
-      `${PUBLIC}/barbers/${barberId}/time-off?start=${start}&end=${end}`,
+      `${PUBLIC}/time-off?start=${start}&end=${end}`,
       { cache: "no-store" },
     ),
-  availability: (barberId: number, date: string, serviceIds: number[], party = 1) =>
+  availability: (date: string, serviceIds: number[], party = 1) =>
     request<DayAvailability>(`${PUBLIC}/availability`, {
       method: "POST",
-      body: JSON.stringify({ barber_id: barberId, date, service_ids: serviceIds, party }),
+      body: JSON.stringify({ date, service_ids: serviceIds, party }),
     }),
   book: (payload: {
-    barber_id: number;
     service_ids: number[];
     date: string;
     time: string;
     customer_name: string;
     customer_whatsapp: string;
+    customer_email?: string | null;
     referral_code?: string | null;
     gift_code?: string | null;
     website?: string;
@@ -111,7 +112,6 @@ export const publicApi = {
       body: JSON.stringify(payload),
     }),
   bookGroup: (payload: {
-    barber_id: number;
     date: string;
     time: string;
     customer_whatsapp: string;
@@ -135,6 +135,7 @@ export const publicApi = {
     service_id: number;
     payer_name: string;
     payer_whatsapp?: string | null;
+    payer_email?: string | null;
   }) =>
     request<PaymentStatusResponse>(`${PUBLIC}/gifts/checkout`, {
       method: "POST",
@@ -150,10 +151,8 @@ export const publicApi = {
       `${PUBLIC}/payments/${encodeURIComponent(reference)}/simulate`,
       { method: "POST", body: JSON.stringify({ approve }) },
     ),
-  portfolio: (barberId: number) =>
-    request<BarberPortfolio>(`${PUBLIC}/barbers/${barberId}/portfolio`, {
-      cache: "no-store",
-    }),
+  trayectoria: () =>
+    request<Trayectoria>(`${PUBLIC}/trayectoria`, { cache: "no-store" }),
   appointment: (code: string) =>
     request<AppointmentPublic>(`${PUBLIC}/appointments/${encodeURIComponent(code)}`, {
       cache: "no-store",

@@ -19,10 +19,9 @@ export interface TenantPublic {
 
 export type WeeklySchedule = Record<string, { start: string; end: string } | null>;
 
-export interface BarberPublic {
-  id: number;
+export interface ProfessionalPublic {
   name: string;
-  specialty: string | null;
+  headline: string | null;
   instagram: string | null;
   photo_url: string | null;
   schedule: WeeklySchedule;
@@ -54,7 +53,6 @@ export interface AppointmentPublic {
   date_local: string;
   time_local: string;
   customer_name: string;
-  barber_name: string;
   services: AppointmentServiceOut[];
   total_cop: number;
   attendance_pending: boolean;
@@ -130,10 +128,10 @@ export interface GiftCodeAdmin {
   redeemed_at: string | null;
 }
 
-export interface BarberPortfolio {
-  barber: BarberPublic;
-  stats: { rating: number | null; review_count: number; completed_count: number };
-  reviews: ReviewPublic[];
+export interface Trayectoria {
+  rating: number | null;
+  review_count: number;
+  completed_count: number;
   cuts: string[];
 }
 
@@ -143,13 +141,11 @@ export interface ReviewPublic {
   rating: number;
   comment: string | null;
   customer_label: string;
-  barber_name: string;
   date_local: string;
 }
 
 export interface ReviewsResponse {
   overall: { average: number | null; count: number };
-  per_barber: Record<string, { average: number; count: number }>;
   items: ReviewPublic[];
 }
 
@@ -169,7 +165,6 @@ export interface PortalAppointment {
   date_local: string;
   time_local: string;
   status: AppointmentStatus;
-  barber_name: string;
   services: string[];
   total_cop: number;
   can_review: boolean;
@@ -198,7 +193,6 @@ export interface ClientProfile {
     completed_count: number;
     cancelled_count: number;
     no_show_count: number;
-    favorite_barber: string | null;
     last_visit_local: string | null;
   };
   loyalty: LoyaltyStatus;
@@ -216,8 +210,6 @@ export type AppointmentStatus =
 
 export interface AppointmentAdmin {
   id: number;
-  barber_id: number;
-  barber_name: string;
   customer_name: string;
   customer_whatsapp: string | null;
   status: AppointmentStatus;
@@ -235,16 +227,13 @@ export interface AppointmentAdmin {
   created_at: string;
 }
 
-export interface BarberAdmin {
-  id: number;
+export interface ProfessionalAdmin {
   name: string;
-  specialty: string | null;
+  headline: string | null;
   instagram: string | null;
   photo_key: string | null;
   photo_url: string | null;
   schedule: WeeklySchedule;
-  is_active: boolean;
-  sort_order: number;
 }
 
 export interface ServiceAdmin extends ServicePublic {
@@ -254,7 +243,7 @@ export interface ServiceAdmin extends ServicePublic {
 
 export interface MediaAsset {
   id: number;
-  kind: "gallery" | "barber" | "cut";
+  kind: "gallery" | "profile" | "cut";
   s3_key: string;
   title: string | null;
   sort_order: number;
@@ -267,19 +256,14 @@ export interface TimeOff {
   reason: string | null;
 }
 
-export interface DashboardBarberBlock {
-  barber: { id: number; name: string; photo_url: string | null };
+export interface DashboardData {
+  date_local: string;
   is_day_off: boolean;
   current: AppointmentAdmin | null;
   upcoming: AppointmentAdmin[];
   all_today: AppointmentAdmin[];
   done_count: number;
   cancelled_count: number;
-}
-
-export interface DashboardData {
-  date_local: string;
-  barbers: DashboardBarberBlock[];
 }
 
 /* --- La Fila en vivo --- */
@@ -289,8 +273,9 @@ export interface QueueEntry {
   time_local: string;
 }
 
-export interface QueueLane {
-  barber: { id: number; name: string };
+export interface QueueBoard {
+  date_local: string;
+  now_local: string;
   is_day_off: boolean;
   current: QueueEntry | null;
   waiting: QueueEntry[];
@@ -298,17 +283,10 @@ export interface QueueLane {
   last_served_number: number | null;
 }
 
-export interface QueueBoard {
-  date_local: string;
-  now_local: string;
-  lanes: QueueLane[];
-}
-
 export interface TicketQueue {
   is_today: boolean;
   status: AppointmentStatus;
   number: number;
-  barber_name: string;
   time_local: string;
   ahead_count: number;
   now_serving: number | null;
@@ -317,15 +295,13 @@ export interface TicketQueue {
 export interface TokenPair {
   access_token: string;
   refresh_token: string;
-  role: "admin" | "barbero";
+  role: "admin";
   username: string;
-  barber_id: number | null;
 }
 
 /* --- Ronda de seguridad (jul-2026) --- */
 
-export interface BarberStats {
-  barber: { id: number; name: string };
+export interface PerformanceStats {
   days: number;
   completed_count: number;
   cancelled_count: number;
