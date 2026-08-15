@@ -96,3 +96,8 @@ cd frontend && npm test                  # Vitest
    de exclusión (`EXCLUDE USING gist`) sobre el rango horario, además de la
    validación de aplicación (ver REFACTOR_PLAN.md §Bloque 5 para la divergencia
    SQLite en desarrollo).
+
+> ⚠️ **No corras `npm run build` mientras `npm run dev` está activo:** ambos
+> escriben en `frontend/.next/` y el build deja al servidor de desarrollo
+> sirviendo HTML sin CSS (`MODULE_NOT_FOUND` en los chunks). Si pasa: detén el
+> dev server, borra `.next` y vuelve a arrancarlo.
