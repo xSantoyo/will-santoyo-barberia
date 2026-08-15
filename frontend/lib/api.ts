@@ -22,7 +22,7 @@ import type {
   TicketQueue,
 } from "./types";
 
-export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "bad-boys";
+export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "will-santoyo";
 
 export function apiBase(): string {
   if (typeof window === "undefined") {

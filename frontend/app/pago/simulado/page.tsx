@@ -14,7 +14,7 @@ function Simulator() {
   const router = useRouter();
   const reference = params.get("ref") ?? "";
   const amount = Number(params.get("amount") ?? 0);
-  const title = params.get("titulo") ?? "Pago Bad Boys";
+  const title = params.get("titulo") ?? "Pago a Will Santoyo";
   const [busy, setBusy] = useState<"ok" | "no" | null>(null);
   const [error, setError] = useState<string | null>(null);
 

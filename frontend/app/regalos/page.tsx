@@ -72,7 +72,7 @@ export default function GiftShopPage() {
           href="/"
           className="inline-flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-gold"
         >
-          <ArrowLeft size={16} /> Bad Boys Barbershop
+          <ArrowLeft size={16} /> Will Santoyo
         </Link>
         <h1 className="display mt-6 text-5xl text-bone">
           Regala un <span className="text-gold">corte</span>

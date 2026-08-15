@@ -4,6 +4,7 @@
  * Cliente de la API de administración (solo navegador).
  * Maneja tokens en localStorage con refresh automático ante 401.
  */
+import { TENANT_SLUG } from "./api";
 import type {
   AppointmentAdmin,
   ProfessionalAdmin,
@@ -114,7 +115,7 @@ export const adminApi = {
     const response = await fetch(`${base()}/api/v1/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, tenant_slug: "bad-boys", ...extra }),
+      body: JSON.stringify({ username, password, tenant_slug: TENANT_SLUG, ...extra }),
     });
     if (!response.ok) {
       if (response.status === 429) {

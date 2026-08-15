@@ -45,7 +45,7 @@ export default function Hero({ tagline, slides }: { tagline: string; slides: Med
         aria-hidden
         className="display text-outline absolute -right-8 top-1/2 hidden -translate-y-1/2 text-[22vw] leading-none lg:block"
       >
-        BB
+        WS
       </span>
 
       {/* Slash dorado diagonal — gesto urbano */}
@@ -64,7 +64,7 @@ export default function Hero({ tagline, slides }: { tagline: string; slides: Med
           transition={{ delay: 0.15 }}
           className="mb-4 text-sm uppercase tracking-[0.35em] text-gold"
         >
-          Barbería · Colombia
+          Barbería · Soacha, Cundinamarca
         </motion.p>
 
         <h1 className="display max-w-4xl text-6xl text-bone sm:text-7xl md:text-8xl">
@@ -89,7 +89,7 @@ export default function Hero({ tagline, slides }: { tagline: string; slides: Med
               animate={{ y: 0 }}
               transition={{ delay: 0.5, duration: reduce ? 0 : 0.7, ease: EASE }}
             >
-              Barbershop
+              Barbero
             </motion.span>
           </span>
         </h1>

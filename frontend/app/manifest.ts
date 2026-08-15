@@ -4,10 +4,10 @@ import type { MetadataRoute } from "next";
  * propio y abre a pantalla completa, como una app nativa. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Bad Boys Barbershop",
-    short_name: "Bad Boys",
+    name: "Will Santoyo — Barbero en Soacha",
+    short_name: "Will Santoyo",
     description:
-      "Agenda tu turno, mira la fila en vivo y gestiona tu cita en Bad Boys Barbershop.",
+      "Agenda tu turno con Will, mira la fila en vivo y gestiona tu cita.",
     start_url: "/",
     display: "standalone",
     background_color: "#0b0b0c",

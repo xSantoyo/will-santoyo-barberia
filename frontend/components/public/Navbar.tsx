@@ -32,7 +32,7 @@ export default function Navbar() {
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link href="/" className="display text-2xl text-bone">
-          BAD<span className="text-gold"> BOYS</span>
+          WILL<span className="text-gold"> SANTOYO</span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * EL ELEMENTO SEÑAL DE BAD BOYS: "el corte de navaja".
+ * EL ELEMENTO SEÑAL DE LA MARCA: "el corte de navaja".
  *
  * - RazorDivider: divisor de sección que se traza como una pasada de navaja
  *   al entrar en viewport — una línea dorada con filo, levemente inclinada,

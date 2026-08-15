@@ -194,7 +194,7 @@ export function Gallery({ items }: { items: MediaAsset[] }) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={mediaUrl(item.url) ?? ""}
-                    alt={item.title ?? "Bad Boys Barbershop"}
+                    alt={item.title ?? "Corte de Will Santoyo"}
                     loading="lazy"
                     className="w-full grayscale-[40%] transition duration-500 group-hover:scale-[1.03] group-hover:grayscale-0"
                   />
@@ -283,7 +283,7 @@ export function Vitrina({ products }: { products: ProductPublic[] }) {
                     />
                   ) : (
                     <div className="texture-pinstripe flex h-full items-center justify-center">
-                      <span className="display text-outline text-6xl">BB</span>
+                      <span className="display text-outline text-6xl">WS</span>
                     </div>
                   )}
                 </div>
@@ -399,11 +399,11 @@ export function Footer({ tenant }: { tenant: TenantPublic }) {
         aria-hidden
         className="display text-outline pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[18vw] leading-none"
       >
-        BAD BOYS
+        WILL SANTOYO
       </span>
       <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-14 text-center">
         <p className="display text-3xl text-bone">
-          BAD<span className="text-gold"> BOYS</span>
+          WILL<span className="text-gold"> SANTOYO</span>
         </p>
         <div className="flex gap-6">
           {socials.map(({ href, icon: Icon, label }) => (

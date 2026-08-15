@@ -14,12 +14,12 @@ export default function AgendarPage() {
           href="/"
           className="inline-flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-gold"
         >
-          <ArrowLeft size={16} /> Bad Boys Barbershop
+          <ArrowLeft size={16} /> Will Santoyo
         </Link>
         <h1 className="display mt-6 text-5xl text-bone">
           Agenda tu <span className="text-gold">turno</span>
         </h1>
-        <p className="mt-2 text-bone-2">Cinco pasos y listo. Sin llamadas, sin filas.</p>
+        <p className="mt-2 text-bone-2">Tres pasos y listo. Sin llamadas, sin filas.</p>
       </div>
       <Suspense
         fallback={

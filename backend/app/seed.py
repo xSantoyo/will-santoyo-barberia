@@ -90,16 +90,16 @@ def run() -> None:
         tenant = Tenant(
             name="Will Santoyo",
             slug=TENANT_SLUG,
-            whatsapp_number="+573212014153",
+            whatsapp_number="+573112398873",
             timezone="America/Bogota",
             business_hours=SCHEDULE,
             brand_config={
-                "tagline": "Barbero profesional en Bogotá",
-                "address": "Bogotá, Colombia",  # ⚠️ dirección exacta pendiente
+                "tagline": "Barbero profesional en Soacha",
+                "address": "Calle 35 Sur & Cra 15B, Soacha, Cundinamarca",
                 "instagram": "https://instagram.com/_barber_wil_",
                 "facebook": "https://facebook.com/willsantoyo.0",
                 "tiktok": "https://tiktok.com/@willsantoyo",
-                "maps_url": "https://maps.google.com/?q=Bogota+Colombia",
+                "maps_url": "https://maps.google.com/?q=Calle+35+Sur+%26+Cra+15B,+Soacha,+Cundinamarca",
                 "colors": {
                     "background": "#0B0B0C",
                     "accent": "#C9A24B",
