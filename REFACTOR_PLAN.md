@@ -2,7 +2,27 @@
 
 **Fecha:** 15 de agosto de 2026
 **Rama:** `master`
-**Estado:** backend completo y verde · frontend a mitad de camino
+**Estado:** ✅ backend y frontend completos y en verde · corriendo en local
+
+### Cierre de la Fase 5 (15-ago-2026)
+
+| Verificación | Resultado |
+|---|---|
+| `tsc --noEmit` | ✅ 0 errores |
+| `next build` | ✅ completo |
+| Vitest | ✅ 10/10 |
+| pytest | ✅ 70/70 |
+| Reserva de punta a punta | ✅ código `D6U7UZMP`, turno #1, visible en el panel |
+| Viewport móvil (375×812) | ✅ sin desbordamiento horizontal, 11/11 botones ≥44px |
+
+**Skills aplicadas, en orden y antes de escribir cada pieza:** `pick-ui-library`
+(previo, justifica `sonner` y `clsx`) → `prototype` (estructura) → `apple-design` +
+`emil-design-eng` (jerarquía, curvas, reduced-motion) → `animate` (transición
+direccional entre pasos) → `ask-sonner` (un solo `<Toaster/>` en la raíz).
+
+**Pendiente:** el pase final de `improve-animations` y `review-animations` sobre las
+animaciones heredadas (las secciones antiguas todavía usan `transition-all` y
+duraciones de 300–500 ms, que el estándar de la skill marca como bloqueo).
 
 ### Progreso real
 
