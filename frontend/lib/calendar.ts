@@ -42,7 +42,7 @@ export function buildICS(event: CalendarEvent): string {
     "VERSION:2.0",
     "PRODID:-//Will Santoyo//Turnos//ES",
     "BEGIN:VEVENT",
-    `UID:${compact(start)}-badboys@badboysbarbershop`,
+    `UID:${compact(start)}-turno@willsantoyo`,
     `DTSTAMP:${stamp}`,
     `DTSTART:${compact(start)}`,
     `DTEND:${compact(end)}`,

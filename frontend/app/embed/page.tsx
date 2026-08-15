@@ -26,14 +26,14 @@ export default function EmbedWidget() {
   const chairFree = working && board.current === null;
 
   return (
-    <div className="grain texture-pinstripe flex h-svh flex-col justify-between overflow-hidden border border-gold/30 bg-ink p-4">
+    <div className="grain texture-pinstripe flex h-svh flex-col justify-between overflow-hidden border border-brand/30 bg-paper p-4">
       <div>
-        <p className="display text-2xl text-bone">
-          WILL<span className="text-gold"> SANTOYO</span>
+        <p className="display text-2xl text-ink">
+          WILL<span className="text-brand"> SANTOYO</span>
         </p>
         <div className="barber-stripe mt-2 w-16" />
       </div>
-      <p className="data text-sm text-bone-2">
+      <p className="data text-sm text-ink-soft">
         {board === null
           ? "Barbería · Soacha"
           : !working
@@ -46,7 +46,7 @@ export default function EmbedWidget() {
         href="/agendar"
         target="_blank"
         rel="noopener noreferrer"
-        className="display block rounded-sm bg-gold px-4 py-3 text-center text-lg text-ink"
+        className="display block rounded-sm bg-brand px-4 py-3 text-center text-lg text-on-brand"
       >
         Agendar mi turno
       </a>

@@ -48,10 +48,10 @@ export default function AccountPage() {
 
       <form
         onSubmit={submit}
-        className="clip-corner max-w-md space-y-4 border border-ink-3 bg-ink-2 p-6"
+        className="card-frame max-w-md space-y-4 border border-line bg-card p-6"
       >
-        <h2 className="display flex items-center gap-2 text-2xl text-bone">
-          <KeyRound size={20} className="text-gold" /> Cambiar contraseña
+        <h2 className="display flex items-center gap-2 text-2xl text-ink">
+          <KeyRound size={20} className="text-brand" /> Cambiar contraseña
         </h2>
 
         {done && (
@@ -61,12 +61,12 @@ export default function AccountPage() {
           </div>
         )}
         {error && (
-          <div className="rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">
+          <div className="rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
             {error}
           </div>
         )}
 
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Contraseña actual
           <input
             type="password"
@@ -77,7 +77,7 @@ export default function AccountPage() {
             className={`${inputClass} mt-1`}
           />
         </label>
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Contraseña nueva
           <input
             type="password"
@@ -87,11 +87,11 @@ export default function AccountPage() {
             autoComplete="new-password"
             className={`${inputClass} mt-1`}
           />
-          <span className="mt-1 block text-xs text-bone-2/70">
+          <span className="mt-1 block text-xs text-ink-soft/70">
             Mínimo 10 caracteres, combinando letras y números.
           </span>
         </label>
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Repite la contraseña nueva
           <input
             type="password"
@@ -102,7 +102,7 @@ export default function AccountPage() {
             className={`${inputClass} mt-1`}
           />
           {confirm.length > 0 && next !== confirm && (
-            <span className="mt-1 block text-xs text-wine">No coinciden.</span>
+            <span className="mt-1 block text-xs text-err">No coinciden.</span>
           )}
         </label>
 

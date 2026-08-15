@@ -1,15 +1,15 @@
 "use client";
 
-/** Micro-animaciones de entrada al hacer scroll (dirección de arte, sección 2).
+/** Micro-animaciones de entrada al hacer scroll.
  *
  * Nota de accesibilidad: con prefers-reduced-motion NO cambiamos la forma del
  * DOM (eso causaría un mismatch de hidratación y dejaría el contenido oculto);
- * se mantiene el mismo motion.div y solo se reduce la transición a 0s.
+ * el mismo motion.div pasa a un fundido corto sin desplazamiento.
  */
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+const EASE = [0.23, 1, 0.32, 1] as const;
 
 export default function Reveal({
   children,
@@ -24,31 +24,35 @@ export default function Reveal({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={reduce ? { duration: 0 } : { duration: 0.55, delay, ease: EASE }}
+      transition={
+        reduce ? { duration: 0.2 } : { duration: 0.4, delay, ease: EASE }
+      }
     >
       {children}
     </motion.div>
   );
 }
 
-/* --- Entradas escalonadas para listas/grillas (feedback R1 #2) --- */
+/* --- Entradas escalonadas para listas/grillas --- */
 
 const groupVariants: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.08 } },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } },
 };
 
+// Reduced motion: el fundido se queda (ayuda a entender que entró contenido),
+// el desplazamiento se va.
 const itemVariantsReduced: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0 } },
+  hidden: { opacity: 0, y: 0 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
 };
 
 export function StaggerGroup({

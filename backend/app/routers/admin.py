@@ -25,7 +25,6 @@ from ..models import (
     ClientNote,
     GiftCode,
     MediaAsset,
-    Payment,
     Product,
     Service,
     Tenant,
@@ -40,7 +39,6 @@ from ..schemas import (
     GiftCodeOut,
     ManualBookingCreate,
     MediaAssetOut,
-    PaymentSettings,
     PresignRequest,
     ProductAdmin,
     ProductCreate,
@@ -60,7 +58,6 @@ from ..schemas import (
 from ..services import appointments as booking
 from ..services import audit
 from ..services import clients as clients_service
-from ..services import payments as payments_service
 from ..services.professional import get_professional
 from ..services.storage import (
     ALLOWED_CONTENT_TYPES,
@@ -107,7 +104,6 @@ def dashboard(
     from ..services import notifications
 
     booking.release_unconfirmed(db, tenant)  # el dashboard siempre al día
-    payments_service.expire_stale_deposits(db, tenant)
     notifications.send_pending_reminders(db, tenant)
     tz = ZoneInfo(tenant.timezone)
     now = utcnow()
@@ -632,71 +628,6 @@ def update_product(
     db.commit()
     db.refresh(product)
     return _product_out(product)
-
-
-# ------------------------------------------------------------------ pagos
-
-@router.get("/payment-settings")
-def get_payment_settings(
-    _: AdminUser = Depends(require_admin),
-    tenant: Tenant = Depends(get_user_tenant),
-):
-    from ..config import get_settings
-
-    deposit = payments_service.deposit_config(tenant)
-    return {
-        "deposits_enabled": deposit["enabled"],
-        "deposit_cop": deposit["amount_cop"],
-        "gift_shop_enabled": payments_service.gift_shop_enabled(tenant),
-        "wompi_mode": get_settings().wompi_mode,  # mock = simulador, sin llaves
-    }
-
-
-@router.patch("/payment-settings")
-def update_payment_settings(
-    data: PaymentSettings,
-    user: AdminUser = Depends(require_admin),
-    tenant: Tenant = Depends(get_user_tenant),
-    db: Session = Depends(get_db),
-):
-    changes = data.model_dump(exclude_unset=True, exclude_none=True)
-    # Reasignación completa: SQLAlchemy no detecta mutaciones internas del JSON
-    tenant.brand_config = {**(tenant.brand_config or {}), **changes}
-    audit.record(db, user, "payments.settings", "tenant", tenant.id, changes)
-    db.commit()
-    deposit = payments_service.deposit_config(tenant)
-    return {
-        "deposits_enabled": deposit["enabled"],
-        "deposit_cop": deposit["amount_cop"],
-        "gift_shop_enabled": payments_service.gift_shop_enabled(tenant),
-    }
-
-
-@router.get("/payments")
-def list_payments(
-    limit: int = 100,
-    _: AdminUser = Depends(require_admin),
-    tenant: Tenant = Depends(get_user_tenant),
-    db: Session = Depends(get_db),
-):
-    rows = db.scalars(
-        select(Payment).where(Payment.tenant_id == tenant.id)
-        .order_by(Payment.id.desc()).limit(min(limit, 200))
-    )
-    return [
-        {
-            "id": p.id,
-            "reference": p.reference,
-            "kind": p.kind,
-            "status": p.status,
-            "amount_cop": p.amount_cop,
-            "payment_method": p.payment_method,
-            "payer_name": p.payer_name,
-            "appointment_id": p.appointment_id,
-            "created_at": p.created_at.isoformat(),
-        }
-        for p in rows
-    ]
 
 
 # ------------------------------------------------------------------ regalos

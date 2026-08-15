@@ -2,7 +2,62 @@
 
 **Fecha:** 15 de agosto de 2026
 **Rama:** `master`
-**Estado:** ✅ backend y frontend completos y en verde · corriendo en local
+**Estado:** ✅ Fase 6 completada — identidad propia, sin pagos, marca barrida
+
+## Fase 6 (15-ago-2026): identidad visual, pagos fuera, QA de movimiento
+
+- **Sistema de diseño «Estudio Santoyo»** definido en `DESIGN_SYSTEM.md` e
+  implementado desde cero; la piel Bad Boys quedó archivada en `legacy-styles/`
+  (referencia congelada, excluida del build, no se elimina).
+- **Cobro en línea retirado por completo** (UI, contratos, endpoints, config,
+  tests). Los precios siguen siendo informativos. La tabla `payments` sobrevive
+  con sus registros; su DROP vive en
+  `backend/alembic/proposed/0011_drop_payments.py.proposed` esperando OK.
+- **Barrido de marca**: cero menciones de Bad Boys fuera de `legacy-styles/`,
+  los archivos históricos justificados y los documentos de este refactor.
+- **QA de movimiento**: `transition-all` erradicado, duraciones ≤300ms, curvas
+  canónicas, `prefers-reduced-motion` en todas las entradas.
+
+## Bloque 5 — Divergencia de motor: SQLite (dev) vs Postgres (prod)
+
+**Hallazgo confirmado.** El entorno local corre sobre SQLite (`backend/dev.db`)
+y SQLite no soporta `EXCLUDE USING gist`: la garantía anti doble-reserva a
+nivel de motor **no existe en desarrollo**.
+
+1. **Qué motor usa producción:** PostgreSQL 16. Está fijado en la
+   infraestructura (`infra/modules/database/main.tf`: `engine = "postgres"`,
+   `engine_version = "16"`, RDS) y en `docker-compose.yml` (postgres:16). Ojo:
+   según la bitácora del proyecto, **la Fase 4 de AWS no se ha aprovisionado**
+   — "producción" es hoy una definición de Terraform, no un entorno vivo.
+2. **¿El constraint existe realmente?** Sí, en cualquier entorno Postgres: la
+   migración `0001` lo crea (`no_double_booking`, gated a
+   `dialect == "postgresql"`), la `0009` lo preserva (renombrar la columna no
+   invalida el constraint). Y no es teórico: `tests/test_postgres_constraint.py`
+   lo verifica contra Postgres real inyectando solapamientos por SQL directo, y
+   el CI lo ejecuta en cada push (`.github/workflows/ci.yml`, job
+   `backend-tests` con servicio postgres:16-alpine y `pytest -m postgres`).
+3. **Qué protege hoy en SQLite:** solo la lógica de aplicación —
+   `_overlap_exists()` antes de insertar, más la traducción de
+   `IntegrityError→409` que en SQLite nunca se dispara. Existe una ventana de
+   carrera entre la validación y el commit que en dev nadie cierra. El manejo
+   de colisión del Wizard (error `overlap`) es por tanto **inducible pero no
+   forzable por carrera real** en local: se puede probar reservando dos veces
+   el mismo hueco en secuencia (la validación de aplicación lo rechaza), no
+   por concurrencia genuina.
+4. **Opciones para alinear entornos:**
+   | Opción | Costo |
+   |---|---|
+   | a) Docker Desktop + `docker compose up db` | Bloqueada en esta máquina (sin Docker); si se instala, es la alineación natural con CI y prod |
+   | b) PostgreSQL nativo en Windows | Instalación única (~15 min); luego `DATABASE_URL`/`TEST_POSTGRES_URL` apuntan ahí y los 3 tests `postgres` corren en local |
+   | c) Postgres gestionado remoto (Supabase, ya aceptado como opción en la ronda de stack) | Cuenta + credenciales del dueño; latencia de red en dev; útil también como staging |
+   | d) Aceptar la divergencia y delegar en CI | Costo cero hoy; el CI ya cubre el constraint en cada push. Riesgo residual: la carrera real nunca se ejercita manualmente antes de desplegar |
+
+   **Recomendación:** (d) es defendible mientras no haya producción viva
+   (el CI ya prueba el constraint contra Postgres real); pasar a (a) o (b) en
+   el momento en que se aprovisione AWS. La discusión de la `0010` sigue en
+   pie: la garantía sí está activa en el motor que producción usará, y el CI
+   la verifica — pero conviene saber que el entorno de demostración local no
+   la tiene.
 
 ### Cierre de la Fase 5 (15-ago-2026)
 

@@ -51,18 +51,18 @@ export default function ClientProfileModal({
       onClose={onClose}
     >
       {error && (
-        <div className="mb-4 rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">
+        <div className="mb-4 rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">
           {error}
         </div>
       )}
       {!profile && !error && (
-        <div className="flex justify-center py-10 text-gold">
+        <div className="flex justify-center py-10 text-brand">
           <Loader2 className="animate-spin" size={28} />
         </div>
       )}
       {profile && (
         <div className="space-y-5">
-          <p className="data text-xs text-bone-2">{profile.phone}</p>
+          <p className="data text-xs text-ink-soft">{profile.phone}</p>
 
           {/* Pulso del cliente */}
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -75,9 +75,9 @@ export default function ClientProfileModal({
                 value: profile.stats.last_visit_local?.slice(5) ?? "—",
               },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-sm border border-ink-3 bg-ink px-2 py-2.5">
-                <p className="data text-lg font-semibold text-bone">{stat.value}</p>
-                <p className="data text-[10px] uppercase tracking-wider text-bone-2">
+              <div key={stat.label} className="rounded-sm border border-line bg-paper px-2 py-2.5">
+                <p className="data text-lg font-semibold text-ink">{stat.value}</p>
+                <p className="data text-[10px] uppercase tracking-wider text-ink-soft">
                   {stat.label}
                 </p>
               </div>
@@ -85,20 +85,20 @@ export default function ClientProfileModal({
           </div>
 
           {/* Fidelidad */}
-          <div className="plate clip-corner p-4">
-            <p className="data flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-gold">
+          <div className="plate card-frame p-4">
+            <p className="data flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-brand">
               <Scissors size={12} /> Fidelidad: {profile.loyalty.progress}/
               {profile.loyalty.target}
               {profile.loyalty.earned_rewards > 0 && (
-                <span className="ml-auto flex items-center gap-1 text-gold">
-                  <Star size={11} className="fill-gold" />
+                <span className="ml-auto flex items-center gap-1 text-brand">
+                  <Star size={11} className="fill-brand" />
                   {profile.loyalty.earned_rewards} por redimir
                 </span>
               )}
             </p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-3">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-wash">
               <div
-                className="h-full bg-gold transition-all"
+                className="h-full bg-brand"
                 style={{
                   width: `${(profile.loyalty.progress / profile.loyalty.target) * 100}%`,
                 }}
@@ -108,8 +108,8 @@ export default function ClientProfileModal({
 
           {/* Notas de estilo */}
           <div>
-            <p className="data mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-bone-2">
-              <NotebookPen size={12} className="text-gold" /> Notas de estilo
+            <p className="data mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-ink-soft">
+              <NotebookPen size={12} className="text-brand" /> Notas de estilo
             </p>
             <form onSubmit={addNote} className="flex gap-2">
               <input
@@ -126,18 +126,18 @@ export default function ClientProfileModal({
               {profile.notes.map((item) => (
                 <li
                   key={item.id}
-                  className="group flex items-start justify-between gap-3 rounded-sm border border-ink-3 bg-ink px-3 py-2.5"
+                  className="group flex items-start justify-between gap-3 rounded-sm border border-line bg-paper px-3 py-2.5"
                 >
                   <div>
-                    <p className="text-sm text-bone">{item.note}</p>
-                    <p className="data mt-1 text-[10px] uppercase tracking-wider text-bone-2">
+                    <p className="text-sm text-ink">{item.note}</p>
+                    <p className="data mt-1 text-[10px] uppercase tracking-wider text-ink-soft">
                       {item.author_name} · {item.created_at.slice(0, 10)}
                     </p>
                   </div>
                   {(auth?.role === "admin" || auth?.username === item.author_name) && (
                     <button
                       onClick={() => adminApi.deleteClientNote(item.id).then(load)}
-                      className="hidden shrink-0 text-wine group-hover:block"
+                      className="hidden shrink-0 text-err group-hover:block"
                       aria-label="Borrar nota"
                     >
                       <Trash2 size={14} />
@@ -146,7 +146,7 @@ export default function ClientProfileModal({
                 </li>
               ))}
               {profile.notes.length === 0 && (
-                <li className="py-2 text-center text-xs text-bone-2/60">
+                <li className="py-2 text-center text-xs text-ink-soft/60">
                   Sin notas todavía — la primera vale oro.
                 </li>
               )}
@@ -155,17 +155,17 @@ export default function ClientProfileModal({
 
           {/* Historial reciente */}
           <div>
-            <p className="data mb-2 text-[11px] uppercase tracking-[0.25em] text-bone-2">
+            <p className="data mb-2 text-[11px] uppercase tracking-[0.25em] text-ink-soft">
               Últimos turnos
             </p>
             <ul className="max-h-44 space-y-1.5 overflow-y-auto pr-1">
               {profile.recent.map((appointment) => (
                 <li
                   key={appointment.id}
-                  className="flex items-center justify-between gap-2 rounded-sm bg-ink px-3 py-2 text-xs"
+                  className="flex items-center justify-between gap-2 rounded-sm bg-paper px-3 py-2 text-xs"
                 >
-                  <span className="truncate text-bone-2">
-                    <span className="data mr-1.5 text-gold">{appointment.date_local}</span>
+                  <span className="truncate text-ink-soft">
+                    <span className="data mr-1.5 text-brand">{appointment.date_local}</span>
                     {appointment.services.map((s) => s.name).join(", ")} ·{" "}
                     <span className="data">{formatCOP(appointment.total_cop)}</span>
                   </span>

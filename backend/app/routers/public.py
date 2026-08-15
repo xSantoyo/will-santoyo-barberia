@@ -19,16 +19,12 @@ from ..deps import (
     client_ip,
     get_tenant_by_slug,
     lookup_rate_limiter,
-    payment_rate_limiter,
     read_rate_limiter,
-    webhook_rate_limiter,
 )
 from ..models import (
     ACTIVE_STATUSES,
     Appointment,
-    GiftCode,
     MediaAsset,
-    Payment,
     Product,
     Review,
     Service,
@@ -42,7 +38,6 @@ from ..schemas import (
     BookingCreate,
     CancelRequest,
     DayAvailability,
-    GiftCheckoutCreate,
     GroupBookingCreate,
     MediaAssetOut,
     PortalRequest,
@@ -52,13 +47,11 @@ from ..schemas import (
     ReviewCreate,
     ReviewPublic,
     ServicePublic,
-    SimulatePaymentRequest,
     TenantPublic,
 )
 from ..services import appointments as booking
 from ..services import clients as clients_service
 from ..services import notifications
-from ..services import payments as payments_service
 from ..services import security as security_guard
 from ..services.availability import compute_slots
 from ..services.professional import get_professional
@@ -139,7 +132,6 @@ def availability(
     db: Session = Depends(get_db),
 ):
     booking.release_unconfirmed(db, tenant)  # libera huecos vencidos antes de mostrar
-    payments_service.expire_stale_deposits(db, tenant)
     notifications.send_pending_reminders(db, tenant)  # mismo patrón sin cron
     professional = get_professional(db, tenant)
     try:
@@ -167,27 +159,14 @@ def create_booking(
     _reject_bots(db, tenant, request, website=data.website,
                  captcha_token=data.captcha_token, form="booking")
     booking.release_unconfirmed(db, tenant)
-    payments_service.expire_stale_deposits(db, tenant)
-    deposit = payments_service.deposit_config(tenant)
     try:
-        appointment = booking.create_appointment(
-            db, tenant, data,
-            # Con anticipo activado la reserva nace pendiente y el hueco queda
-            # tomado; se confirma al aprobarse el pago (o se libera al vencer).
-            status="pendiente" if deposit["enabled"] else "confirmado",
-        )
+        appointment = booking.create_appointment(db, tenant, data, status="confirmado")
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     security_guard.note_public_booking(
         db, tenant, ip=client_ip(request), phone=appointment.customer_whatsapp
     )
-    if deposit["enabled"]:
-        payments_service.create_deposit_payment(db, tenant, appointment)
-        db.refresh(appointment)
-    else:
-        # Sin anticipo el turno nace confirmado → copia de cortesía inmediata.
-        # (Con anticipo, el correo sale al aprobarse el pago: ver apply_result.)
-        notifications.send_booking_confirmation(db, tenant, appointment)
+    notifications.send_booking_confirmation(db, tenant, appointment)
     return appointment_to_public(appointment, tenant)
 
 def _load_by_code(db: Session, tenant: Tenant, manage_code: str) -> Appointment:
@@ -267,121 +246,6 @@ def cancel_appointment(
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     return appointment_to_public(appointment, tenant)
-
-# ------------------------------------------------------------- pagos
-
-def _payment_status_payload(db: Session, tenant: Tenant, payment: Payment) -> dict:
-    payable = payment.status in ("pendiente", "rechazado")
-    gift_code = None
-    if payment.gift_code_id:
-        gift = db.get(GiftCode, payment.gift_code_id)
-        gift_code = gift.code if gift else None
-    appointment_code = None
-    appointment_status = None
-    if payment.appointment_id:
-        appointment = db.get(Appointment, payment.appointment_id)
-        if appointment:
-            appointment_code = appointment.manage_code
-            appointment_status = appointment.status
-    return {
-        "reference": payment.reference,
-        "kind": payment.kind,
-        "status": payment.status,
-        "amount_cop": payment.amount_cop,
-        "payment_method": payment.payment_method,
-        "checkout_url": payments_service.checkout_url(payment) if payable else None,
-        "gift_code": gift_code,
-        "gift_description": (payment.detail or {}).get("gift_description"),
-        "appointment_code": appointment_code,
-        "appointment_status": appointment_status,
-    }
-
-def _load_payment(db: Session, tenant: Tenant, reference: str) -> Payment:
-    payment = db.scalar(
-        select(Payment).where(
-            Payment.tenant_id == tenant.id, Payment.reference == reference.strip()
-        )
-    )
-    if payment is None:
-        raise HTTPException(404, "Pago no encontrado")
-    return payment
-
-@router.post("/gifts/checkout", dependencies=[Depends(payment_rate_limiter)])
-def gift_checkout(
-    data: GiftCheckoutCreate,
-    tenant: Tenant = Depends(get_tenant_by_slug),
-    db: Session = Depends(get_db),
-):
-    """Regala un corte: se paga en línea y el código sale al instante.
-    Inicio de transacción de pago → límite estricto (5 / 15 min)."""
-    if not payments_service.gift_shop_enabled(tenant):
-        raise HTTPException(404, "La tienda de regalos no está habilitada")
-    try:
-        services = booking.load_services(db, tenant, [data.service_id])
-    except booking.BookingError as exc:
-        raise _handle_booking_error(exc) from None
-    service = services[0]
-    payment = payments_service.create_gift_payment(
-        db,
-        tenant,
-        amount_cop=service.price_cop,
-        description=f"{service.name} de regalo",
-        payer_name=data.payer_name,
-        payer_whatsapp=data.payer_whatsapp,
-        payer_email=data.payer_email,
-    )
-    return _payment_status_payload(db, tenant, payment)
-
-@router.get("/payments/{reference}", dependencies=[Depends(lookup_rate_limiter)])
-def payment_status(
-    reference: str,
-    tenant: Tenant = Depends(get_tenant_by_slug),
-    db: Session = Depends(get_db),
-):
-    payment = _load_payment(db, tenant, reference)
-    return _payment_status_payload(db, tenant, payment)
-
-@router.post(
-    "/payments/{reference}/simulate",
-    dependencies=[Depends(booking_rate_limiter)],
-)
-def simulate_payment(
-    reference: str,
-    data: SimulatePaymentRequest,
-    tenant: Tenant = Depends(get_tenant_by_slug),
-    db: Session = Depends(get_db),
-):
-    """SOLO en modo simulador (sin llaves de Wompi): aprueba o rechaza el pago
-    para demostrar el flujo completo. En sandbox/producción no existe."""
-    from ..config import get_settings
-
-    if get_settings().wompi_mode != "mock":
-        raise HTTPException(404, "No disponible fuera del modo simulador")
-    payment = _load_payment(db, tenant, reference)
-    payment = payments_service.apply_result(
-        db,
-        payment,
-        status="aprobado" if data.approve else "rechazado",
-        method="SIMULADO",
-        transaction_id=f"mock-{payment.reference}",
-    )
-    return _payment_status_payload(db, tenant, payment)
-
-@router.post("/payments/wompi/webhook", dependencies=[Depends(webhook_rate_limiter)])
-def wompi_webhook(
-    event: dict,
-    request: Request,
-    tenant: Tenant = Depends(get_tenant_by_slug),
-    db: Session = Depends(get_db),
-):
-    """Webhook de eventos de Wompi (transaction.updated), verificado por
-    checksum SHA256 con el events secret. NUNCA se marca un pago como aprobado
-    por lo que diga el navegador del cliente: solo por este canal."""
-    try:
-        payments_service.handle_wompi_event(db, tenant, event, ip=client_ip(request))
-    except payments_service.PaymentError as exc:
-        raise HTTPException(exc.status_code, exc.detail) from None
-    return {"ok": True}
 
 # ------------------------------------------------------------- tanda 4
 
@@ -630,7 +494,6 @@ def today_queue(
     from ..services.availability import is_time_off
 
     booking.release_unconfirmed(db, tenant)
-    payments_service.expire_stale_deposits(db, tenant)
     notifications.send_pending_reminders(db, tenant)
 
     tz = ZoneInfo(tenant.timezone)

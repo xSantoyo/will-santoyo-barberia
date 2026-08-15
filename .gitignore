@@ -35,10 +35,10 @@ next-env.d.ts
 crash.log
 
 # --- Contenido real del cliente (fotos pesadas se gestionan por S3, no por git) ---
-content/bad-boys/gallery/*
-content/bad-boys/barbers/*
-content/bad-boys/cuts/*
-!content/bad-boys/**/.gitkeep
+content/will-santoyo/gallery/*
+content/will-santoyo/profile/*
+content/will-santoyo/cuts/*
+!content/will-santoyo/**/.gitkeep
 
 # --- SO / editores ---
 .DS_Store
@@ -53,3 +53,6 @@ Thumbs.db
 frontend/e2e/.demo-queue.json
 n8n-data/
 pg-data/
+
+# --- Correos de desarrollo (outbox local del backend) ---
+backend/outbox/

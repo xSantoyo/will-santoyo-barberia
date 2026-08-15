@@ -291,11 +291,12 @@ class GiftCode(Base):
 
 
 class Payment(Base):
-    """Pago en línea vía pasarela (Wompi) o simulador local.
+    """RETIRADA DE LA API (Fase 6): el cobro en línea se eliminó del producto.
 
-    Casos de uso: anticipo anti no-show de una reserva (kind=deposit) y compra
-    de códigos de regalo en línea (kind=gift). El corte en sí se sigue pagando
-    en el local: la pasarela cubre solo estos dos flujos.
+    La tabla sobrevive solo para no destruir registros históricos de pagos.
+    Ningún endpoint la lee ni la escribe. Su eliminación física vive en
+    alembic/proposed/0011_drop_payments.py.proposed y requiere aprobación
+    explícita del dueño (misma política que la 0010).
     """
 
     __tablename__ = "payments"
@@ -351,7 +352,7 @@ class SecurityEvent(Base):
     bloqueos, honeypots, fallos de firma de webhook, ráfagas de reservas.
 
     Complementa (no reemplaza) el audit_log de acciones administrativas. Cada
-    evento también se emite como línea JSON al logger `badboys.security` para
+    evento también se emite como línea JSON al logger `willsantoyo.security` para
     que CloudWatch pueda alarmar sin consultar la base de datos."""
 
     __tablename__ = "security_events"

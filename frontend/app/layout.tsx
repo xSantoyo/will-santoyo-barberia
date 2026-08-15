@@ -1,28 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, IBM_Plex_Mono, Inter } from "next/font/google";
+import { Fraunces } from "next/font/google";
 import { Toaster } from "sonner";
 import { DIRECCION_COMPLETA, NEGOCIO } from "@/lib/negocio";
 import "./globals.css";
 
-const anton = Anton({
-  weight: "400",
+// Única fuente descargada: la voz de marca vive en los titulares (Fraunces,
+// serif óptica). Cuerpo y datos usan las pilas del sistema — apple-design §15.
+const fraunces = Fraunces({
+  weight: ["500", "600"],
   subsets: ["latin"],
-  variable: "--font-anton",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-// Utilitaria de datos: precios, horas, códigos, etiquetas — el vocabulario
-// material de la barbería (etiqueta de precio, recibo, números de guarda).
-const plexMono = IBM_Plex_Mono({
-  weight: ["400", "500", "600"],
-  subsets: ["latin"],
-  variable: "--font-plex-mono",
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -57,12 +44,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Will Santoyo",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b0c",
+  themeColor: "#f1eee6",
   viewportFit: "cover", // respeta el notch: la barra fija usa safe-area-inset
 };
 
@@ -119,8 +106,8 @@ const JSON_LD = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${anton.variable} ${inter.variable} ${plexMono.variable}`}>
-      <body className="min-h-screen bg-ink text-bone antialiased">
+    <html lang="es" className={fraunces.variable}>
+      <body className="min-h-screen bg-paper text-ink antialiased">
         <script
           type="application/ld+json"
           // Objeto propio y estático: no hay entrada de usuario que escapar.
@@ -129,15 +116,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         {/* Un solo Toaster, montado en la raíz: dos duplicarían cada aviso. */}
         <Toaster
-          theme="dark"
+          theme="light"
           position="top-center"
           richColors
           closeButton
           toastOptions={{
             classNames: {
-              toast: "!bg-ink-2 !border-ink-3 !text-bone !rounded-sm",
+              toast: "!bg-card !border-line !text-ink !rounded-sm",
               title: "!font-semibold",
-              description: "!text-bone-2",
+              description: "!text-ink-soft",
             },
           }}
         />

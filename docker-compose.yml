@@ -1,18 +1,18 @@
-name: bad-boys-platform
+name: will-santoyo-platform
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: badboys
-      POSTGRES_PASSWORD: badboys
-      POSTGRES_DB: badboys
+      POSTGRES_USER: willsantoyo
+      POSTGRES_PASSWORD: willsantoyo
+      POSTGRES_DB: willsantoyo
     ports:
       - "5432:5432"
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U badboys -d badboys"]
+      test: ["CMD-SHELL", "pg_isready -U willsantoyo -d willsantoyo"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -22,7 +22,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://badboys:badboys@db:5432/badboys
+      DATABASE_URL: postgresql+psycopg://willsantoyo:willsantoyo@db:5432/willsantoyo
       JWT_SECRET: local-dev-secret-change-me
       ENVIRONMENT: local
       CORS_ORIGINS: http://localhost:3000

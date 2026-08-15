@@ -74,9 +74,9 @@ export default function TurnosPage() {
       />
 
       {/* Filtros */}
-      <div className="mb-6 grid gap-3 rounded-sm border border-ink-3 bg-ink-2 p-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid gap-3 rounded-sm border border-line bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
         <label className="relative block lg:col-span-2">
-          <Search size={14} className="absolute left-3 top-3 text-bone-2" />
+          <Search size={14} className="absolute left-3 top-3 text-ink-soft" />
           <input
             placeholder="Nombre, teléfono o código…"
             value={filters.q}
@@ -113,14 +113,14 @@ export default function TurnosPage() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[30vh] items-center justify-center text-gold">
+        <div className="flex min-h-[30vh] items-center justify-center text-brand">
           <Loader2 className="animate-spin" size={28} />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-ink-3">
+        <div className="overflow-x-auto rounded-sm border border-line">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
-              <tr className="border-b border-ink-3 bg-ink-2 text-left text-xs uppercase tracking-wider text-bone-2">
+              <tr className="border-b border-line bg-card text-left text-xs uppercase tracking-wider text-ink-soft">
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Hora</th>
                 <th className="px-4 py-3">#</th>
@@ -131,22 +131,22 @@ export default function TurnosPage() {
                 <th className="px-4 py-3">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-3">
+            <tbody className="divide-y divide-line">
               {appointments.map((appointment) => (
-                <tr key={appointment.id} className="bg-ink transition-colors hover:bg-ink-2">
-                  <td className="data px-4 py-3 text-bone-2">{appointment.date_local}</td>
-                  <td className="data px-4 py-3 font-medium text-gold">
+                <tr key={appointment.id} className="bg-paper transition-colors hover:bg-card">
+                  <td className="data px-4 py-3 text-ink-soft">{appointment.date_local}</td>
+                  <td className="data px-4 py-3 font-medium text-brand">
                     {appointment.time_local}
                   </td>
-                  <td className="data px-4 py-3 text-bone-2">#{appointment.daily_number}</td>
+                  <td className="data px-4 py-3 text-ink-soft">#{appointment.daily_number}</td>
                   <td className="px-4 py-3">
-                    <p className="text-bone">{appointment.customer_name}</p>
-                    <p className="text-xs text-bone-2">{appointment.customer_whatsapp}</p>
+                    <p className="text-ink">{appointment.customer_name}</p>
+                    <p className="text-xs text-ink-soft">{appointment.customer_whatsapp}</p>
                   </td>
-                  <td className="max-w-44 truncate px-4 py-3 text-bone-2">
+                  <td className="max-w-44 truncate px-4 py-3 text-ink-soft">
                     {appointment.services.map((s) => s.name).join(", ")}
                   </td>
-                  <td className="data px-4 py-3 text-bone">{formatCOP(appointment.total_cop)}</td>
+                  <td className="data px-4 py-3 text-ink">{formatCOP(appointment.total_cop)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={appointment.status} />
                   </td>
@@ -160,7 +160,7 @@ export default function TurnosPage() {
                               ? act(() => adminApi.cancelAppointment(appointment.id))
                               : act(() => adminApi.setStatus(appointment.id, status))
                           }
-                          className="rounded-sm border border-ink-3 px-2 py-1 text-[11px] text-bone-2 transition-colors hover:border-gold/50 hover:text-gold"
+                          className="rounded-sm border border-line px-2 py-1 text-[11px] text-ink-soft transition-colors hover:border-brand/50 hover:text-brand"
                         >
                           {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
                         </button>
@@ -170,7 +170,7 @@ export default function TurnosPage() {
                         <>
                           <button
                             onClick={() => setRescheduling(appointment)}
-                            className="rounded-sm border border-ink-3 px-2 py-1 text-[11px] text-bone-2 transition-colors hover:border-gold/50 hover:text-gold"
+                            className="rounded-sm border border-line px-2 py-1 text-[11px] text-ink-soft transition-colors hover:border-brand/50 hover:text-brand"
                           >
                             Reprogramar
                           </button>
@@ -179,7 +179,7 @@ export default function TurnosPage() {
                               const reason = prompt("Motivo de cancelación (opcional):") ?? undefined;
                               act(() => adminApi.cancelAppointment(appointment.id, reason));
                             }}
-                            className="rounded-sm border border-wine/40 px-2 py-1 text-[11px] text-wine transition-colors hover:bg-wine/15"
+                            className="rounded-sm border border-err/40 px-2 py-1 text-[11px] text-err transition-colors hover:bg-err/15"
                           >
                             Cancelar
                           </button>
@@ -191,7 +191,7 @@ export default function TurnosPage() {
               ))}
               {appointments.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-bone-2">
+                  <td colSpan={9} className="px-4 py-10 text-center text-ink-soft">
                     Sin turnos con esos filtros.
                   </td>
                 </tr>
@@ -266,11 +266,11 @@ function ManualBookingModal({
     <Modal title="Turno manual" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         {error && (
-          <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">{error}</div>
+          <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">{error}</div>
         )}
         <div className="grid grid-cols-2 gap-3">
           <fieldset className="col-span-2">
-            <legend className="mb-1 text-sm text-bone-2">Servicios</legend>
+            <legend className="mb-1 text-sm text-ink-soft">Servicios</legend>
             <div className="grid grid-cols-2 gap-2">
               {services.map((service) => {
                 const active = form.service_ids.includes(service.id);
@@ -287,7 +287,7 @@ function ManualBookingModal({
                       }))
                     }
                     className={`rounded-sm border px-3 py-2 text-left text-xs transition-colors ${
-                      active ? "border-gold bg-gold/10 text-gold" : "border-ink-3 text-bone-2"
+                      active ? "border-brand bg-brand/10 text-brand" : "border-line text-ink-soft"
                     }`}
                   >
                     {service.name}
@@ -296,7 +296,7 @@ function ManualBookingModal({
               })}
             </div>
           </fieldset>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Fecha
             <input
               type="date"
@@ -306,7 +306,7 @@ function ManualBookingModal({
               className={`${inputClass} mt-1`}
             />
           </label>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Hora
             <input
               type="time"
@@ -317,7 +317,7 @@ function ManualBookingModal({
               className={`${inputClass} mt-1`}
             />
           </label>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Cliente
             <input
               required
@@ -326,7 +326,7 @@ function ManualBookingModal({
               className={`${inputClass} mt-1`}
             />
           </label>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             WhatsApp
             <input
               required
@@ -336,7 +336,7 @@ function ManualBookingModal({
               placeholder="300 123 4567"
             />
           </label>
-          <label className="col-span-2 block text-sm text-bone-2">
+          <label className="col-span-2 block text-sm text-ink-soft">
             Notas
             <input
               value={form.notes}
@@ -390,15 +390,15 @@ function RescheduleModal({
 
   return (
     <Modal title={`Reprogramar #${appointment.daily_number}`} onClose={onClose}>
-      <p className="mb-4 text-sm text-bone-2">
+      <p className="mb-4 text-sm text-ink-soft">
         {appointment.customer_name} · {appointment.services.map((s) => s.name).join(", ")}
       </p>
       <form onSubmit={submit} className="space-y-4">
         {error && (
-          <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">{error}</div>
+          <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">{error}</div>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Nueva fecha
             <input
               type="date"
@@ -408,7 +408,7 @@ function RescheduleModal({
               className={`${inputClass} mt-1`}
             />
           </label>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Nueva hora
             <input
               type="time"

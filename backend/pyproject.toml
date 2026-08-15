@@ -1,7 +1,7 @@
 [project]
-name = "badboys-backend"
+name = "will-santoyo-backend"
 version = "1.0.0"
-description = "API de gestión y reservas para barberías (multi-tenant) — Bad Boys Barbershop"
+description = "API de reservas de Will Santoyo, barbero en Soacha"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",

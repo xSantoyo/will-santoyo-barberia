@@ -2,7 +2,7 @@
 
 Piezas (auditoría jul-2026):
 - log_event: registra eventos de seguridad en DB y como línea JSON en el logger
-  `badboys.security` (stdout → CloudWatch Logs → metric filters → alarmas SNS).
+  `willsantoyo.security` (stdout → CloudWatch Logs → metric filters → alarmas SNS).
 - Lockout de login: bloqueo TEMPORAL por usuario Y por IP tras N fallos, con
   backoff exponencial. Nunca permanente: un bloqueo definitivo permitiría a un
   atacante dejar fuera al admin real con 5 intentos deliberados.
@@ -24,7 +24,7 @@ from ..config import get_settings
 from ..db import SessionLocal, utcnow
 from ..models import LoginThrottle, SecurityEvent, Tenant
 
-logger = logging.getLogger("badboys.security")
+logger = logging.getLogger("willsantoyo.security")
 
 
 # ---------------------------------------------------------------- eventos

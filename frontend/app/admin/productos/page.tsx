@@ -41,7 +41,7 @@ export default function ProductosPage() {
 
   if (loading)
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-gold">
+      <div className="flex min-h-[50vh] items-center justify-center text-brand">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
@@ -60,7 +60,7 @@ export default function ProductosPage() {
       />
 
       {products.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-sm border border-ink-3 bg-ink-2 py-16 text-bone-2">
+        <div className="flex flex-col items-center gap-3 rounded-sm border border-line bg-card py-16 text-ink-soft">
           <Package size={32} />
           <p className="text-sm">La vitrina está vacía — agrega el primer producto.</p>
         </div>
@@ -69,11 +69,11 @@ export default function ProductosPage() {
           {products.map((product) => (
             <div
               key={product.id}
-              className={`clip-corner border bg-ink-2 ${
-                product.is_active ? "border-ink-3" : "border-wine/40 opacity-60"
+              className={`card-frame border bg-card ${
+                product.is_active ? "border-line" : "border-err/40 opacity-60"
               }`}
             >
-              <label className="group relative block aspect-square cursor-pointer overflow-hidden bg-ink-3">
+              <label className="group relative block aspect-square cursor-pointer overflow-hidden bg-wash">
                 {product.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -86,8 +86,8 @@ export default function ProductosPage() {
                     BB
                   </span>
                 )}
-                <span className="absolute inset-0 hidden items-center justify-center bg-ink/70 group-hover:flex">
-                  <Camera size={20} className="text-gold" />
+                <span className="absolute inset-0 hidden items-center justify-center bg-paper/70 group-hover:flex">
+                  <Camera size={20} className="text-brand" />
                 </span>
                 <input
                   type="file"
@@ -100,8 +100,8 @@ export default function ProductosPage() {
                 />
               </label>
               <div className="p-4">
-                <h2 className="text-bone">{product.name}</h2>
-                <p className="data mt-1 text-lg font-semibold text-gold">
+                <h2 className="text-ink">{product.name}</h2>
+                <p className="data mt-1 text-lg font-semibold text-brand">
                   {formatCOP(product.price_cop)}
                 </p>
                 <button onClick={() => setEditing(product)} className={`${buttonGhost} mt-3`}>
@@ -165,9 +165,9 @@ function ProductModal({
     <Modal title={product ? `Editar ${product.name}` : "Nuevo producto"} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         {error && (
-          <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">{error}</div>
+          <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">{error}</div>
         )}
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Nombre
           <input
             required
@@ -176,7 +176,7 @@ function ProductModal({
             className={`${inputClass} mt-1`}
           />
         </label>
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Descripción
           <input
             value={form.description ?? ""}
@@ -185,7 +185,7 @@ function ProductModal({
             placeholder="Fijación fuerte, brillo cero…"
           />
         </label>
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Precio (COP)
           <input
             type="number"
@@ -198,12 +198,12 @@ function ProductModal({
           />
         </label>
         {product && (
-          <label className="flex items-center gap-2 text-sm text-bone-2">
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input
               type="checkbox"
               checked={form.is_active}
               onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-              className="accent-[#c9a24b]"
+              className="accent-[#2a4696]"
             />
             Visible en la vitrina del sitio
           </label>

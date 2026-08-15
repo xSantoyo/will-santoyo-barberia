@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e . && pip install pip-audit
-      # --skip-editable: el propio paquete badboys-backend no está en PyPI
+      # --skip-editable: el propio paquete willsantoyo-backend no está en PyPI
       - run: pip-audit --skip-editable
 
   npm-audit:

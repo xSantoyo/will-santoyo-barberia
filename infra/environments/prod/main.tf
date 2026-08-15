@@ -6,7 +6,7 @@ terraform {
   }
   # Backend remoto: crear el bucket una única vez antes de `terraform init`.
   backend "s3" {
-    bucket  = "bad-boys-terraform-state" # ajustar a un nombre global único
+    bucket  = "will-santoyo-terraform-state" # ajustar a un nombre global único
     key     = "prod/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true
@@ -17,7 +17,7 @@ provider "aws" {
   region = var.aws_region
   default_tags {
     tags = {
-      Project     = "bad-boys-platform"
+      Project     = "will-santoyo-platform"
       Environment = "prod"
       ManagedBy   = "terraform"
     }
@@ -25,7 +25,7 @@ provider "aws" {
 }
 
 locals {
-  name_prefix = "badboys-prod"
+  name_prefix = "willsantoyo-prod"
 }
 
 module "network" {

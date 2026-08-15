@@ -35,7 +35,7 @@ import {
 } from "@/components/admin/shared";
 import ClientProfileModal from "@/components/admin/ClientProfileModal";
 
-const LAST_SEEN_KEY = "badboys.dashboard.lastSeen";
+const LAST_SEEN_KEY = "willsantoyo.dashboard.lastSeen";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -105,10 +105,10 @@ export default function DashboardPage() {
     }
   }
 
-  if (error) return <p className="text-wine">{error}</p>;
+  if (error) return <p className="text-err">{error}</p>;
   if (!data)
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-gold">
+      <div className="flex min-h-[50vh] items-center justify-center text-brand">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
@@ -129,45 +129,45 @@ export default function DashboardPage() {
       {/* Resumen ejecutivo: el pulso del día de un vistazo */}
       {summary && (
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="plate clip-corner p-4">
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
-              <Banknote size={13} className="text-gold" /> Caja de hoy
+          <div className="plate card-frame p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
+              <Banknote size={13} className="text-brand" /> Caja de hoy
             </p>
-            <p className="data mt-1 text-2xl font-semibold text-gold">
+            <p className="data mt-1 text-2xl font-semibold text-brand">
               {formatCOP(summary.earned)}
             </p>
-            <p className="data mt-0.5 text-[11px] text-bone-2">
+            <p className="data mt-0.5 text-[11px] text-ink-soft">
               + {formatCOP(summary.expected)} por atender
             </p>
           </div>
-          <div className="plate clip-corner p-4">
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
-              <Scissors size={13} className="text-gold" /> Atendidos
+          <div className="plate card-frame p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
+              <Scissors size={13} className="text-brand" /> Atendidos
             </p>
-            <p className="data mt-1 text-2xl font-semibold text-bone">{summary.doneCount}</p>
+            <p className="data mt-1 text-2xl font-semibold text-ink">{summary.doneCount}</p>
           </div>
-          <div className="plate clip-corner p-4">
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
-              <Clock3 size={13} className="text-gold" /> En fila
+          <div className="plate card-frame p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
+              <Clock3 size={13} className="text-brand" /> En fila
             </p>
-            <p className="data mt-1 text-2xl font-semibold text-bone">{summary.activeCount}</p>
+            <p className="data mt-1 text-2xl font-semibold text-ink">{summary.activeCount}</p>
           </div>
           <div
-            className={`plate clip-corner p-4 ${summary.overdue.length > 0 ? "border-wine/60" : ""}`}
+            className={`plate card-frame p-4 ${summary.overdue.length > 0 ? "border-err/60" : ""}`}
           >
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-bone-2">
-              <UserX size={13} className={summary.overdue.length > 0 ? "text-wine" : "text-gold"} />
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
+              <UserX size={13} className={summary.overdue.length > 0 ? "text-err" : "text-brand"} />
               Vencidos sin atender
             </p>
             <p
               className={`data mt-1 text-2xl font-semibold ${
-                summary.overdue.length > 0 ? "text-wine" : "text-bone"
+                summary.overdue.length > 0 ? "text-err" : "text-ink"
               }`}
             >
               {summary.overdue.length}
             </p>
             {summary.overdue.length > 0 && (
-              <p className="data mt-0.5 truncate text-[11px] text-bone-2">
+              <p className="data mt-0.5 truncate text-[11px] text-ink-soft">
                 {summary.overdue.map((a) => `#${a.daily_number} ${a.time_local}`).join(" · ")}
               </p>
             )}
@@ -176,14 +176,14 @@ export default function DashboardPage() {
       )}
 
       {newAppointments.length > 0 && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-gold/50 bg-gold/10 px-4 py-3">
-          <p className="flex items-center gap-2 text-sm text-bone">
-            <BellRing size={16} className="shrink-0 text-gold" />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-brand/50 bg-brand/10 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-ink">
+            <BellRing size={16} className="shrink-0 text-brand" />
             <span>
-              <strong className="text-gold">{newAppointments.length}</strong> turno(s)
+              <strong className="text-brand">{newAppointments.length}</strong> turno(s)
               nuevo(s) sin revisar hoy
               {newAppointments.length <= 3 && (
-                <span className="text-bone-2">
+                <span className="text-ink-soft">
                   {" · "}
                   {newAppointments
                     .map((a) => `${a.time_local} ${a.customer_name}`)
@@ -194,7 +194,7 @@ export default function DashboardPage() {
           </p>
           <button
             onClick={markSeen}
-            className="rounded-sm border border-gold px-3 py-1.5 text-xs text-gold transition-colors hover:bg-gold hover:text-ink"
+            className="rounded-sm border border-brand px-3 py-1.5 text-xs text-brand transition-colors hover:bg-brand hover:text-on-brand"
           >
             Marcar como revisados
           </button>
@@ -202,23 +202,23 @@ export default function DashboardPage() {
       )}
 
       <div className="mx-auto max-w-2xl">
-          <section className="rounded-sm border border-ink-3 bg-ink-2 p-5">
+          <section className="rounded-sm border border-line bg-card p-5">
             <header className="mb-4 flex items-center justify-between gap-2">
-              <h2 className="display text-2xl text-bone">Hoy en la silla</h2>
+              <h2 className="display text-2xl text-ink">Hoy en la silla</h2>
               <div className="flex items-center gap-2">
                 {data.is_day_off ? (
-                  <span className="data rounded-full border border-wine/50 px-3 py-0.5 text-[11px] uppercase tracking-wider text-wine">
+                  <span className="data rounded-full border border-err/50 px-3 py-0.5 text-[11px] uppercase tracking-wider text-err">
                     Descansa hoy
                   </span>
                 ) : (
                   <>
-                    <span className="data text-xs text-bone-2">
+                    <span className="data text-xs text-ink-soft">
                       {data.done_count} atendidos
                     </span>
                     <button
                       onClick={() => setWalkInOpen(true)}
                       title="Cliente sin cita: toma el próximo hueco de hoy"
-                      className="data flex items-center gap-1.5 rounded-sm border border-gold/40 px-2.5 py-1 text-[11px] uppercase tracking-wider text-gold transition-colors hover:bg-gold hover:text-ink"
+                      className="data flex items-center gap-1.5 rounded-sm border border-brand/40 px-2.5 py-1 text-[11px] uppercase tracking-wider text-brand transition-colors hover:bg-brand hover:text-on-brand"
                     >
                       <Footprints size={12} /> Walk-in
                     </button>
@@ -229,12 +229,12 @@ export default function DashboardPage() {
 
             {/* Turno en curso */}
             {data.current ? (
-              <div className="mb-4 rounded-sm border border-gold/50 bg-gold/10 p-4">
-                <p className="mb-1 text-[11px] uppercase tracking-widest text-gold">
+              <div className="mb-4 rounded-sm border border-brand/50 bg-brand/10 p-4">
+                <p className="mb-1 text-[11px] uppercase tracking-widest text-brand">
                   En el sillón · #{data.current.daily_number}
                 </p>
-                <p className="text-bone">{data.current.customer_name}</p>
-                <p className="text-xs text-bone-2">
+                <p className="text-ink">{data.current.customer_name}</p>
+                <p className="text-xs text-ink-soft">
                   {data.current.time_local}–{data.current.end_time_local} ·{" "}
                   {data.current.services.map((s) => s.name).join(", ")}
                 </p>
@@ -243,7 +243,7 @@ export default function DashboardPage() {
                     <button
                       disabled={busy === data.current.id}
                       onClick={() => setStatus(data.current!, "en_curso")}
-                      className="rounded-sm bg-gold px-3 py-1.5 text-xs text-ink"
+                      className="rounded-sm bg-brand px-3 py-1.5 text-xs text-on-brand"
                     >
                       Iniciar
                     </button>
@@ -251,7 +251,7 @@ export default function DashboardPage() {
                   <button
                     disabled={busy === data.current.id}
                     onClick={() => setStatus(data.current!, "completado")}
-                    className="rounded-sm border border-gold/50 px-3 py-1.5 text-xs text-gold"
+                    className="rounded-sm border border-brand/50 px-3 py-1.5 text-xs text-brand"
                   >
                     Completar
                   </button>
@@ -259,32 +259,32 @@ export default function DashboardPage() {
               </div>
             ) : (
               !data.is_day_off && (
-                <p className="mb-4 rounded-sm border border-dashed border-ink-3 p-4 text-center text-xs text-bone-2">
+                <p className="mb-4 rounded-sm border border-dashed border-line p-4 text-center text-xs text-ink-soft">
                   Sillón libre
                 </p>
               )
             )}
 
             {/* Próximos */}
-            <p className="mb-2 text-[11px] uppercase tracking-widest text-bone-2">
+            <p className="mb-2 text-[11px] uppercase tracking-widest text-ink-soft">
               Próximos ({data.upcoming.length})
             </p>
             <ul className="space-y-2">
               {data.upcoming.slice(0, 5).map((appointment) => (
                 <li
                   key={appointment.id}
-                  className="flex items-center justify-between gap-3 rounded-sm bg-ink px-3 py-2.5"
+                  className="flex items-center justify-between gap-3 rounded-sm bg-paper px-3 py-2.5"
                 >
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 truncate text-sm text-bone">
-                      <span className="data font-medium text-gold">
+                    <p className="flex items-center gap-1.5 truncate text-sm text-ink">
+                      <span className="data font-medium text-brand">
                         {appointment.time_local}
                       </span>
                       {appointment.customer_whatsapp ? (
                         <button
                           onClick={() => setProfilePhone(appointment.customer_whatsapp)}
                           title="Ver perfil del cliente (historial, fidelidad, notas)"
-                          className="truncate underline-offset-4 transition-colors hover:text-gold hover:underline"
+                          className="truncate underline-offset-4 transition-colors hover:text-brand hover:underline"
                         >
                           {appointment.customer_name}
                         </button>
@@ -294,17 +294,17 @@ export default function DashboardPage() {
                       {appointment.attendance_confirmed && (
                         <CircleCheck
                           size={13}
-                          className="shrink-0 text-gold"
+                          className="shrink-0 text-brand"
                           aria-label="Asistencia confirmada"
                         />
                       )}
                     </p>
-                    <p className="truncate text-xs text-bone-2">
+                    <p className="truncate text-xs text-ink-soft">
                       #{appointment.daily_number} ·{" "}
                       {appointment.services.map((s) => s.name).join(", ")} ·{" "}
                       {formatCOP(appointment.total_cop)}
                       {appointment.attendance_pending && (
-                        <span className="data ml-1.5 text-[10px] uppercase tracking-wider text-wine">
+                        <span className="data ml-1.5 text-[10px] uppercase tracking-wider text-err">
                           sin confirmar
                         </span>
                       )}
@@ -314,7 +314,7 @@ export default function DashboardPage() {
                 </li>
               ))}
               {data.upcoming.length === 0 && (
-                <li className="py-2 text-center text-xs text-bone-2/60">
+                <li className="py-2 text-center text-xs text-ink-soft/60">
                   Sin más turnos hoy
                 </li>
               )}
@@ -392,18 +392,18 @@ function WalkInModal({
       {result ? (
         /* La placa del walk-in: número, hora y código para dictar al cliente */
         <div className="text-center">
-          <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+          <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
             En la fila de hoy
           </p>
-          <p className="stamped mt-2 text-6xl text-bone">
-            <span className="text-gold">#</span>
+          <p className="stamped mt-2 text-6xl text-ink">
+            <span className="text-brand">#</span>
             {result.daily_number}
           </p>
-          <p className="data mt-2 text-sm text-bone-2">
-            Pasa a las <span className="font-semibold text-gold">{result.time_local}</span>
+          <p className="data mt-2 text-sm text-ink-soft">
+            Pasa a las <span className="font-semibold text-brand">{result.time_local}</span>
           </p>
-          <div className="plate clip-corner mt-5 p-4">
-            <p className="data text-[11px] uppercase tracking-[0.3em] text-bone-2">
+          <div className="plate card-frame mt-5 p-4">
+            <p className="data text-[11px] uppercase tracking-[0.3em] text-ink-soft">
               Código del cliente
             </p>
             <p className="stamped selectable mt-1 text-3xl tracking-[0.25em]">
@@ -411,14 +411,14 @@ function WalkInModal({
             </p>
             <button
               onClick={copyCode}
-              className="data mx-auto mt-3 flex items-center gap-2 rounded-sm border border-gold px-4 py-1.5 text-xs uppercase tracking-wider text-gold transition-colors hover:bg-gold hover:text-ink"
+              className="data mx-auto mt-3 flex items-center gap-2 rounded-sm border border-brand px-4 py-1.5 text-xs uppercase tracking-wider text-brand transition-colors hover:bg-brand hover:text-on-brand"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />}
               {copied ? "Copiado" : "Copiar"}
             </button>
-            <p className="mt-3 text-xs text-bone-2">
+            <p className="mt-3 text-xs text-ink-soft">
               Díctaselo o envíaselo: con él sigue su posición en vivo en{" "}
-              <span className="data text-gold">/turno/{result.manage_code}</span>
+              <span className="data text-brand">/turno/{result.manage_code}</span>
             </p>
           </div>
           <button onClick={onClose} className={`${buttonPrimary} mt-5 w-full`}>
@@ -427,16 +427,16 @@ function WalkInModal({
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
-          <p className="text-sm text-bone-2">
-            Cliente sin cita: toma el <strong className="text-bone">próximo hueco de hoy</strong>{" "}
+          <p className="text-sm text-ink-soft">
+            Cliente sin cita: toma el <strong className="text-ink">próximo hueco de hoy</strong>{" "}
             y entra a La Fila con su número.
           </p>
           {error && (
-            <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">
+            <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">
               {error}
             </div>
           )}
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Nombre
             <input
               required
@@ -447,7 +447,7 @@ function WalkInModal({
               placeholder="Nombre del cliente"
             />
           </label>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             WhatsApp (opcional)
             <input
               value={phone}
@@ -457,7 +457,7 @@ function WalkInModal({
             />
           </label>
           <fieldset>
-            <legend className="mb-1 text-sm text-bone-2">Servicios</legend>
+            <legend className="mb-1 text-sm text-ink-soft">Servicios</legend>
             <div className="grid grid-cols-2 gap-2">
               {services.map((service) => {
                 const active = serviceIds.includes(service.id);
@@ -473,7 +473,7 @@ function WalkInModal({
                       )
                     }
                     className={`rounded-sm border px-3 py-2 text-left text-xs transition-colors ${
-                      active ? "border-gold bg-gold/10 text-gold" : "border-ink-3 text-bone-2"
+                      active ? "border-brand bg-brand/10 text-brand" : "border-line text-ink-soft"
                     }`}
                   >
                     {service.name}

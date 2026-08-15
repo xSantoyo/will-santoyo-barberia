@@ -36,7 +36,7 @@ async function shot(page: Page, name: string, fullPage = false) {
 test("sitio público: home desktop y mobile", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /bad boys/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /will santoyo/i })).toBeVisible();
   await shot(page, "01-home-hero");
   await shot(page, "02-home-completo", true);
 
@@ -246,13 +246,6 @@ test("tanda 3: portal, reseñas y widget de reseña", async ({ page }) => {
 test("tanda 4: portafolio, vitrina y regalos", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
 
-  // Portafolio del barbero 1 (mini-sitio)
-  await page.goto("/barbero/1");
-  await expect(page.getByRole("heading", { name: /barbero 1/i })).toBeVisible({
-    timeout: 10_000,
-  });
-  await page.waitForTimeout(900);
-  await shot(page, "37-portafolio-barbero", true);
 
   // La vitrina en el home
   await page.goto("/");
@@ -273,8 +266,8 @@ test("tanda 4: portafolio, vitrina y regalos", async ({ page }) => {
   // Admin: regalos
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/admin");
-  await page.getByLabel(/usuario/i).fill("admin");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByLabel(/usuario/i).fill("will");
+  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("link", { name: /regalos/i }).click();
@@ -285,106 +278,6 @@ test("tanda 4: portafolio, vitrina y regalos", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Vitrina" })).toBeVisible();
   await page.waitForTimeout(700);
   await shot(page, "41-admin-vitrina");
-});
-
-test("pagos: anticipo en simulador, retorno y regalos", async ({ page }) => {
-  // Reserva rápida hasta la confirmación con anticipo (deposits ON en demo)
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/agendar");
-  await page.getByRole("button", { name: /barbero 1/i }).first().click();
-  await page.getByRole("button", { name: /corte clásico/i }).click();
-  await page.getByRole("button", { name: /continuar/i }).click();
-  await expect(page.getByText(/elige un día/i)).toBeVisible();
-  const days = page.locator("button:not([disabled])[class*='aspect-square']");
-  await expect(days.first()).toBeVisible({ timeout: 10_000 });
-  const count = await days.count();
-  let picked = false;
-  for (let i = 0; i < count && !picked; i++) {
-    await days.nth(i).click();
-    const slot = page.locator("div.grid button", { hasText: /^\d{2}:\d{2}$/ }).first();
-    try {
-      await slot.waitFor({ state: "visible", timeout: 4000 });
-      await slot.click();
-      picked = true;
-    } catch {
-      /* día lleno */
-    }
-  }
-  expect(picked).toBe(true);
-  await page.getByPlaceholder("Nombre y apellido").fill("Cliente Pago");
-  await page.getByPlaceholder("300 123 4567").fill("3182220001");
-  // Correo opcional (ronda Resend): con anticipo activo la confirmación
-  // por correo sale AL PAGAR — se captura más abajo desde el outbox local.
-  await page.getByPlaceholder("tu@correo.com").fill("cliente@ejemplo.com");
-  await page.getByRole("button", { name: /continuar/i }).click();
-  await page.getByRole("button", { name: /confirmar turno/i }).click();
-  await expect(page.getByText(/turno (confirmado|apartado)/i)).toBeVisible({
-    timeout: 15_000,
-  });
-
-  const payButton = page.getByRole("link", { name: /pagar anticipo/i });
-  test.skip((await payButton.count()) === 0, "Anticipos apagados en esta demo");
-  await page.waitForTimeout(1900);
-  await shot(page, "42-confirmacion-con-anticipo", true);
-
-  await payButton.click();
-  await expect(page.getByText(/simulador · modo pruebas/i)).toBeVisible({
-    timeout: 10_000,
-  });
-  await shot(page, "43-pago-simulador");
-  await page.getByRole("button", { name: /aprobar/i }).click();
-  await expect(page.getByText(/pago aprobado/i)).toBeVisible({ timeout: 15_000 });
-  await shot(page, "44-pago-retorno-aprobado");
-
-  // Ronda Resend: al aprobarse el anticipo, la confirmación quedó en el
-  // outbox local del backend (sin API key) — se captura el HTML del correo
-  // tal cual lo vería el cliente.
-  const { readdirSync } = await import("node:fs");
-  const { resolve } = await import("node:path");
-  const outbox = resolve("../backend/outbox");
-  try {
-    const latest = readdirSync(outbox)
-      .filter((f) => f.includes("-confirmacion-") && f.endsWith(".html"))
-      .sort()
-      .at(-1);
-    if (latest) {
-      await page.setViewportSize({ width: 640, height: 1000 });
-      await page.goto(`file://${resolve(outbox, latest)}`);
-      await page.waitForTimeout(400);
-      await shot(page, "52-correo-confirmacion", true);
-      await page.goBack();
-      await page.setViewportSize({ width: 390, height: 844 });
-    }
-  } catch {
-    /* outbox vacío (backend con RESEND_API_KEY real): nada que capturar */
-  }
-
-  // Regalos: comprar un corte de regalo y ver el código revelado
-  await page.goto("/regalos");
-  await expect(page.getByRole("heading", { name: /regala un/i })).toBeVisible();
-  await page.getByPlaceholder("Nombre y apellido").fill("María Regaladora");
-  await page.getByPlaceholder("tu@correo.com").fill("maria@ejemplo.com");
-  await shot(page, "45-regalos-tienda", true);
-  await page.getByRole("button", { name: /pagar .* y recibir el código/i }).click();
-  await expect(page.getByText(/simulador · modo pruebas/i)).toBeVisible({
-    timeout: 10_000,
-  });
-  await page.getByRole("button", { name: /aprobar/i }).click();
-  await expect(page.getByText(/pago aprobado/i)).toBeVisible({ timeout: 15_000 });
-  await page.waitForTimeout(1900); // navaja revelando el código del regalo
-  await shot(page, "46-regalo-codigo-revelado", true);
-
-  // Admin: página de Pagos con el registro
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/admin");
-  await page.getByLabel(/usuario/i).fill("admin");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
-  await page.getByRole("button", { name: /entrar/i }).click();
-  await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("link", { name: /pagos/i }).click();
-  await expect(page.getByRole("heading", { name: "Pagos" })).toBeVisible();
-  await page.waitForTimeout(700);
-  await shot(page, "47-admin-pagos");
 });
 
 test("anchos móviles reales: 375px y 428px", async ({ page }) => {
@@ -422,7 +315,7 @@ test("ronda de seguridad: vista del barbero y panel de seguridad", async ({ page
   // ---- El barbero solo ve SU mundo: dashboard propio, desempeño y cuenta
   await page.goto("/admin");
   await page.getByLabel(/usuario/i).fill("barbero1");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await shot(page, "48-barbero-dashboard");
@@ -439,8 +332,8 @@ test("ronda de seguridad: vista del barbero y panel de seguridad", async ({ page
   // ---- El admin ve el registro de seguridad
   await page.getByRole("button", { name: /salir/i }).click();
   await expect(page.getByRole("button", { name: /entrar/i })).toBeVisible();
-  await page.getByLabel(/usuario/i).fill("admin");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByLabel(/usuario/i).fill("will");
+  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("link", { name: /seguridad/i }).click();
@@ -452,8 +345,8 @@ test("ronda de seguridad: vista del barbero y panel de seguridad", async ({ page
 test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/admin");
-  await page.getByLabel(/usuario/i).fill("admin");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByLabel(/usuario/i).fill("will");
+  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
   await shot(page, "12-admin-login");
   await page.getByRole("button", { name: /entrar/i }).click();
 

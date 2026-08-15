@@ -8,7 +8,7 @@ Todo debe funcionar en local antes de tocar AWS:
 docker compose up --build
 # Frontend  http://localhost:3000
 # Backend   http://localhost:8000/docs
-# Admin     http://localhost:3000/admin  →  admin / BadBoys2026!
+# Admin     http://localhost:3000/admin  →  admin / WillSantoyo2026!
 ```
 
 Suites de verificación:
@@ -16,7 +16,7 @@ Suites de verificación:
 ```bash
 cd backend && pytest -m "not postgres"          # 35 tests unitarios
 docker compose up -d db                          # para los tests de integración:
-TEST_POSTGRES_URL=postgresql+psycopg://badboys:badboys@localhost:5432/badboys \
+TEST_POSTGRES_URL=postgresql+psycopg://willsantoyo:willsantoyo@localhost:5432/willsantoyo \
   pytest -m postgres                             # constraint anti doble-reserva
 cd frontend && npm run lint && npm test          # typecheck + componentes
 npx playwright test                              # E2E (requiere stack corriendo)
@@ -29,13 +29,13 @@ npx playwright test                              # E2E (requiere stack corriendo
 - Terraform >= 1.7.
 - Bucket S3 para el estado remoto (una sola vez):
   ```bash
-  aws s3 mb s3://bad-boys-terraform-state --region us-east-1
-  aws s3api put-bucket-versioning --bucket bad-boys-terraform-state \
+  aws s3 mb s3://will-santoyo-terraform-state --region us-east-1
+  aws s3api put-bucket-versioning --bucket will-santoyo-terraform-state \
     --versioning-configuration Status=Enabled
   ```
 - Repositorio ECR para la imagen del backend (una sola vez):
   ```bash
-  aws ecr create-repository --repository-name badboys-backend
+  aws ecr create-repository --repository-name willsantoyo-backend
   ```
 
 ## 2. Publicar la primera imagen del backend
@@ -44,8 +44,8 @@ npx playwright test                              # E2E (requiere stack corriendo
 aws ecr get-login-password | docker login --username AWS \
   --password-stdin <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com
 docker build -f backend/Dockerfile.lambda \
-  -t <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/badboys-backend:v1 backend
-docker push <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/badboys-backend:v1
+  -t <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/willsantoyo-backend:v1 backend
+docker push <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/willsantoyo-backend:v1
 ```
 
 (Los despliegues siguientes los hace GitHub Actions — ver §6.)
@@ -74,9 +74,9 @@ Salidas relevantes: `api_endpoint`, `frontend_url`, `cloudfront_domain`.
 
 1. **Migraciones**: invocar la Lambda con la tarea de migración:
    ```bash
-   aws lambda invoke --function-name badboys-prod-api \
+   aws lambda invoke --function-name willsantoyo-prod-api \
      --cli-binary-format raw-in-base64-out \
-     --payload '{"badboys_task": "migrate"}' out.json && cat out.json
+     --payload '{"willsantoyo_task": "migrate"}' out.json && cat out.json
    ```
 2. **Seed inicial**: conectarse una vez a la base (bastion temporal en la VPC o
    una tarea puntual) y ejecutar `python -m app.seed`, o insertar el tenant con
@@ -89,8 +89,8 @@ Salidas relevantes: `api_endpoint`, `frontend_url`, `cloudfront_domain`.
 
 | Secreto | Dónde vive | Quién lo consume |
 |---|---|---|
-| `badboys-prod/app` (JWT) | Secrets Manager | Lambda (al arrancar) |
-| `badboys-prod/database` (DATABASE_URL) | Secrets Manager | Lambda |
+| `willsantoyo-prod/app` (JWT) | Secrets Manager | Lambda (al arrancar) |
+| `willsantoyo-prod/database` (DATABASE_URL) | Secrets Manager | Lambda |
 
 La Lambda los carga en el arranque vía `AWS_SECRETS_PREFIX` (ver
 `backend/app/config.py::load_aws_secrets`). Rotación: actualizar el secreto y
@@ -108,8 +108,8 @@ forzar un nuevo despliegue de la Lambda.
 
 ## 7. Monitoreo
 
-- Logs del backend: CloudWatch `/aws/lambda/badboys-prod-api` (retención 30 días).
-- Alarma `badboys-prod-api-5xx` (≥5 errores en 5 min). Conectar una acción SNS →
+- Logs del backend: CloudWatch `/aws/lambda/willsantoyo-prod-api` (retención 30 días).
+- Alarma `willsantoyo-prod-api-5xx` (≥5 errores en 5 min). Conectar una acción SNS →
   email en la consola si se desea aviso.
 - Acciones administrativas: panel admin (audit log con quién hizo qué y cuándo).
 

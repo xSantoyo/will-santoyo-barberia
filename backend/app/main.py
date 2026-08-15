@@ -2,7 +2,7 @@
 
 - Local: `uvicorn app.main:app --reload`
 - AWS Lambda: `handler` (Mangum) + despachador de tareas administrativas
-  (invocar la Lambda con {"badboys_task": "migrate"} ejecuta Alembic).
+  (invocar la Lambda con {"app_task": "migrate"} ejecuta Alembic).
 """
 from __future__ import annotations
 
@@ -106,7 +106,7 @@ def _run_migrations() -> dict:
 
 def handler(event, context):
     """Entrada Lambda: tareas administrativas o proxy HTTP (Mangum)."""
-    if isinstance(event, dict) and event.get("badboys_task") == "migrate":
+    if isinstance(event, dict) and event.get("app_task") == "migrate":
         return _run_migrations()
     from mangum import Mangum
 

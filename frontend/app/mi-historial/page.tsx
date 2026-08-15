@@ -44,37 +44,37 @@ export default function PortalPage() {
       <div className="relative mx-auto max-w-md px-5 pb-24">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-gold"
+          className="inline-flex items-center gap-2 text-sm text-ink-soft transition-colors hover:text-brand"
         >
           <ArrowLeft size={16} /> Will Santoyo
         </Link>
-        <h1 className="display mt-6 text-5xl text-bone">
-          Mi <span className="text-gold">historial</span>
+        <h1 className="display mt-6 text-5xl text-ink">
+          Mi <span className="text-brand">historial</span>
         </h1>
-        <p className="mt-2 text-bone-2">
+        <p className="mt-2 text-ink-soft">
           Tu teléfono es la llave; el código de cualquiera de tus turnos, el comprobante.
         </p>
 
         {!data && (
           <form onSubmit={search} className="mt-10 space-y-5">
             {error && (
-              <div className="rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">
+              <div className="rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
                 {error}
               </div>
             )}
             <label className="block">
-              <span className="mb-1.5 block text-sm text-bone-2">WhatsApp</span>
+              <span className="mb-1.5 block text-sm text-ink-soft">WhatsApp</span>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="300 123 4567"
                 inputMode="tel"
                 required
-                className="focus-gold min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base text-bone placeholder:text-bone-2/50"
+                className="focus-ring min-h-13 w-full rounded-sm border border-line bg-card px-4 py-3.5 text-base text-ink placeholder:text-ink-soft/50"
               />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-sm text-bone-2">
+              <span className="mb-1.5 block text-sm text-ink-soft">
                 Código de cualquiera de tus turnos
               </span>
               <input
@@ -83,13 +83,13 @@ export default function PortalPage() {
                 placeholder="A1B2C3"
                 maxLength={8}
                 required
-                className="focus-gold data min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base uppercase tracking-[0.3em] text-bone placeholder:tracking-normal placeholder:text-bone-2/50"
+                className="focus-ring data min-h-13 w-full rounded-sm border border-line bg-card px-4 py-3.5 text-base uppercase tracking-[0.3em] text-ink placeholder:tracking-normal placeholder:text-ink-soft/50"
               />
             </label>
             <button
               type="submit"
               disabled={loading}
-              className="display flex min-h-13 w-full items-center justify-center gap-2 rounded-sm bg-gold px-6 text-lg text-ink transition-transform enabled:hover:scale-[1.02] disabled:opacity-60"
+              className="display flex min-h-13 w-full items-center justify-center gap-2 rounded-sm bg-brand px-6 text-lg text-on-brand transition-transform enabled:hover:scale-[1.02] disabled:opacity-60"
             >
               {loading ? <Loader2 className="animate-spin" size={18} /> : <History size={18} />}
               Ver mi historial
@@ -100,8 +100,8 @@ export default function PortalPage() {
         {data && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             {/* Tarjeta de fidelidad: cada corte suma — sin pagos en línea */}
-            <div className="plate clip-corner mt-8 p-5">
-              <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+            <div className="plate card-frame mt-8 p-5">
+              <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
                 Tarjeta de fidelidad · {data.customer_name.split(" ")[0]}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -110,22 +110,22 @@ export default function PortalPage() {
                     key={i}
                     className={`flex h-9 w-9 items-center justify-center rounded-full border ${
                       i < data.loyalty.progress
-                        ? "border-gold bg-gold text-ink"
-                        : "border-ink-3 text-bone-2/40"
+                        ? "border-brand bg-brand text-on-brand"
+                        : "border-line text-ink-soft/40"
                     }`}
                   >
                     <Scissors size={14} />
                   </span>
                 ))}
               </div>
-              <p className="mt-4 text-sm text-bone">
+              <p className="mt-4 text-sm text-ink">
                 Llevas{" "}
-                <span className="data font-semibold text-gold">
+                <span className="data font-semibold text-brand">
                   {data.loyalty.progress}
                 </span>{" "}
                 de <span className="data">{data.loyalty.target}</span>
                 {(data.loyalty.referral_bonus > 0 || data.loyalty.review_bonus > 0) && (
-                  <span className="text-bone-2">
+                  <span className="text-ink-soft">
                     {" "}
                     (cortes {data.loyalty.completed_count}
                     {data.loyalty.referral_bonus > 0 &&
@@ -140,11 +140,11 @@ export default function PortalPage() {
                   ? "arranca tu ronda."
                   : `te faltan ${data.loyalty.remaining} para: `}
                 {data.loyalty.remaining !== data.loyalty.target && (
-                  <span className="text-gold">{data.loyalty.reward}</span>
+                  <span className="text-brand">{data.loyalty.reward}</span>
                 )}
               </p>
               {data.loyalty.earned_rewards > 0 && (
-                <p className="data mt-2 text-xs uppercase tracking-wider text-gold">
+                <p className="data mt-2 text-xs uppercase tracking-wider text-brand">
                   ★ {data.loyalty.earned_rewards} recompensa(s) ganada(s) — se redimen
                   en el local
                 </p>
@@ -152,19 +152,19 @@ export default function PortalPage() {
             </div>
 
             {/* Código de referido: recomienda y suma tijeras */}
-            <div className="clip-corner mt-4 border border-ink-3 bg-ink-2 p-5">
-              <p className="data text-[11px] uppercase tracking-[0.3em] text-bone-2">
+            <div className="card-frame mt-4 border border-line bg-card p-5">
+              <p className="data text-[11px] uppercase tracking-[0.3em] text-ink-soft">
                 Tu código de amigo
               </p>
-              <p className="stamped selectable mt-2 text-3xl tracking-[0.2em] text-gold">
+              <p className="stamped selectable mt-2 text-3xl tracking-[0.2em] text-brand">
                 {data.referral_code}
               </p>
-              <p className="mt-2 text-xs text-bone-2">
+              <p className="mt-2 text-xs text-ink-soft">
                 Compártelo: cuando un amigo nuevo agende con tu código y complete su
-                corte, <span className="text-gold">tú sumas una tijera</span> en la
+                corte, <span className="text-brand">tú sumas una tijera</span> en la
                 tarjeta.
                 {data.loyalty.referral_bonus > 0 && (
-                  <span className="data ml-1 text-gold">
+                  <span className="data ml-1 text-brand">
                     Ya llevas {data.loyalty.referral_bonus}.
                   </span>
                 )}
@@ -172,43 +172,43 @@ export default function PortalPage() {
             </div>
 
             {/* Historial */}
-            <p className="data mt-8 text-[11px] uppercase tracking-[0.3em] text-bone-2">
+            <p className="data mt-8 text-[11px] uppercase tracking-[0.3em] text-ink-soft">
               Tus turnos ({data.appointments.length})
             </p>
             <ul className="mt-3 space-y-2.5">
               {data.appointments.map((appointment) => (
                 <li
                   key={appointment.manage_code}
-                  className="rounded-sm border border-ink-3 bg-ink-2 px-4 py-3"
+                  className="rounded-sm border border-line bg-card px-4 py-3"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm text-bone">
-                      <span className="data mr-2 text-gold">{appointment.date_local}</span>
-                      <span className="data text-bone-2">{appointment.time_local}</span>
+                    <p className="text-sm text-ink">
+                      <span className="data mr-2 text-brand">{appointment.date_local}</span>
+                      <span className="data text-ink-soft">{appointment.time_local}</span>
                     </p>
                     <StatusBadge status={appointment.status} />
                   </div>
-                  <p className="mt-1 truncate text-xs text-bone-2">
+                  <p className="mt-1 truncate text-xs text-ink-soft">
                     {appointment.services.join(", ")} ·{" "}
                     <span className="data">{formatCOP(appointment.total_cop)}</span>
                   </p>
                   <div className="mt-2 flex items-center gap-4">
                     <Link
                       href={`/turno/${appointment.manage_code}`}
-                      className="data text-[11px] uppercase tracking-wider text-bone-2 transition-colors hover:text-gold"
+                      className="data text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-brand"
                     >
                       Ver tiquete →
                     </Link>
                     {appointment.can_review && (
                       <Link
                         href={`/turno/${appointment.manage_code}`}
-                        className="data flex items-center gap-1 text-[11px] uppercase tracking-wider text-gold"
+                        className="data flex items-center gap-1 text-[11px] uppercase tracking-wider text-brand"
                       >
                         <Star size={11} /> Deja tu reseña
                       </Link>
                     )}
                     {appointment.review_rating && (
-                      <span className="data text-[11px] text-gold">
+                      <span className="data text-[11px] text-brand">
                         {"★".repeat(appointment.review_rating)}
                       </span>
                     )}
@@ -219,7 +219,7 @@ export default function PortalPage() {
 
             <button
               onClick={() => setData(null)}
-              className="data mt-8 w-full text-center text-xs uppercase tracking-widest text-bone-2 transition-colors hover:text-gold"
+              className="data mt-8 w-full text-center text-xs uppercase tracking-widest text-ink-soft transition-colors hover:text-brand"
             >
               Consultar otro teléfono
             </button>

@@ -20,23 +20,20 @@ import {
   Package,
   Scissors,
   ShieldAlert,
-  Users,
 } from "lucide-react";
 import { adminApi, getAuth, type StoredAuth } from "@/lib/admin-api";
 
 const NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "barbero"] },
-  { href: "/admin/agenda", label: "Agenda", icon: CalendarDays, roles: ["admin", "barbero"] },
-  { href: "/admin/mi-desempeno", label: "Mi desempeño", icon: ChartNoAxesColumn, roles: ["barbero"] },
-  { href: "/admin/turnos", label: "Turnos", icon: ListChecks, roles: ["admin"] },
-  { href: "/admin/barberos", label: "Barberos", icon: Users, roles: ["admin"] },
-  { href: "/admin/servicios", label: "Servicios", icon: Scissors, roles: ["admin"] },
-  { href: "/admin/productos", label: "Vitrina", icon: Package, roles: ["admin"] },
-  { href: "/admin/regalos", label: "Regalos", icon: Gift, roles: ["admin"] },
-  { href: "/admin/pagos", label: "Pagos", icon: CreditCard, roles: ["admin"] },
-  { href: "/admin/galeria", label: "Galería", icon: Images, roles: ["admin"] },
-  { href: "/admin/seguridad", label: "Seguridad", icon: ShieldAlert, roles: ["admin"] },
-  { href: "/admin/cuenta", label: "Mi cuenta", icon: KeyRound, roles: ["admin", "barbero"] },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/admin/mi-desempeno", label: "Mi desempeño", icon: ChartNoAxesColumn },
+  { href: "/admin/turnos", label: "Turnos", icon: ListChecks },
+  { href: "/admin/servicios", label: "Servicios", icon: Scissors },
+  { href: "/admin/productos", label: "Vitrina", icon: Package },
+  { href: "/admin/regalos", label: "Regalos", icon: Gift },
+  { href: "/admin/galeria", label: "Galería", icon: Images },
+  { href: "/admin/seguridad", label: "Seguridad", icon: ShieldAlert },
+  { href: "/admin/cuenta", label: "Mi cuenta", icon: KeyRound },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -58,16 +55,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === "/admin/login") return <>{children}</>;
   if (!ready || !auth) return null;
 
-  const links = NAV.filter((item) => item.roles.includes(auth.role));
+  const links = NAV;
 
   return (
     <div className="flex min-h-svh">
-      <aside className="texture-pinstripe fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-ink-3 bg-ink-2 lg:w-56">
-        <Link href="/" className="display px-3 py-6 text-center text-xl text-bone lg:px-5 lg:text-left">
+      <aside className="texture-pinstripe fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-line bg-card lg:w-56">
+        <Link href="/" className="display px-3 py-6 text-center text-xl text-ink lg:px-5 lg:text-left">
           <span className="hidden lg:inline">
-            BAD<span className="text-gold"> BOYS</span>
+            Will<span className="text-brand"> Santoyo</span>
           </span>
-          <span className="text-gold lg:hidden">BB</span>
+          <span className="text-brand lg:hidden">BB</span>
         </Link>
         <div className="barber-stripe mx-3 mb-4 lg:mx-5" />
         <nav className="flex-1 space-y-1 px-2">
@@ -77,14 +74,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={href}
                 href={href}
-                className={`relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-all duration-200 ${
+                className={`relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-[background-color,color] duration-150 ease-[var(--ease-out-strong)] ${
                   active
-                    ? "bg-gold/15 text-gold"
-                    : "text-bone-2 hover:translate-x-0.5 hover:bg-ink-3 hover:text-bone"
+                    ? "bg-brand/15 text-brand"
+                    : "text-ink-soft hover:translate-x-0.5 hover:bg-wash hover:text-ink"
                 }`}
               >
                 {active && (
-                  <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-gold" />
+                  <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-brand" />
                 )}
                 <Icon size={18} className="shrink-0" />
                 <span className="hidden lg:inline">{label}</span>
@@ -92,16 +89,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
-        <div className="border-t border-ink-3 p-3">
-          <p className="hidden truncate px-1 pb-2 text-xs text-bone-2 lg:block">
-            {auth.username} · <span className="text-gold">{auth.role}</span>
+        <div className="border-t border-line p-3">
+          <p className="hidden truncate px-1 pb-2 text-xs text-ink-soft lg:block">
+            {auth.username} · <span className="text-brand">{auth.role}</span>
           </p>
           <button
             onClick={() => {
               adminApi.logout();
               router.replace("/admin/login");
             }}
-            className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm text-bone-2 transition-colors hover:bg-wine/20 hover:text-bone"
+            className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-err/20 hover:text-ink"
           >
             <LogOut size={18} className="shrink-0" />
             <span className="hidden lg:inline">Salir</span>

@@ -8,10 +8,8 @@ from ..schemas import (
     AppointmentAdmin,
     AppointmentPublic,
     AppointmentServiceOut,
-    PaymentPublic,
     ProfessionalPublic,
 )
-from ..services import payments as payments_service
 from ..services.appointments import attendance_state
 from ..services.storage import get_storage
 
@@ -55,21 +53,6 @@ def appointment_to_public(appointment: Appointment, tenant: Tenant) -> Appointme
         can_review=appointment.status == "completado" and appointment.review is None,
         review_rating=appointment.review.rating if appointment.review else None,
         gift_description=appointment.gift.description if appointment.gift else None,
-        payment=_deposit_payment(appointment),
-    )
-
-
-def _deposit_payment(appointment: Appointment) -> PaymentPublic | None:
-    deposit = next((p for p in appointment.payments if p.kind == "deposit"), None)
-    if deposit is None:
-        return None
-    payable = deposit.status in ("pendiente", "rechazado")
-    return PaymentPublic(
-        reference=deposit.reference,
-        kind=deposit.kind,
-        status=deposit.status,
-        amount_cop=deposit.amount_cop,
-        checkout_url=payments_service.checkout_url(deposit) if payable else None,
     )
 
 

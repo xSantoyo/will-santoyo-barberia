@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Un push nuevo sobre la misma rama cancela el run anterior (ahorra minutos)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
@@ -12,12 +17,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: badboys
-          POSTGRES_PASSWORD: badboys
-          POSTGRES_DB: badboys_test
+          POSTGRES_USER: willsantoyo
+          POSTGRES_PASSWORD: willsantoyo
+          POSTGRES_DB: willsantoyo_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U badboys"
+          --health-cmd "pg_isready -U willsantoyo"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -35,7 +40,7 @@ jobs:
         run: pytest -m "not postgres" -q
       - name: Tests de integración (Postgres real, constraint anti doble-reserva)
         env:
-          TEST_POSTGRES_URL: postgresql+psycopg://badboys:badboys@localhost:5432/badboys_test
+          TEST_POSTGRES_URL: postgresql+psycopg://willsantoyo:willsantoyo@localhost:5432/willsantoyo_test
         run: pytest -m postgres -q
 
   frontend-build:

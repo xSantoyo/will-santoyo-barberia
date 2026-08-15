@@ -25,12 +25,12 @@ import {
 } from "@/lib/types";
 
 const STATUS_COLORS: Record<string, string> = {
-  confirmado: "text-gold border-gold/40 bg-gold/10",
-  pendiente: "text-bone-2 border-ink-3 bg-ink-3/50",
-  en_curso: "text-gold-2 border-gold/60 bg-gold/15",
-  completado: "text-bone-2 border-ink-3 bg-ink-3/50",
-  cancelado: "text-wine border-wine/50 bg-wine/10",
-  no_show: "text-wine border-wine/50 bg-wine/10",
+  confirmado: "text-brand border-brand/40 bg-brand/10",
+  pendiente: "text-ink-soft border-line bg-wash/50",
+  en_curso: "text-brand-deep border-brand/60 bg-brand/15",
+  completado: "text-ink-soft border-line bg-wash/50",
+  cancelado: "text-err border-err/50 bg-err/10",
+  no_show: "text-err border-err/50 bg-err/10",
 };
 
 export default function ManageAppointmentPage({
@@ -96,7 +96,7 @@ export default function ManageAppointmentPage({
 
   if (loading) {
     return (
-      <main className="flex min-h-svh items-center justify-center text-gold">
+      <main className="flex min-h-svh items-center justify-center text-brand">
         <Loader2 className="animate-spin" size={32} />
       </main>
     );
@@ -105,9 +105,9 @@ export default function ManageAppointmentPage({
   if (notFound || !appointment) {
     return (
       <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-5 text-center">
-        <p className="display text-4xl text-bone">Turno no encontrado</p>
-        <p className="text-bone-2">Verifica el enlace o busca tu turno con tu teléfono y código.</p>
-        <Link href="/turno" className="display mt-4 rounded-sm bg-gold px-6 py-3 text-ink">
+        <p className="display text-4xl text-ink">Turno no encontrado</p>
+        <p className="text-ink-soft">Verifica el enlace o busca tu turno con tu teléfono y código.</p>
+        <Link href="/turno" className="display mt-4 rounded-sm bg-brand px-6 py-3 text-on-brand">
           Buscar mi turno
         </Link>
       </main>
@@ -126,20 +126,20 @@ export default function ManageAppointmentPage({
       <div className="mx-auto max-w-md px-5 pb-24">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-gold"
+          className="inline-flex items-center gap-2 text-sm text-ink-soft transition-colors hover:text-brand"
         >
           <ArrowLeft size={16} /> Will Santoyo
         </Link>
 
         {/* Confirmación de asistencia: si no confirma, el turno se libera */}
         {appointment.attendance_pending && (
-          <div className="clip-corner mt-8 border-2 border-gold bg-gold/10 p-5 text-center">
-            <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+          <div className="card-frame mt-8 border-2 border-brand bg-brand/10 p-5 text-center">
+            <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
               Confirma tu asistencia
             </p>
-            <p className="mt-2 text-sm text-bone">
+            <p className="mt-2 text-sm text-ink">
               ¿Sigues en pie para tu turno? Confírmalo antes de las{" "}
-              <span className="data font-semibold text-gold">
+              <span className="data font-semibold text-brand">
                 {appointment.attendance_deadline_local}
               </span>
               {" — "}si no, el horario se libera para otra persona.
@@ -147,7 +147,7 @@ export default function ManageAppointmentPage({
             <button
               onClick={confirmAttendance}
               disabled={confirming}
-              className="display mx-auto mt-4 flex min-h-12 items-center gap-2 rounded-sm bg-gold px-8 text-lg text-ink transition-all enabled:hover:scale-[1.03] disabled:opacity-60"
+              className="display mx-auto mt-4 flex min-h-12 items-center gap-2 rounded-sm bg-brand px-8 text-lg text-on-brand transition-transform duration-150 ease-[var(--ease-out-strong)] enabled:active:scale-[0.97] disabled:opacity-40"
             >
               {confirming ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -160,39 +160,39 @@ export default function ManageAppointmentPage({
         )}
 
         {appointment.attendance_confirmed && isActive && (
-          <p className="data mt-6 flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-gold">
+          <p className="data mt-6 flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-brand">
             <Check size={14} /> Asistencia confirmada — te esperamos
           </p>
         )}
 
         {/* Tiquete vivo: hoy la fila avanza en tiempo real */}
         {showLiveQueue && (
-          <div className="plate clip-corner mt-8 p-5 text-center">
-            <p className="data flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.3em] text-gold">
+          <div className="plate card-frame mt-8 p-5 text-center">
+            <p className="data flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.3em] text-brand">
               <Radio size={13} className="animate-pulse" /> La fila hoy
             </p>
             {appointment.status === "en_curso" ? (
-              <p className="display mt-3 text-3xl text-gold">Estás en el sillón</p>
+              <p className="display mt-3 text-3xl text-brand">Estás en el sillón</p>
             ) : ticket.ahead_count === 0 ? (
-              <p className="display mt-3 text-3xl text-gold">¡Sigues tú!</p>
+              <p className="display mt-3 text-3xl text-brand">¡Sigues tú!</p>
             ) : (
               <>
-                <p className="stamped mt-2 text-5xl text-bone">
+                <p className="stamped mt-2 text-5xl text-ink">
                   {ticket.now_serving !== null ? (
                     <>
-                      <span className="text-gold">#</span>
+                      <span className="text-brand">#</span>
                       <FlipNumber value={String(ticket.now_serving)} />
                     </>
                   ) : (
-                    <span className="data text-2xl text-bone-2">silla libre</span>
+                    <span className="data text-2xl text-ink-soft">silla libre</span>
                   )}
                 </p>
-                <p className="data mt-1 text-xs uppercase tracking-widest text-bone-2">
+                <p className="data mt-1 text-xs uppercase tracking-widest text-ink-soft">
                   {ticket.now_serving !== null ? "en el sillón" : "aún no empieza tu turno"}
                 </p>
-                <p className="mt-3 text-sm text-bone">
+                <p className="mt-3 text-sm text-ink">
                   Faltan{" "}
-                  <span className="data font-semibold text-gold">
+                  <span className="data font-semibold text-brand">
                     {ticket.ahead_count}
                   </span>{" "}
                   turno{ticket.ahead_count === 1 ? "" : "s"} para el tuyo (
@@ -202,18 +202,18 @@ export default function ManageAppointmentPage({
             )}
             <Link
               href="/hoy"
-              className="data mt-4 inline-block text-xs uppercase tracking-widest text-bone-2 underline-offset-4 transition-colors hover:text-gold hover:underline"
+              className="data mt-4 inline-block text-xs uppercase tracking-widest text-ink-soft underline-offset-4 transition-colors hover:text-brand hover:underline"
             >
               Ver el tablero completo →
             </Link>
           </div>
         )}
 
-        <div className="mt-8 rounded-sm border border-ink-3 bg-ink-2 p-6">
+        <div className="mt-8 rounded-sm border border-line bg-card p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-widest text-bone-2">Turno</p>
-              <p className="display text-3xl text-bone">#{appointment.daily_number} del día</p>
+              <p className="text-xs uppercase tracking-widest text-ink-soft">Turno</p>
+              <p className="display text-3xl text-ink">#{appointment.daily_number} del día</p>
             </div>
             <span
               className={`rounded-full border px-3 py-1 text-xs uppercase tracking-wider ${STATUS_COLORS[appointment.status]}`}
@@ -222,7 +222,7 @@ export default function ManageAppointmentPage({
             </span>
           </div>
 
-          <dl className="mt-6 space-y-3 border-t border-ink-3 pt-5 text-sm">
+          <dl className="mt-6 space-y-3 border-t border-line pt-5 text-sm">
             <Row label="Cliente" value={appointment.customer_name} />
             <Row label="Fecha" value={appointment.date_local} />
             <Row label="Hora" value={appointment.time_local} />
@@ -233,7 +233,7 @@ export default function ManageAppointmentPage({
             <Row
               label="Total"
               value={
-                <span className="display text-lg text-gold">
+                <span className="display text-lg text-brand">
                   {formatCOP(appointment.total_cop)}
                 </span>
               }
@@ -262,7 +262,7 @@ export default function ManageAppointmentPage({
         )}
 
         {error && (
-          <div className="mt-4 rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">
+          <div className="mt-4 rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
             {error}
           </div>
         )}
@@ -270,7 +270,7 @@ export default function ManageAppointmentPage({
         {isCancellable && !confirmOpen && (
           <button
             onClick={() => setConfirmOpen(true)}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-sm border border-wine px-6 py-3 text-wine transition-colors hover:bg-wine hover:text-bone"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-sm border border-err px-6 py-3 text-err transition-colors hover:bg-err hover:text-ink"
           >
             <CalendarX2 size={18} /> Cancelar mi turno
           </button>
@@ -284,8 +284,8 @@ export default function ManageAppointmentPage({
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <div className="mt-6 rounded-sm border border-wine/50 bg-wine/10 p-5">
-                <p className="text-sm text-bone">
+              <div className="mt-6 rounded-sm border border-err/50 bg-err/10 p-5">
+                <p className="text-sm text-ink">
                   ¿Seguro que quieres cancelar? El horario quedará libre para otra persona.
                 </p>
                 <textarea
@@ -293,13 +293,13 @@ export default function ManageAppointmentPage({
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Motivo (opcional)"
                   rows={2}
-                  className="focus-gold mt-3 w-full rounded-sm border border-ink-3 bg-ink px-3 py-2 text-sm text-bone placeholder:text-bone-2/50"
+                  className="focus-ring mt-3 w-full rounded-sm border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-soft/50"
                 />
                 <div className="mt-4 flex gap-3">
                   <button
                     onClick={cancel}
                     disabled={cancelling}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-wine px-4 py-2.5 text-sm text-bone disabled:opacity-60"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-err px-4 py-2.5 text-sm text-ink disabled:opacity-60"
                   >
                     {cancelling ? (
                       <Loader2 className="animate-spin" size={16} />
@@ -310,7 +310,7 @@ export default function ManageAppointmentPage({
                   </button>
                   <button
                     onClick={() => setConfirmOpen(false)}
-                    className="flex-1 rounded-sm border border-ink-3 px-4 py-2.5 text-sm text-bone-2 hover:text-bone"
+                    className="flex-1 rounded-sm border border-line px-4 py-2.5 text-sm text-ink-soft hover:text-ink"
                   >
                     Conservar turno
                   </button>
@@ -320,37 +320,8 @@ export default function ManageAppointmentPage({
           )}
         </AnimatePresence>
 
-        {/* Anticipo pendiente de pago */}
-        {appointment.payment?.checkout_url && appointment.status === "pendiente" && (
-          <div className="clip-corner mt-8 border-2 border-gold bg-gold/10 p-5 text-center">
-            <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
-              Tu turno está apartado, no confirmado
-            </p>
-            <p className="mt-2 text-sm text-bone">
-              Paga el anticipo de{" "}
-              <span className="data font-semibold text-gold">
-                {formatCOP(appointment.payment.amount_cop)}
-              </span>{" "}
-              para asegurar la silla — se descuenta del corte.
-            </p>
-            <a
-              href={appointment.payment.checkout_url}
-              className="display mx-auto mt-4 flex min-h-12 w-full max-w-xs items-center justify-center rounded-sm bg-gold px-8 text-lg text-ink transition-all hover:scale-[1.02]"
-            >
-              Pagar anticipo
-            </a>
-          </div>
-        )}
-
-        {appointment.payment?.status === "aprobado" && (
-          <p className="data mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
-            ✓ Anticipo pagado ({formatCOP(appointment.payment.amount_cop)}) — se
-            descuenta del corte en el local
-          </p>
-        )}
-
         {appointment.gift_description && (
-          <p className="data mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+          <p className="data mt-4 rounded-sm border border-brand/40 bg-brand/10 px-4 py-3 text-sm text-brand">
             🎁 {appointment.gift_description} — se redime en el local
           </p>
         )}
@@ -370,7 +341,7 @@ export default function ManageAppointmentPage({
           />
         )}
         {appointment.review_rating && (
-          <p className="data mt-6 text-center text-sm text-gold">
+          <p className="data mt-6 text-center text-sm text-brand">
             {"★".repeat(appointment.review_rating)}
             {"☆".repeat(5 - appointment.review_rating)} — gracias por tu reseña
           </p>
@@ -379,7 +350,7 @@ export default function ManageAppointmentPage({
         {appointment.status === "cancelado" && (
           <Link
             href="/agendar"
-            className="display mt-6 block rounded-sm bg-gold px-6 py-3 text-center text-lg text-ink"
+            className="display mt-6 block rounded-sm bg-brand px-6 py-3 text-center text-lg text-on-brand"
           >
             Agendar un nuevo turno
           </Link>
@@ -387,7 +358,7 @@ export default function ManageAppointmentPage({
 
         <Link
           href="/mi-historial"
-          className="data mt-8 block text-center text-xs uppercase tracking-widest text-bone-2 transition-colors hover:text-gold"
+          className="data mt-8 block text-center text-xs uppercase tracking-widest text-ink-soft transition-colors hover:text-brand"
         >
           Ver todo mi historial y mi tarjeta de fidelidad →
         </Link>
@@ -420,14 +391,14 @@ function RebookWidget({ code }: { code: string }) {
 
   if (done) {
     return (
-      <div className="clip-corner mt-6 border border-gold/40 bg-gold/[0.06] p-5 text-center">
-        <p className="display text-2xl text-gold">¡Silla apartada!</p>
-        <p className="mt-1 text-sm text-bone">
+      <div className="card-frame mt-6 border border-brand/40 bg-brand/[0.06] p-5 text-center">
+        <p className="display text-2xl text-brand">¡Silla apartada!</p>
+        <p className="mt-1 text-sm text-ink">
           Mismo corte con Will el <span className="data">{done.date}</span>.
         </p>
         <Link
           href={`/turno/${done.code}`}
-          className="display mt-3 inline-block rounded-sm bg-gold px-6 py-2.5 text-ink"
+          className="display mt-3 inline-block rounded-sm bg-brand px-6 py-2.5 text-on-brand"
         >
           Ver mi nuevo tiquete
         </Link>
@@ -436,8 +407,8 @@ function RebookWidget({ code }: { code: string }) {
   }
 
   return (
-    <div className="clip-corner mt-6 border border-ink-3 bg-ink-2 p-5 text-center">
-      <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+    <div className="card-frame mt-6 border border-line bg-card p-5 text-center">
+      <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
         ¿Repetimos? Misma hora, mismo corte
       </p>
       <div className="mt-3 flex justify-center gap-2">
@@ -446,7 +417,7 @@ function RebookWidget({ code }: { code: string }) {
             key={weeks}
             onClick={() => rebook(weeks)}
             disabled={busy !== null}
-            className="data min-h-11 flex-1 rounded-sm border border-gold/50 px-3 text-sm text-gold transition-all hover:bg-gold hover:text-ink active:scale-95 disabled:opacity-50"
+            className="data min-h-11 flex-1 rounded-sm border border-brand/50 px-3 text-sm text-brand transition-[background-color,color,transform] duration-150 ease-[var(--ease-out-strong)] hover:bg-brand hover:text-on-brand active:scale-[0.97] disabled:opacity-40"
           >
             {busy === weeks ? (
               <Loader2 className="mx-auto animate-spin" size={15} />
@@ -456,7 +427,7 @@ function RebookWidget({ code }: { code: string }) {
           </button>
         ))}
       </div>
-      {error && <p className="mt-2 text-xs text-wine">{error}</p>}
+      {error && <p className="mt-2 text-xs text-err">{error}</p>}
     </div>
   );
 }
@@ -489,8 +460,8 @@ function ReviewWidget({
   }
 
   return (
-    <div className="clip-corner mt-6 border border-gold/40 bg-gold/[0.06] p-5 text-center">
-      <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+    <div className="card-frame mt-6 border border-brand/40 bg-brand/[0.06] p-5 text-center">
+      <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
         ¿Cómo quedó el corte?
       </p>
       <div className="mt-3 flex justify-center gap-1.5">
@@ -506,7 +477,7 @@ function ReviewWidget({
             <Star
               size={26}
               className={
-                value <= (hover || rating) ? "fill-gold text-gold" : "text-bone-2/40"
+                value <= (hover || rating) ? "fill-brand text-brand" : "text-ink-soft/40"
               }
             />
           </button>
@@ -518,18 +489,18 @@ function ReviewWidget({
         placeholder="Cuéntanos cómo te fue (opcional)"
         rows={2}
         maxLength={500}
-        className="focus-gold mt-3 w-full rounded-sm border border-ink-3 bg-ink px-3 py-2.5 text-sm text-bone placeholder:text-bone-2/50"
+        className="focus-ring mt-3 w-full rounded-sm border border-line bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/50"
       />
-      {error && <p className="mt-2 text-xs text-wine">{error}</p>}
+      {error && <p className="mt-2 text-xs text-err">{error}</p>}
       <button
         onClick={submit}
         disabled={sending || rating === 0}
-        className="display mx-auto mt-3 flex min-h-11 items-center gap-2 rounded-sm bg-gold px-6 text-ink transition-all enabled:hover:scale-[1.02] disabled:opacity-40"
+        className="display mx-auto mt-3 flex min-h-11 items-center gap-2 rounded-sm bg-brand px-6 text-on-brand transition-transform duration-150 ease-[var(--ease-out-strong)] enabled:active:scale-[0.97] disabled:opacity-40"
       >
         {sending && <Loader2 className="animate-spin" size={16} />}
         Publicar reseña
       </button>
-      <p className="mt-2 text-[11px] text-bone-2/70">
+      <p className="mt-2 text-[11px] text-ink-soft/70">
         Reseña verificada: viene de tu cita real — y suma una tijera en tu
         tarjeta de fidelidad.
       </p>
@@ -540,8 +511,8 @@ function ReviewWidget({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="shrink-0 text-bone-2">{label}</dt>
-      <dd className="text-right text-bone">{value}</dd>
+      <dt className="shrink-0 text-ink-soft">{label}</dt>
+      <dd className="text-right text-ink">{value}</dd>
     </div>
   );
 }

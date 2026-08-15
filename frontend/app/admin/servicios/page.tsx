@@ -23,7 +23,7 @@ export default function ServiciosPage() {
 
   if (loading)
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-gold">
+      <div className="flex min-h-[50vh] items-center justify-center text-brand">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
@@ -41,10 +41,10 @@ export default function ServiciosPage() {
         }
       />
 
-      <div className="overflow-x-auto rounded-sm border border-ink-3">
+      <div className="overflow-x-auto rounded-sm border border-line">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="border-b border-ink-3 bg-ink-2 text-left text-xs uppercase tracking-wider text-bone-2">
+            <tr className="border-b border-line bg-card text-left text-xs uppercase tracking-wider text-ink-soft">
               <th className="px-4 py-3">Servicio</th>
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3">Duración</th>
@@ -52,19 +52,19 @@ export default function ServiciosPage() {
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink-3">
+          <tbody className="divide-y divide-line">
             {services.map((service) => (
-              <tr key={service.id} className="bg-ink hover:bg-ink-2">
-                <td className="px-4 py-3 text-bone">{service.name}</td>
-                <td className="data px-4 py-3 font-semibold text-gold">
+              <tr key={service.id} className="bg-paper hover:bg-card">
+                <td className="px-4 py-3 text-ink">{service.name}</td>
+                <td className="data px-4 py-3 font-semibold text-brand">
                   {formatCOP(service.price_cop)}
                 </td>
-                <td className="data px-4 py-3 text-bone-2">{service.duration_min} min</td>
+                <td className="data px-4 py-3 text-ink-soft">{service.duration_min} min</td>
                 <td className="px-4 py-3">
                   {service.is_active ? (
                     <span className="text-xs text-emerald-400">Activo</span>
                   ) : (
-                    <span className="text-xs text-wine">Inactivo</span>
+                    <span className="text-xs text-err">Inactivo</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -129,9 +129,9 @@ function ServiceModal({
     <Modal title={service ? `Editar ${service.name}` : "Nuevo servicio"} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         {error && (
-          <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">{error}</div>
+          <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">{error}</div>
         )}
-        <label className="block text-sm text-bone-2">
+        <label className="block text-sm text-ink-soft">
           Nombre
           <input
             required
@@ -141,7 +141,7 @@ function ServiceModal({
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Precio (COP)
             <input
               type="number"
@@ -153,7 +153,7 @@ function ServiceModal({
               className={`${inputClass} mt-1`}
             />
           </label>
-          <label className="block text-sm text-bone-2">
+          <label className="block text-sm text-ink-soft">
             Duración (min)
             <input
               type="number"
@@ -167,12 +167,12 @@ function ServiceModal({
           </label>
         </div>
         {service && (
-          <label className="flex items-center gap-2 text-sm text-bone-2">
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input
               type="checkbox"
               checked={form.is_active}
               onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-              className="accent-[#c9a24b]"
+              className="accent-[#2a4696]"
             />
             Activo (visible y reservable)
           </label>

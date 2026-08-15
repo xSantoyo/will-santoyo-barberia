@@ -20,7 +20,7 @@ from .models import AdminUser, MediaAsset, Professional, Service, Tenant
 from .security import hash_password
 from .services.storage import KIND_DIRS
 
-logger = logging.getLogger("badboys.seed")
+logger = logging.getLogger("willsantoyo.seed")
 
 TENANT_SLUG = "will-santoyo"
 
@@ -101,10 +101,10 @@ def run() -> None:
                 "tiktok": "https://tiktok.com/@willsantoyo",
                 "maps_url": "https://maps.google.com/?q=Calle+35+Sur+%26+Cra+15B,+Soacha,+Cundinamarca",
                 "colors": {
-                    "background": "#0B0B0C",
-                    "accent": "#C9A24B",
-                    "text": "#F5F1E8",
-                    "secondary": "#7A1F2B",
+                    "background": "#F1EEE6",
+                    "accent": "#2A4696",
+                    "text": "#221D15",
+                    "secondary": "#9E3225",
                 },
             },
         )

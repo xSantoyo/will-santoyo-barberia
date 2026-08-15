@@ -1,67 +1,52 @@
 "use client";
 
 /**
- * EL ELEMENTO SEÑAL DE LA MARCA: "el corte de navaja".
+ * EL MOMENTO SEÑAL: el tiquete de turno.
  *
- * - RazorDivider: divisor de sección que se traza como una pasada de navaja
- *   al entrar en viewport — una línea dorada con filo, levemente inclinada,
- *   con la muesca del talón de la hoja al final.
- * - RazorReveal: el momento señal del sitio (confirmación de turno): una
- *   pasada de navaja abre la placa metálica y el código aparece troquelado
- *   carácter por carácter, como grabado en acero.
+ * La navaja de la identidad anterior queda retirada (DESIGN_SYSTEM.md). En su
+ * lugar, el gesto es de papelería de oficio:
+ * - RazorDivider: regla de sección que se traza como una línea de lápiz añil.
+ * - RazorReveal: el tiquete del código se imprime — el papel entra deslizando
+ *   como de una impresora térmica y el código se sella carácter por carácter.
  *
- * Ambos respetan prefers-reduced-motion (aparecen sin animación).
+ * (Los nombres exportados se conservan para no tocar los puntos de uso.)
+ * Ambos respetan prefers-reduced-motion: fundido simple, sin desplazamiento.
  */
 import { motion, useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useState } from "react";
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+const EASE = [0.23, 1, 0.32, 1] as const;
 
 export function RazorDivider({ className = "" }: { className?: string }) {
   const reduce = useReducedMotion();
   return (
     <div aria-hidden className={`relative mx-auto max-w-6xl px-5 ${className}`}>
       <svg
-        viewBox="0 0 1200 24"
+        viewBox="0 0 1200 8"
         fill="none"
-        className="h-6 w-full overflow-visible"
+        className="h-2 w-full overflow-visible"
         preserveAspectRatio="none"
       >
-        {/* La pasada: línea con leve caída, como el gesto real de la muñeca */}
-        <motion.path
-          d="M0 18 L1130 6"
-          stroke="url(#razor-gradient)"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0 }}
+        <motion.line
+          x1="0"
+          y1="4"
+          x2="1200"
+          y2="4"
+          stroke="#2a4696"
+          strokeOpacity="0.35"
+          strokeWidth="2"
+          strokeDasharray="14 10"
+          initial={{ pathLength: reduce ? 1 : 0 }}
           whileInView={{ pathLength: 1 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={reduce ? { duration: 0 } : { duration: 0.9, ease: EASE }}
+          transition={reduce ? { duration: 0 } : { duration: 0.8, ease: EASE }}
         />
-        {/* El talón de la hoja: la muesca al final del trazo */}
-        <motion.path
-          d="M1130 6 L1146 1 L1152 10"
-          stroke="#c9a24b"
-          strokeWidth="1.5"
-          strokeLinejoin="miter"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 0.9 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={reduce ? { duration: 0 } : { delay: 0.85, duration: 0.25 }}
-        />
-        <defs>
-          <linearGradient id="razor-gradient" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#c9a24b" stopOpacity="0" />
-            <stop offset="0.12" stopColor="#c9a24b" stopOpacity="0.55" />
-            <stop offset="0.9" stopColor="#e3c887" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#c9a24b" />
-          </linearGradient>
-        </defs>
       </svg>
     </div>
   );
 }
 
-/** Pasada de navaja que revela su contenido (la placa del código). */
+/** El tiquete del código: papel perforado que se imprime con el código sellado. */
 export function RazorReveal({
   children,
   code,
@@ -72,70 +57,56 @@ export function RazorReveal({
   className?: string;
 }) {
   const reduce = useReducedMotion();
-  const [cut, setCut] = useState(false);
+  const [printed, setPrinted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setCut(true), reduce ? 0 : 350);
+    const timer = setTimeout(() => setPrinted(true), reduce ? 0 : 250);
     return () => clearTimeout(timer);
   }, [reduce]);
 
   return (
-    <div className={`relative ${className}`}>
-      {/* Contenido revelado por el corte (barrido de clip diagonal) */}
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* El papel sale de la ranura (arriba), como de impresora de tiquetes */}
       <motion.div
         initial={
           reduce
-            ? { clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }
-            : { clipPath: "polygon(0 0, 0 0, -12% 100%, -12% 100%)" }
+            ? { opacity: 0 }
+            : { opacity: 0, transform: "translateY(-24%)" }
         }
         animate={
-          cut
-            ? { clipPath: "polygon(0 0, 112% 0, 100% 100%, -12% 100%)" }
+          printed
+            ? { opacity: 1, transform: "translateY(0%)" }
             : undefined
         }
-        transition={reduce ? { duration: 0 } : { duration: 0.7, ease: EASE }}
+        transition={reduce ? { duration: 0.2 } : { duration: 0.28, ease: EASE }}
       >
         {children}
       </motion.div>
 
-      {/* La hoja: destello dorado que cruza la placa en el corte */}
-      {!reduce && (
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] w-[3px] rotate-[8deg] bg-gradient-to-b from-transparent via-gold-2 to-transparent"
-          style={{ boxShadow: "0 0 24px rgba(201,162,75,0.9)" }}
-          initial={{ left: "-6%", opacity: 0 }}
-          animate={cut ? { left: "104%", opacity: [0, 1, 1, 0] } : undefined}
-          transition={{ duration: 0.7, ease: EASE, times: [0, 0.1, 0.85, 1] }}
-        />
-      )}
-
-      {/* Código troquelado carácter por carácter, tras la pasada */}
+      {/* Código sellado carácter por carácter, al asentarse el papel */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <p
           data-testid="manage-code"
-          className={`stamped selectable pointer-events-auto font-semibold ${
+          className={`stamped selectable pointer-events-auto ${
             code.length > 6
-              ? "text-3xl tracking-[0.18em] sm:text-5xl"
-              : "text-5xl tracking-[0.22em] sm:text-6xl"
+              ? "text-3xl sm:text-5xl"
+              : "text-5xl sm:text-6xl"
           }`}
         >
           {code.split("").map((char, i) => (
             <motion.span
               key={i}
               className="inline-block"
-              initial={reduce ? { opacity: 1 } : { opacity: 0, y: -14, scale: 1.4 }}
-              animate={
-                cut ? { opacity: 1, y: 0, scale: 1 } : undefined
-              }
+              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.3 }}
+              animate={printed ? { opacity: 1, scale: 1 } : undefined}
               transition={
                 reduce
-                  ? { duration: 0 }
+                  ? { duration: 0.2 }
                   : {
-                      delay: 0.55 + i * 0.07,
+                      delay: 0.24 + i * 0.05,
                       type: "spring",
                       stiffness: 500,
-                      damping: 24,
+                      damping: 26,
                     }
               }
             >

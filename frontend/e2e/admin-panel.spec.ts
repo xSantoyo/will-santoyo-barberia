@@ -6,7 +6,7 @@ test("admin: login → dashboard → barberos → servicios", async ({ page }) =
   await expect(page).toHaveURL(/\/admin\/login/);
 
   await page.getByLabel(/usuario/i).fill("admin");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
   await page.getByRole("button", { name: /entrar/i }).click();
 
   // Dashboard: los 3 barberos del seed con su agenda de hoy
@@ -50,7 +50,7 @@ test("admin: login → dashboard → barberos → servicios", async ({ page }) =
   await page.getByRole("button", { name: /salir/i }).click();
   await expect(page).toHaveURL(/\/admin\/login/);
   await page.getByLabel(/usuario/i).fill("barbero1");
-  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("link", { name: /servicios/i })).toHaveCount(0);

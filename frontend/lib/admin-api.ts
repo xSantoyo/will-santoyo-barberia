@@ -14,8 +14,6 @@ import type {
   DashboardData,
   GiftCodeAdmin,
   MediaAsset,
-  PaymentAdminRow,
-  PaymentSettingsAdmin,
   ProductAdmin,
   SecurityEventRow,
   ServiceAdmin,
@@ -23,7 +21,7 @@ import type {
   TokenPair,
 } from "./types";
 
-const STORAGE_KEY = "badboys.auth";
+const STORAGE_KEY = "willsantoyo.auth";
 
 export interface StoredAuth {
   access_token: string;
@@ -251,14 +249,6 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
 
-  paymentSettings: () =>
-    request<PaymentSettingsAdmin>("/api/v1/admin/payment-settings"),
-  updatePaymentSettings: (payload: Partial<PaymentSettingsAdmin>) =>
-    request<PaymentSettingsAdmin>("/api/v1/admin/payment-settings", {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
-  payments: () => request<PaymentAdminRow[]>("/api/v1/admin/payments"),
 
   stats: (days: number) =>
     request<PerformanceStats>(`/api/v1/admin/stats?days=${days}`),

@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Agenda tu turno con Will, mira la fila en vivo y gestiona tu cita.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0b0b0c",
-    theme_color: "#0b0b0c",
+    background_color: "#f1eee6",
+    theme_color: "#f1eee6",
     lang: "es",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

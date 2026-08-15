@@ -7,12 +7,12 @@ import { X } from "lucide-react";
 import { STATUS_LABELS, type AppointmentStatus } from "@/lib/types";
 
 const BADGE: Record<AppointmentStatus, string> = {
-  pendiente: "border-ink-3 text-bone-2",
-  confirmado: "border-gold/50 text-gold",
-  en_curso: "border-gold text-gold-2 bg-gold/10",
+  pendiente: "border-line text-ink-soft",
+  confirmado: "border-brand/50 text-brand",
+  en_curso: "border-brand text-brand-deep bg-brand/10",
   completado: "border-emerald-700/60 text-emerald-400",
-  cancelado: "border-wine/60 text-wine",
-  no_show: "border-wine/60 text-wine",
+  cancelado: "border-err/60 text-err",
+  no_show: "border-err/60 text-err",
 };
 
 export function StatusBadge({ status }: { status: AppointmentStatus }) {
@@ -29,9 +29,9 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="display text-4xl text-bone">{title}</h1>
-        <div className="gold-rule mt-2" />
-        {subtitle && <p className="mt-2 text-sm text-bone-2">{subtitle}</p>}
+        <h1 className="display text-4xl text-ink">{title}</h1>
+        <div className="brand-rule mt-2" />
+        {subtitle && <p className="mt-2 text-sm text-ink-soft">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -49,7 +49,7 @@ export function Modal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-paper/80 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -57,11 +57,11 @@ export function Modal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 350, damping: 28 }}
         onClick={(e) => e.stopPropagation()}
-        className="clip-corner grain relative max-h-[90vh] w-full max-w-lg overflow-y-auto border border-gold/25 bg-ink-2 p-6"
+        className="card-frame grain relative max-h-[90vh] w-full max-w-lg overflow-y-auto border border-brand/25 bg-card p-6"
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="display text-2xl text-bone">{title}</h2>
-          <button onClick={onClose} className="text-bone-2 hover:text-bone" aria-label="Cerrar">
+          <h2 className="display text-2xl text-ink">{title}</h2>
+          <button onClick={onClose} className="text-ink-soft hover:text-ink" aria-label="Cerrar">
             <X size={20} />
           </button>
         </div>
@@ -72,8 +72,8 @@ export function Modal({
 }
 
 export const inputClass =
-  "focus-gold w-full rounded-sm border border-ink-3 bg-ink px-3 py-2.5 text-sm text-bone placeholder:text-bone-2/50";
+  "focus-ring w-full rounded-sm border border-line bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/50";
 export const buttonPrimary =
-  "display rounded-sm bg-gold px-5 py-2.5 text-ink transition-all enabled:hover:scale-[1.02] enabled:hover:shadow-[0_0_20px_rgba(201,162,75,0.3)] enabled:active:scale-95 disabled:opacity-50";
+  "display rounded-sm bg-brand px-5 py-2.5 text-on-brand transition-[transform,background-color] duration-150 ease-[var(--ease-out-strong)] enabled:hover:bg-brand-deep enabled:active:scale-[0.97] disabled:opacity-40";
 export const buttonGhost =
-  "rounded-sm border border-ink-3 px-4 py-2 text-sm text-bone-2 transition-all hover:border-gold/40 hover:text-bone active:scale-95";
+  "rounded-sm border border-line px-4 py-2 text-sm text-ink-soft transition-[border-color,color,transform] duration-150 ease-[var(--ease-out-strong)] hover:border-brand/40 hover:text-ink active:scale-[0.97]";

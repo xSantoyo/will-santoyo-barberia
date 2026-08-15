@@ -1,0 +1,50 @@
+"""PROPUESTA — NO EJECUTADA. Requiere aprobación explícita del dueño.
+
+Extensión `.proposed` a propósito: Alembic solo descubre archivos `.py`, así que
+este archivo NO corre con `alembic upgrade head`. Para aplicarlo, renómbralo a
+`0011_drop_payments.py`, muévelo a `alembic/versions/` y ajusta su
+`down_revision` a la cabeza vigente.
+
+QUÉ HACE (destructivo sobre datos existentes)
+---------------------------------------------
+El cobro en línea (Wompi + simulador) se retiró del producto en la Fase 6:
+no queda UI, contrato ni endpoint que lo use. Esta migración elimina el rastro
+físico en la base:
+
+  * `DROP TABLE payments`  ← pierde el historial de transacciones registradas
+  * `DROP COLUMN appointments.gift_code_id` NO se toca: los regalos manuales
+    (generados en el panel, sin dinero en línea) siguen vivos.
+
+POR QUÉ NO CORRE AUTOMÁTICAMENTE
+--------------------------------
+La tabla `payments` puede contener transacciones reales (anticipos y regalos
+comprados durante la etapa anterior). Borrarla es irreversible y es una
+decisión contable, no técnica: puede existir la obligación de conservar esos
+registros. Hasta entonces, la tabla queda huérfana pero intacta, igual que la
+relación `professional` de la 0010.
+
+ANTES DE APLICARLA
+------------------
+1. Backup de la base.
+2. Exportar `payments` a CSV si el dueño quiere conservar el historial.
+3. Confirmar que ningún proceso contable externo la consulta.
+"""
+from __future__ import annotations
+
+from alembic import op
+
+revision = "0011"
+down_revision = "0009"  # ← ajustar a la cabeza vigente al aplicar
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.drop_table("payments")
+
+
+def downgrade() -> None:
+    raise NotImplementedError(
+        "Irreversible: la tabla payments se pierde con sus registros. "
+        "Restaurar desde backup."
+    )

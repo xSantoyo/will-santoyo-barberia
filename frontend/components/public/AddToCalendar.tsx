@@ -7,7 +7,7 @@ import { googleCalendarUrl, icsDataUrl, type CalendarEvent } from "@/lib/calenda
 
 export default function AddToCalendar({ event }: { event: CalendarEvent }) {
   const buttonClass =
-    "data flex min-h-11 flex-1 items-center justify-center gap-2 rounded-sm border border-ink-3 px-3 text-xs uppercase tracking-wider text-bone-2 transition-colors hover:border-gold/50 hover:text-gold";
+    "data flex min-h-11 flex-1 items-center justify-center gap-2 rounded-sm border border-line px-3 text-xs uppercase tracking-wider text-ink-soft transition-colors hover:border-brand/50 hover:text-brand";
   return (
     <div className="flex gap-2">
       <a

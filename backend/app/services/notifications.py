@@ -29,9 +29,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..config import get_settings
 from ..db import utcnow
-from ..models import Appointment, GiftCode, Payment, Tenant
+from ..models import Appointment, Tenant
 
-logger = logging.getLogger("badboys.email")
+logger = logging.getLogger("willsantoyo.email")
 
 # Paleta de la marca (inline: los clientes de correo no cargan CSS externo)
 INK = "#0B0B0C"
@@ -204,28 +204,6 @@ def attendance_reminder_html(appointment: Appointment, tenant: Tenant) -> str:
     return _layout(tenant, "¿Sigues en pie para tu corte?", body)
 
 
-def gift_code_html(payment: Payment, gift: GiftCode, tenant: Tenant) -> str:
-    body = f"""\
-<p style="margin:0 0 14px;font-size:14px;color:{BONE};">
-  {payment.payer_name or "Hola"}, tu pago quedó aprobado. Este es el código del
-  regalo — compártelo con quien quieras consentir:
-</p>
-<div style="margin:18px 0;padding:18px;background:{INK};border:1px solid {GOLD};text-align:center;">
-  <p style="margin:0 0 6px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:{BONE_2};">
-    {gift.description}
-  </p>
-  <p style="margin:0;font-family:{MONO};font-size:30px;letter-spacing:6px;color:{BONE};">{gift.code}</p>
-</div>
-<p style="margin:14px 0 0;font-size:12px;color:{BONE_2};">
-  Quien lo reciba solo tiene que escribirlo al agendar en
-  <a href="{get_settings().public_base_url}/agendar" style="color:{GOLD};">nuestro sitio</a>.
-  Vence a los 180 días.
-</p>"""
-    return _layout(tenant, "Tu regalo está listo", body)
-
-
-# ---------------------------------------------------------------- flujos
-
 def send_booking_confirmation(db: Session, tenant: Tenant,
                               appointment: Appointment) -> bool:
     """Correo de confirmación (una sola vez). Se llama cuando el turno queda
@@ -243,22 +221,6 @@ def send_booking_confirmation(db: Session, tenant: Tenant,
     )
     if sent:
         appointment.confirmation_email_sent_at = utcnow()
-        db.commit()
-    return sent
-
-
-def send_gift_email(db: Session, tenant: Tenant, payment: Payment,
-                    gift: GiftCode) -> bool:
-    if not payment.payer_email or (payment.detail or {}).get("gift_email_sent"):
-        return False
-    sent = send_email(
-        to=payment.payer_email,
-        subject=f"Tu regalo está listo — código {gift.code}",
-        html=gift_code_html(payment, gift, tenant),
-        tag="regalo",
-    )
-    if sent:
-        payment.detail = {**(payment.detail or {}), "gift_email_sent": True}
         db.commit()
     return sent
 

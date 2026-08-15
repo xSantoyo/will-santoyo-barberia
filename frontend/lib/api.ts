@@ -11,7 +11,6 @@ import type {
   Trayectoria,
   DayAvailability,
   MediaAsset,
-  PaymentStatusResponse,
   PortalResponse,
   ProductPublic,
   QueueBoard,
@@ -130,27 +129,6 @@ export const publicApi = {
     ),
   products: () =>
     request<ProductPublic[]>(`${PUBLIC}/products`, { cache: "no-store" }),
-  /* Pagos (Wompi / simulador) */
-  giftCheckout: (payload: {
-    service_id: number;
-    payer_name: string;
-    payer_whatsapp?: string | null;
-    payer_email?: string | null;
-  }) =>
-    request<PaymentStatusResponse>(`${PUBLIC}/gifts/checkout`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  paymentStatus: (reference: string) =>
-    request<PaymentStatusResponse>(
-      `${PUBLIC}/payments/${encodeURIComponent(reference)}`,
-      { cache: "no-store" },
-    ),
-  simulatePayment: (reference: string, approve: boolean) =>
-    request<PaymentStatusResponse>(
-      `${PUBLIC}/payments/${encodeURIComponent(reference)}/simulate`,
-      { method: "POST", body: JSON.stringify({ approve }) },
-    ),
   trayectoria: () =>
     request<Trayectoria>(`${PUBLIC}/trayectoria`, { cache: "no-store" }),
   appointment: (code: string) =>

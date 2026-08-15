@@ -7,7 +7,7 @@ import { Menu, X } from "lucide-react";
 
 const LINKS = [
   { href: "/#servicios", label: "Servicios" },
-  { href: "/#barberos", label: "Barberos" },
+  { href: "/#galeria", label: "Galería" },
   { href: "/hoy", label: "La fila" },
   { href: "/#ubicacion", label: "Ubicación" },
   { href: "/turno", label: "Mi turno" },
@@ -26,13 +26,13 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-ink/90 backdrop-blur border-b border-ink-3" : "bg-transparent"
+      className={`fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow] duration-200 ease-[var(--ease-out-strong)] ${
+        scrolled ? "bg-paper/90 backdrop-blur border-b border-line" : "bg-transparent"
       }`}
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-        <Link href="/" className="display text-2xl text-bone">
-          WILL<span className="text-gold"> SANTOYO</span>
+        <Link href="/" className="display text-2xl text-ink">
+          WILL<span className="text-brand"> SANTOYO</span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
@@ -40,21 +40,21 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm tracking-wide text-bone-2 transition-colors hover:text-gold"
+              className="text-sm tracking-wide text-ink-soft transition-colors hover:text-brand"
             >
               {link.label}
             </Link>
           ))}
           <Link
             href="/agendar"
-            className="display rounded-sm bg-gold px-5 py-2 text-sm text-ink transition-transform hover:scale-105"
+            className="display rounded-sm bg-brand px-5 py-2 text-sm text-on-brand transition-transform hover:scale-105"
           >
             Agendar
           </Link>
         </div>
 
         <button
-          className="text-bone md:hidden"
+          className="text-ink md:hidden"
           onClick={() => setOpen(!open)}
           aria-label="Abrir menú"
         >
@@ -66,14 +66,14 @@ export default function Navbar() {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="border-t border-ink-3 bg-ink/95 px-5 pb-6 pt-2 backdrop-blur md:hidden"
+          className="border-t border-line bg-paper/95 px-5 pb-6 pt-2 backdrop-blur md:hidden"
         >
           {LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="block py-3 text-bone-2 hover:text-gold"
+              className="block py-3 text-ink-soft hover:text-brand"
             >
               {link.label}
             </Link>
@@ -81,7 +81,7 @@ export default function Navbar() {
           <Link
             href="/agendar"
             onClick={() => setOpen(false)}
-            className="display mt-3 block rounded-sm bg-gold px-5 py-3 text-center text-ink"
+            className="display mt-3 block rounded-sm bg-brand px-5 py-3 text-center text-on-brand"
           >
             Agendar turno
           </Link>

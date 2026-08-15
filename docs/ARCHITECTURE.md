@@ -1,4 +1,4 @@
-# Arquitectura — Plataforma Bad Boys Barbershop
+# Arquitectura — Plataforma Will Santoyo
 
 > Documento de referencia técnica. Última actualización: Fase 0–3 (julio 2026).
 
@@ -92,7 +92,7 @@ día se migra a un IdP.
 **Decisión:** el navegador del admin sube directo a S3 con `presigned POST` generado por
 el backend (valida tipo/tamaño y registra el `MediaAsset` en DB); CloudFront sirve las
 imágenes públicas. En local, un `StorageService` alternativo escribe a
-`content/bad-boys/` y las sirve el propio backend.
+`content/will-santoyo/` y las sirve el propio backend.
 **Por qué:** las imágenes no deben pasar por Lambda (límite de payload de 6 MB y costo
 de tiempo de ejecución). El patrón presigned es el estándar.
 

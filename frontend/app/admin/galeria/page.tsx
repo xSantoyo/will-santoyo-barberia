@@ -71,8 +71,8 @@ export default function GaleriaPage() {
             onClick={() => setKind(option.value)}
             className={`rounded-sm border px-4 py-2 text-sm transition-colors ${
               kind === option.value
-                ? "border-gold bg-gold/10 text-gold"
-                : "border-ink-3 text-bone-2 hover:text-bone"
+                ? "border-brand bg-brand/10 text-brand"
+                : "border-line text-ink-soft hover:text-ink"
             }`}
           >
             {option.label}
@@ -94,19 +94,19 @@ export default function GaleriaPage() {
         }}
         onClick={() => inputRef.current?.click()}
         className={`mb-8 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-sm border-2 border-dashed px-6 py-12 text-center transition-colors ${
-          dragOver ? "border-gold bg-gold/5" : "border-ink-3 hover:border-gold/40"
+          dragOver ? "border-brand bg-brand/5" : "border-line hover:border-brand/40"
         }`}
       >
         {uploading > 0 ? (
           <>
-            <Loader2 className="animate-spin text-gold" size={32} />
-            <p className="text-sm text-bone-2">Subiendo {uploading} imagen(es)…</p>
+            <Loader2 className="animate-spin text-brand" size={32} />
+            <p className="text-sm text-ink-soft">Subiendo {uploading} imagen(es)…</p>
           </>
         ) : (
           <>
-            <UploadCloud size={32} className="text-gold" />
-            <p className="text-bone">Arrastra tus fotos aquí o haz clic para elegirlas</p>
-            <p className="text-xs text-bone-2">JPG, PNG, WebP o AVIF · máx. 10 MB por imagen</p>
+            <UploadCloud size={32} className="text-brand" />
+            <p className="text-ink">Arrastra tus fotos aquí o haz clic para elegirlas</p>
+            <p className="text-xs text-ink-soft">JPG, PNG, WebP o AVIF · máx. 10 MB por imagen</p>
           </>
         )}
         <input
@@ -120,18 +120,18 @@ export default function GaleriaPage() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">
+        <div className="mb-6 rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
           {error}
         </div>
       )}
 
       {/* Grilla de imágenes */}
       {loading ? (
-        <div className="flex min-h-[20vh] items-center justify-center text-gold">
+        <div className="flex min-h-[20vh] items-center justify-center text-brand">
           <Loader2 className="animate-spin" size={28} />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-sm border border-ink-3 bg-ink-2 py-16 text-bone-2">
+        <div className="flex flex-col items-center gap-3 rounded-sm border border-line bg-card py-16 text-ink-soft">
           <ImagePlus size={32} />
           <p className="text-sm">Aún no hay fotos en esta categoría.</p>
         </div>
@@ -140,7 +140,7 @@ export default function GaleriaPage() {
           {items.map((item) => (
             <figure
               key={item.id}
-              className="group relative overflow-hidden rounded-sm border border-ink-3 bg-ink-2"
+              className="group relative overflow-hidden rounded-sm border border-line bg-card"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -155,7 +155,7 @@ export default function GaleriaPage() {
                     adminApi.deleteMedia(item.id).then(load);
                   }
                 }}
-                className="absolute right-2 top-2 hidden rounded-sm bg-ink/80 p-2 text-wine backdrop-blur group-hover:block"
+                className="absolute right-2 top-2 hidden rounded-sm bg-paper/80 p-2 text-err backdrop-blur group-hover:block"
                 aria-label="Eliminar imagen"
               >
                 <Trash2 size={16} />

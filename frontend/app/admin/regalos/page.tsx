@@ -53,11 +53,11 @@ export default function RegalosPage() {
   }
 
   function statusOf(gift: GiftCodeAdmin): { label: string; className: string } {
-    if (gift.redeemed_at) return { label: "Redimido", className: "text-bone-2" };
+    if (gift.redeemed_at) return { label: "Redimido", className: "text-ink-soft" };
     if (gift.held_by_appointment_id)
-      return { label: "Reservado", className: "text-gold" };
+      return { label: "Reservado", className: "text-brand" };
     if (gift.expires_at && new Date(gift.expires_at) < new Date())
-      return { label: "Vencido", className: "text-wine" };
+      return { label: "Vencido", className: "text-err" };
     return { label: "Disponible", className: "text-emerald-400" };
   }
 
@@ -70,9 +70,9 @@ export default function RegalosPage() {
 
       <form
         onSubmit={create}
-        className="mb-8 flex flex-wrap items-end gap-3 rounded-sm border border-ink-3 bg-ink-2 p-4"
+        className="mb-8 flex flex-wrap items-end gap-3 rounded-sm border border-line bg-card p-4"
       >
-        <label className="min-w-64 flex-1 text-sm text-bone-2">
+        <label className="min-w-64 flex-1 text-sm text-ink-soft">
           ¿Qué regala?
           <input
             required
@@ -83,7 +83,7 @@ export default function RegalosPage() {
             className={`${inputClass} mt-1`}
           />
         </label>
-        <label className="w-32 text-sm text-bone-2">
+        <label className="w-32 text-sm text-ink-soft">
           Vence (días)
           <input
             type="number"
@@ -105,14 +105,14 @@ export default function RegalosPage() {
       </form>
 
       {loading ? (
-        <div className="flex min-h-[30vh] items-center justify-center text-gold">
+        <div className="flex min-h-[30vh] items-center justify-center text-brand">
           <Loader2 className="animate-spin" size={28} />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-ink-3">
+        <div className="overflow-x-auto rounded-sm border border-line">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="border-b border-ink-3 bg-ink-2 text-left text-xs uppercase tracking-wider text-bone-2">
+              <tr className="border-b border-line bg-card text-left text-xs uppercase tracking-wider text-ink-soft">
                 <th className="px-4 py-3">Código</th>
                 <th className="px-4 py-3">Descripción</th>
                 <th className="px-4 py-3">Creado por</th>
@@ -120,26 +120,26 @@ export default function RegalosPage() {
                 <th className="px-4 py-3">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-3">
+            <tbody className="divide-y divide-line">
               {codes.map((gift) => {
                 const status = statusOf(gift);
                 return (
-                  <tr key={gift.id} className="bg-ink hover:bg-ink-2">
+                  <tr key={gift.id} className="bg-paper hover:bg-card">
                     <td className="px-4 py-3">
                       <button
                         onClick={() => copy(gift)}
-                        className="data flex items-center gap-2 font-semibold tracking-[0.15em] text-gold"
+                        className="data flex items-center gap-2 font-semibold tracking-[0.15em] text-brand"
                         title="Copiar"
                       >
                         {gift.code}
                         {copied === gift.id ? <Check size={13} /> : <Copy size={13} />}
                       </button>
                     </td>
-                    <td className="max-w-64 truncate px-4 py-3 text-bone">
+                    <td className="max-w-64 truncate px-4 py-3 text-ink">
                       {gift.description}
                     </td>
-                    <td className="data px-4 py-3 text-bone-2">{gift.created_by}</td>
-                    <td className="data px-4 py-3 text-bone-2">
+                    <td className="data px-4 py-3 text-ink-soft">{gift.created_by}</td>
+                    <td className="data px-4 py-3 text-ink-soft">
                       {gift.expires_at ? gift.expires_at.slice(0, 10) : "—"}
                     </td>
                     <td className={`data px-4 py-3 text-xs uppercase tracking-wider ${status.className}`}>
@@ -150,7 +150,7 @@ export default function RegalosPage() {
               })}
               {codes.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-bone-2">
+                  <td colSpan={5} className="px-4 py-10 text-center text-ink-soft">
                     Aún no hay códigos de regalo.
                   </td>
                 </tr>

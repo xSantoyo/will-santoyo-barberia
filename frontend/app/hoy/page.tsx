@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Armchair, CalendarPlus, Loader2, MoonStar } from "lucide-react";
 import { publicApi } from "@/lib/api";
 import { track } from "@/lib/analytics";
@@ -57,19 +57,19 @@ export default function BoardPage() {
           <div>
             <Link
               href="/"
-              className="data text-xs uppercase tracking-[0.3em] text-bone-2 transition-colors hover:text-gold"
+              className="data text-xs uppercase tracking-[0.3em] text-ink-soft transition-colors hover:text-brand"
             >
               ← Will Santoyo
             </Link>
-            <h1 className="display mt-3 text-5xl text-bone sm:text-6xl">
-              La fila <span className="text-gold">en vivo</span>
+            <h1 className="display mt-3 text-5xl text-ink sm:text-6xl">
+              La fila <span className="text-brand">en vivo</span>
             </h1>
-            <div className="gold-rule mt-3" />
+            <div className="brand-rule mt-3" />
           </div>
           {board && (
-            <p className="data text-sm text-bone-2">
+            <p className="data text-sm text-ink-soft">
               {board.date_local} ·{" "}
-              <span className="text-gold">{board.now_local}</span> · se actualiza
+              <span className="text-brand">{board.now_local}</span> · se actualiza
               solo
             </p>
           )}
@@ -80,13 +80,13 @@ export default function BoardPage() {
         </div>
 
         {error && (
-          <p className="mt-10 text-bone-2">
+          <p className="mt-10 text-ink-soft">
             No pudimos cargar la fila. Reintentando…
           </p>
         )}
 
         {!board && !error && (
-          <div className="flex min-h-[40vh] items-center justify-center text-gold">
+          <div className="flex min-h-[40vh] items-center justify-center text-brand">
             <Loader2 className="animate-spin" size={32} />
           </div>
         )}
@@ -98,12 +98,12 @@ export default function BoardPage() {
         )}
 
         <div className="mt-12 flex flex-col items-center gap-3 text-center">
-          <p className="text-sm text-bone-2">
+          <p className="text-sm text-ink-soft">
             ¿Todavía sin turno? La fila avanza sin ti.
           </p>
           <Link
             href="/agendar"
-            className="display flex min-h-13 items-center gap-2 rounded-sm bg-gold px-8 text-lg text-ink transition-all hover:scale-[1.03] hover:shadow-[0_0_28px_rgba(201,162,75,0.3)] active:scale-95"
+            className="display flex min-h-13 items-center gap-2 rounded-sm bg-brand px-8 text-lg text-on-brand transition-transform duration-150 ease-[var(--ease-out-strong)] hover:scale-[1.02] active:scale-[0.97]"
           >
             <CalendarPlus size={18} /> Tomar mi turno
           </Link>
@@ -114,21 +114,22 @@ export default function BoardPage() {
 }
 
 function Lane({ board }: { board: QueueBoard }) {
+  const reduce = useReducedMotion();
   // El descanso solo manda si de verdad no hay actividad: un turno creado por
   // el admin en día de descanso igual debe verse en el tablero.
   const showDayOff =
     board.is_day_off && board.current === null && board.waiting.length === 0;
   return (
     <motion.section
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="plate clip-corner relative p-5"
+      transition={reduce ? { duration: 0.2 } : { duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+      className="plate card-frame relative p-5"
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="display text-2xl text-bone">La silla de Will</h2>
+        <h2 className="display text-2xl text-ink">La silla de Will</h2>
         {board.served_count > 0 && (
-          <span className="data text-[11px] uppercase tracking-wider text-bone-2">
+          <span className="data text-[11px] uppercase tracking-wider text-ink-soft">
             {board.served_count} atendido{board.served_count === 1 ? "" : "s"}
           </span>
         )}
@@ -136,28 +137,28 @@ function Lane({ board }: { board: QueueBoard }) {
       <div className="barber-stripe mt-3 w-16" />
 
       {showDayOff ? (
-        <div className="mt-6 flex min-h-28 flex-col items-center justify-center gap-2 text-bone-2">
-          <MoonStar size={22} className="text-wine" />
+        <div className="mt-6 flex min-h-28 flex-col items-center justify-center gap-2 text-ink-soft">
+          <MoonStar size={22} className="text-err" />
           <p className="data text-xs uppercase tracking-[0.25em]">Descansa hoy</p>
         </div>
       ) : (
         <>
           {/* El sillón */}
-          <div className="texture-pinstripe mt-5 rounded-sm border border-ink-3 bg-ink/60 px-4 py-4 text-center">
-            <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
+          <div className="texture-pinstripe mt-5 rounded-sm border border-line bg-paper/60 px-4 py-4 text-center">
+            <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
               {board.current ? "En el sillón" : "Silla libre"}
             </p>
             {board.current ? (
-              <p className="stamped mt-1 text-6xl text-bone">
-                <span className="text-gold">#</span>
+              <p className="stamped mt-1 text-6xl text-ink">
+                <span className="text-brand">#</span>
                 <FlipNumber value={String(board.current.number)} />
               </p>
             ) : (
-              <p className="mt-2 flex items-center justify-center gap-2 text-bone-2">
-                <Armchair size={26} className="text-gold/70" />
+              <p className="mt-2 flex items-center justify-center gap-2 text-ink-soft">
+                <Armchair size={26} className="text-brand/70" />
                 {board.waiting.length > 0 ? (
                   <span className="data text-sm">
-                    sigue el <span className="text-gold">#{board.waiting[0].number}</span>
+                    sigue el <span className="text-brand">#{board.waiting[0].number}</span>
                   </span>
                 ) : (
                   <span className="data text-sm">sin turnos en espera</span>
@@ -167,24 +168,24 @@ function Lane({ board }: { board: QueueBoard }) {
           </div>
 
           {/* Los que siguen */}
-          <p className="data mt-4 text-[11px] uppercase tracking-[0.3em] text-bone-2">
+          <p className="data mt-4 text-[11px] uppercase tracking-[0.3em] text-ink-soft">
             Siguen
           </p>
           {board.waiting.length === 0 ? (
-            <p className="data mt-2 text-sm text-bone-2/60">— fila despejada —</p>
+            <p className="data mt-2 text-sm text-ink-soft/60">— fila despejada —</p>
           ) : (
             <ul className="mt-2 flex flex-wrap gap-2">
               {board.waiting.slice(0, 6).map((entry) => (
                 <li
                   key={entry.number}
-                  className="data rounded-sm border border-ink-3 bg-ink px-2.5 py-1.5 text-sm text-bone"
+                  className="data rounded-sm border border-line bg-paper px-2.5 py-1.5 text-sm text-ink"
                 >
-                  <span className="text-gold">#{entry.number}</span>
-                  <span className="ml-2 text-bone-2">{entry.time_local}</span>
+                  <span className="text-brand">#{entry.number}</span>
+                  <span className="ml-2 text-ink-soft">{entry.time_local}</span>
                 </li>
               ))}
               {board.waiting.length > 6 && (
-                <li className="data px-1 py-1.5 text-sm text-bone-2">
+                <li className="data px-1 py-1.5 text-sm text-ink-soft">
                   +{board.waiting.length - 6} más
                 </li>
               )}

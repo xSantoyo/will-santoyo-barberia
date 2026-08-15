@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Identidad Will Santoyo: negro profundo, dorado, blanco hueso, rojo vino
+   ========================================================================== */
+@theme {
+  /* Curvas de movimiento. Las built-in de CSS son demasiado débiles: no tienen
+     el punch que hace que una animación se sienta intencional. Nunca ease-in en
+     UI — arranca lento justo en el instante que el usuario más mira. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --color-ink: #0b0b0c;
+  --color-ink-2: #131316;
+  --color-ink-3: #1c1c21;
+  --color-gold: #c9a24b;
+  --color-gold-2: #e3c887;
+  --color-bone: #f5f1e8;
+  --color-bone-2: #b9b3a6;
+  --color-wine: #7a1f2b;
+
+  --font-display: var(--font-anton), "Arial Narrow", sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-data: var(--font-plex-mono), "Consolas", monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Interacción de texto (feedback R1 #3 + R2 #2, auditoría exhaustiva):
+   NADA del contenido estático debe verse ni comportarse como editable — ni
+   cursor I-beam, ni selección por doble clic, ni manejadores de selección al
+   mantener presionado en móvil. Estrategia invertida: por defecto NO
+   seleccionable; se re-habilita SOLO en formularios y en contenido
+   explícitamente copiable (.selectable: código de gestión, teléfono, dirección).
+   ========================================================================== */
+body {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+a, button, [role="button"], select, summary {
+  cursor: pointer;
+}
+input, textarea {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+.selectable {
+  user-select: all;
+  -webkit-user-select: all;
+  cursor: text;
+  -webkit-touch-callout: default;
+}
+/* Si algo llega a seleccionarse, que al menos vista la marca */
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+/* Tipografía utilitaria de datos: precios, horas, códigos, etiquetas */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Titulares condensados con carácter urbano */
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 0.95;
+}
+
+/* Línea dorada decorativa bajo títulos de sección */
+.gold-rule {
+  width: 56px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-gold), transparent);
+}
+
+/* ==========================================================================
+   Texturas urbanas (feedback R1 #1) — misma paleta, cero colores nuevos
+   ========================================================================== */
+
+/* Grano de concreto (ruido fractal sutil) */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Pinstripe diagonal en dorado casi imperceptible (superficie cepillada) */
+.texture-pinstripe {
+  background-image: repeating-linear-gradient(
+    -55deg,
+    transparent 0px,
+    transparent 11px,
+    rgba(201, 162, 75, 0.05) 11px,
+    rgba(201, 162, 75, 0.05) 12px
+  );
+}
+
+/* Retícula urbana tenue (plano de ciudad) */
+.texture-grid {
+  background-image:
+    linear-gradient(rgba(245, 241, 232, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 241, 232, 0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Franja de poste de barbero, versión sobria: hueso/dorado/vino sobre negro */
+.barber-stripe {
+  height: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-gold) 0 14px,
+    var(--color-ink) 14px 22px,
+    var(--color-bone) 22px 30px,
+    var(--color-ink) 30px 38px,
+    var(--color-wine) 38px 46px,
+    var(--color-ink) 46px 54px
+  );
+  opacity: 0.85;
+}
+
+/* Palabra-marca gigante de fondo (contorno, sin relleno) */
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(201, 162, 75, 0.14);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Esquina cortada estilo placa metálica para tarjetas destacadas */
+.clip-corner {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+}
+
+/* ==========================================================================
+   Elemento señal: "el corte de navaja" — placa troquelada del código
+   ========================================================================== */
+
+/* Placa de metal: gradiente de acero oscuro + filo dorado superior */
+.plate {
+  background:
+    linear-gradient(160deg, #1c1c21 0%, #131316 45%, #0f0f11 100%);
+  border: 1px solid rgba(201, 162, 75, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 241, 232, 0.06),
+    inset 0 -8px 24px rgba(0, 0, 0, 0.5),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Caracteres troquelados: hundidos en el metal */
+.stamped {
+  font-family: var(--font-data);
+  color: var(--color-bone);
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.9),
+    0 -1px 0 rgba(245, 241, 232, 0.12);
+}
+
+/* Scrollbar sobria en el panel admin */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-3) transparent;
+}
+
+/* Utilidades de foco accesible con acento dorado */
+.focus-gold:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Animaciones CSS ligeras (panel admin y microdetalles)
+   ========================================================================== */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}

@@ -44,3 +44,25 @@ terraform apply                                # ⚠️ genera costos reales en 
 
 (Bajó frente a la estimación original al eliminar la instancia EC2 de n8n y los
 costos por conversación de WhatsApp Business — ver ADR-009.)
+
+## Alternativa evaluada (ronda de stack, jul-2026): Supabase Postgres
+
+En vez de RDS + Secrets endpoint (~23–25 USD/mes solo en base de datos), el
+mismo backend puede apuntar a un Postgres administrado de Supabase **sin tocar
+código**: el soporte de su pooler (Supavisor, modo transacción) ya está en
+`backend/app/db.py` y se activa solo por la URL de conexión.
+
+| Opción | USD/mes | Notas |
+|---|---|---|
+| RDS db.t4g.micro + Secrets VPC endpoint | ~23–25 | Todo dentro de la VPC (este Terraform) |
+| Supabase Pro | 25 | Incluye backups diarios y panel SQL; sin VPC/NAT que mantener |
+| Supabase Free | 0 | Solo staging/demos: 500 MB y **se pausa a los 7 días sin tráfico** |
+
+Cómo conectarlo (cuando el dueño cree el proyecto en supabase.com):
+1. `create extension if not exists btree_gist;` (lo exige la migración 0001).
+2. Migraciones y tareas puntuales → conexión **directa** (puerto 5432).
+3. La Lambda → el **pooler en modo transacción** (puerto 6543): la app detecta
+   `pooler.supabase.com:6543` y configura NullPool + sin prepared statements.
+4. `DATABASE_URL` va en Secrets Manager igual que hoy; el resto no cambia.
+
+Decisión completa y porqués en `MIGRATION.md` (raíz del repo).

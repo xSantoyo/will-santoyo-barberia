@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { buildICS, googleCalendarUrl, icsDataUrl } from "@/lib/calendar";
 
 const EVENT = {
-  title: "Bad Boys Barbershop — turno #4",
+  title: "Will Santoyo — turno #4",
   dateLocal: "2026-07-10",
   timeLocal: "15:30",
   durationMin: 45,
   description: "Con Barbero 1. Código: ABC123, guárdalo.",
-  location: "Bad Boys Barbershop",
+  location: "Will Santoyo",
 };
 
 describe("buildICS", () => {
@@ -17,7 +17,7 @@ describe("buildICS", () => {
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("DTSTART:20260710T153000");
     expect(ics).toContain("DTEND:20260710T161500");
-    expect(ics).toContain("SUMMARY:Bad Boys Barbershop — turno #4");
+    expect(ics).toContain("SUMMARY:Will Santoyo — turno #4");
     expect(ics).toContain("END:VEVENT");
   });
 

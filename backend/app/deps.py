@@ -156,6 +156,4 @@ lookup_rate_limiter = RateLimiter(
 # Sensibles (5 cada 15 min, cada uno con contador propio)
 login_rate_limiter = _strict("login")
 password_rate_limiter = _strict("password_change")
-payment_rate_limiter = _strict("payment_start")
 refresh_rate_limiter = RateLimiter(30, 60, "token_refresh")
-webhook_rate_limiter = RateLimiter(60, 60, "payment_webhook")

@@ -12,18 +12,18 @@ export default function AgendarPage() {
       <div className="mx-auto max-w-3xl px-5 pb-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-gold"
+          className="inline-flex items-center gap-2 text-sm text-ink-soft transition-colors hover:text-brand"
         >
           <ArrowLeft size={16} /> Will Santoyo
         </Link>
-        <h1 className="display mt-6 text-5xl text-bone">
-          Agenda tu <span className="text-gold">turno</span>
+        <h1 className="display mt-6 text-5xl text-ink">
+          Agenda tu <span className="text-brand">turno</span>
         </h1>
-        <p className="mt-2 text-bone-2">Tres pasos y listo. Sin llamadas, sin filas.</p>
+        <p className="mt-2 text-ink-soft">Tres pasos y listo. Sin llamadas, sin filas.</p>
       </div>
       <Suspense
         fallback={
-          <div className="flex min-h-[40vh] items-center justify-center text-gold">
+          <div className="flex min-h-[40vh] items-center justify-center text-brand">
             <Loader2 className="animate-spin" size={32} />
           </div>
         }

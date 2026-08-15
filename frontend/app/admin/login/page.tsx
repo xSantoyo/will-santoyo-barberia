@@ -48,40 +48,40 @@ export default function AdminLoginPage() {
         ADMIN
       </span>
       <div className="animate-fade-up relative w-full max-w-sm">
-        <p className="display text-center text-4xl text-bone">
-          BAD<span className="text-gold"> BOYS</span>
+        <p className="display text-center text-4xl text-ink">
+          BAD<span className="text-brand"> BOYS</span>
         </p>
-        <p className="mt-2 text-center text-sm text-bone-2">Panel de administración</p>
+        <p className="mt-2 text-center text-sm text-ink-soft">Panel de administración</p>
         <div className="barber-stripe mx-auto mt-4 w-24" />
 
         <form
           onSubmit={submit}
-          className="clip-corner mt-8 space-y-5 border border-gold/25 bg-ink-2 p-6"
+          className="card-frame mt-8 space-y-5 border border-brand/25 bg-card p-6"
         >
           {error && (
-            <div className="rounded-sm border border-wine bg-wine/15 px-4 py-3 text-sm">
+            <div className="rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
               {error}
             </div>
           )}
           <label className="block">
-            <span className="mb-1.5 block text-sm text-bone-2">Usuario</span>
+            <span className="mb-1.5 block text-sm text-ink-soft">Usuario</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
               required
-              className="focus-gold w-full rounded-sm border border-ink-3 bg-ink px-4 py-3 text-bone"
+              className="focus-ring w-full rounded-sm border border-line bg-paper px-4 py-3 text-ink"
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm text-bone-2">Contraseña</span>
+            <span className="mb-1.5 block text-sm text-ink-soft">Contraseña</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               required
-              className="focus-gold w-full rounded-sm border border-ink-3 bg-ink px-4 py-3 text-bone"
+              className="focus-ring w-full rounded-sm border border-line bg-paper px-4 py-3 text-ink"
             />
           </label>
           <HoneypotField value={website} onChange={setWebsite} />
@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="display flex w-full items-center justify-center gap-2 rounded-sm bg-gold px-6 py-3.5 text-lg text-ink disabled:opacity-60"
+            className="display flex w-full items-center justify-center gap-2 rounded-sm bg-brand px-6 py-3.5 text-lg text-on-brand disabled:opacity-60"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : <Lock size={18} />}
             Entrar

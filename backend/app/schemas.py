@@ -120,15 +120,6 @@ class AppointmentServiceOut(ORMModel):
     duration_min: int
 
 
-class PaymentPublic(BaseModel):
-    reference: str
-    kind: str
-    status: str
-    amount_cop: int
-    checkout_url: str | None = None  # presente solo si aún se puede pagar
-    gift_code: str | None = None     # emitido al aprobar un pago de regalo
-
-
 class AppointmentPublic(ORMModel):
     manage_code: str
     status: str
@@ -147,7 +138,6 @@ class AppointmentPublic(ORMModel):
     can_review: bool = False
     review_rating: int | None = None
     gift_description: str | None = None  # regalo aplicado (se redime en el local)
-    payment: PaymentPublic | None = None  # anticipo (si el tenant lo exige)
 
 
 class AppointmentFind(BaseModel):
@@ -324,39 +314,6 @@ class StatusUpdate(BaseModel):
         if v not in APPOINTMENT_STATUSES:
             raise ValueError(f"Estado inválido: {v}")
         return v
-
-
-# ---------------------------------------------------------------- pagos
-
-class GiftCheckoutCreate(BaseModel):
-    """Compra de un regalo en línea: se elige un servicio como regalo."""
-    service_id: int
-    payer_name: str = Field(min_length=2, max_length=120)
-    payer_whatsapp: str | None = None
-    # Opcional: si lo deja, el código del regalo también le llega por correo
-    payer_email: str | None = Field(default=None, max_length=200)
-
-    @field_validator("payer_whatsapp")
-    @classmethod
-    def _phone(cls, v: str | None) -> str | None:
-        if v is None or not v.strip():
-            return None
-        return normalize_phone(v)
-
-    @field_validator("payer_email")
-    @classmethod
-    def _email(cls, v: str | None) -> str | None:
-        return normalize_email(v)
-
-
-class SimulatePaymentRequest(BaseModel):
-    approve: bool
-
-
-class PaymentSettings(BaseModel):
-    deposits_enabled: bool | None = None
-    deposit_cop: int | None = Field(default=None, ge=1000, le=200_000)
-    gift_shop_enabled: bool | None = None
 
 
 # ---------------------------------------------------------------- tanda 4
