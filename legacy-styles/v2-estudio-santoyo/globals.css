@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   «Estudio Santoyo» — papel cálido, tinta espresso, añil de poste de barbero.
+   La definición completa y sus razones viven en DESIGN_SYSTEM.md (raíz).
+   La piel anterior está archivada en legacy-styles/ y nada la importa.
+   ========================================================================== */
+@theme {
+  /* Curvas canónicas de la skill `animate` (ver DESIGN_SYSTEM.md §6) */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --color-paper: #f1eee6;
+  --color-card: #fbfaf7;
+  --color-wash: #e7e2d6;
+  --color-line: #d8d2c3;
+  --color-ink: #221d15;
+  --color-ink-soft: #5f594c;
+  --color-brand: #2a4696;
+  --color-brand-deep: #1d3370;
+  --color-brand-tint: #dee5f5;
+  --color-on-brand: #ffffff;
+  --color-ok: #1e6f42;
+  --color-warn: #7a5a0e;
+  --color-err: #9e3225;
+  --color-err-tint: #f3dcd7;
+
+  --font-display: var(--font-fraunces), "Georgia", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+
+  /* Controles suaves: sobrescribe el radio pequeño por defecto de Tailwind */
+  --radius-sm: 10px;
+  --radius-card: 16px;
+
+  --shadow-card: 0 1px 2px rgba(34, 29, 21, 0.05), 0 10px 28px rgba(34, 29, 21, 0.07);
+  --shadow-pop: 0 2px 6px rgba(34, 29, 21, 0.08), 0 20px 48px rgba(34, 29, 21, 0.14);
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --------------------------------------------------------------------------
+   Interacción de texto: el contenido estático no se comporta como editable.
+   Se re-habilita solo en formularios y en lo explícitamente copiable
+   (.selectable: código de gestión, teléfono, dirección).
+   -------------------------------------------------------------------------- */
+body {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+a, button, [role="button"], select, summary {
+  cursor: pointer;
+}
+input, textarea {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+.selectable {
+  user-select: all;
+  -webkit-user-select: all;
+  cursor: text;
+  -webkit-touch-callout: default;
+}
+::selection {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+
+/* Datos: precios, horas, códigos — siempre tabulares */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Titulares: serif óptica, tracking negativo, sin transformar el texto */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+/* Regla de acento bajo títulos de sección */
+.brand-rule {
+  width: 56px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-brand);
+}
+
+/* --------------------------------------------------------------------------
+   Texturas de papel — casi imperceptibles, en tinta sobre claro
+   -------------------------------------------------------------------------- */
+
+/* Fibra de papel (ruido fractal muy sutil) */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Rayado fino diagonal, como papel de carta */
+.texture-pinstripe {
+  background-image: repeating-linear-gradient(
+    -55deg,
+    transparent 0px,
+    transparent 13px,
+    rgba(34, 29, 21, 0.03) 13px,
+    rgba(34, 29, 21, 0.03) 14px
+  );
+}
+
+/* Cuadrícula de cuaderno técnico */
+.texture-grid {
+  background-image:
+    linear-gradient(rgba(34, 29, 21, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 29, 21, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Micro-firma del oficio: poste de barbero en añil/papel/teja */
+.barber-stripe {
+  height: 4px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-brand) 0 12px,
+    var(--color-card) 12px 20px,
+    var(--color-err) 20px 28px,
+    var(--color-card) 28px 36px
+  );
+  opacity: 0.9;
+}
+
+/* Palabra-marca gigante de fondo (contorno en tinta) */
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(34, 29, 21, 0.1);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Tarjeta estándar del sistema (reemplaza la placa de esquina cortada) */
+.card-frame {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Tarjeta destacada: canto superior añil. (El tiquete perforado del código
+   vive en components/public/Razor.tsx, no aquí.) */
+.plate {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-top: 3px solid var(--color-brand);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+
+/* Caracteres del código: sellados en tinta de caucho */
+.stamped {
+  font-family: var(--font-data);
+  font-weight: 600;
+  color: var(--color-brand);
+  letter-spacing: 0.14em;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Entrada suave para el panel (CSS: corre fuera del hilo principal) */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.24s var(--ease-out-strong) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: fade 0.2s ease both;
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

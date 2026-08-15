@@ -248,27 +248,27 @@ export default function Wizard() {
         description: `Te esperamos el ${appointment.date_local} a las ${appointment.time_local}.`,
       });
       setConfirmed(appointment);
-    } catch (err) {
+    } catch (brick) {
       track("reserva_fallida", {
-        codigo: err instanceof ApiError ? err.code : "desconocido",
+        codigo: brick instanceof ApiError ? brick.code : "desconocido",
       });
       // Colisión: alguien ganó el horario entre que lo elegiste y confirmaste.
       // Se devuelve al paso de horarios con la lista ya refrescada, y todo lo
       // demás que llenaste sigue en su sitio.
-      if (err instanceof ApiError && err.code === "overlap") {
+      if (brick instanceof ApiError && brick.code === "overlap") {
         toast.error("Ese horario acaba de ocuparse", {
           description: "Te dejamos los horarios libres de ese día. Elige otro.",
         });
         goTo(1);
         loadSlots(date);
-      } else if (err instanceof ApiError && err.code === "day_off") {
+      } else if (brick instanceof ApiError && brick.code === "day_off") {
         toast.error("Will no atiende ese día", { description: "Elige otra fecha." });
         goTo(1);
       } else {
         toast.error("No pudimos crear la reserva", {
           description:
-            err instanceof Error
-              ? err.message
+            brick instanceof Error
+              ? brick.message
               : "Revisa tu conexión e intenta de nuevo; no perdiste nada de lo que llenaste.",
         });
       }
@@ -281,7 +281,7 @@ export default function Wizard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-brand">
+      <div className="flex min-h-[50vh] items-center justify-center text-copper">
         <Loader2 className="animate-spin" size={32} />
         <span className="sr-only">Cargando la agenda</span>
       </div>
@@ -398,12 +398,12 @@ export default function Wizard() {
       </AnimatePresence>
 
       {/* Navegación: barra fija en la zona del pulgar en móvil, en línea en desktop */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-night/95 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <button
             onClick={() => goTo(Math.max(0, step - 1))}
             disabled={step === 0}
-            className="-m-2 flex min-h-12 items-center gap-2 p-2 text-sm text-ink-soft transition-colors duration-150 hover:text-ink disabled:invisible"
+            className="-m-2 flex min-h-12 items-center gap-2 p-2 text-sm text-smoke transition-colors duration-150 hover:text-chalk disabled:invisible"
           >
             <ArrowLeft size={16} /> Atrás
           </button>
@@ -412,8 +412,8 @@ export default function Wizard() {
               onClick={() => canContinue && goTo(step + 1)}
               disabled={!canContinue}
               className={clsx(
-                "display flex min-h-13 flex-1 items-center justify-center gap-2 rounded-sm bg-brand px-8 text-lg text-on-brand sm:flex-none",
-                "transition-transform duration-150 ease-[var(--ease-out-strong)]",
+                "display flex min-h-13 flex-1 items-center justify-center gap-2 rounded-sm bg-copper px-8 text-lg text-on-copper sm:flex-none",
+                "transition-transform duration-150 ease-[var(--ease-out)]",
                 "enabled:active:scale-[0.97] disabled:opacity-40",
               )}
             >
@@ -424,8 +424,8 @@ export default function Wizard() {
               onClick={submit}
               disabled={submitting || !canContinue}
               className={clsx(
-                "display flex min-h-13 flex-1 items-center justify-center gap-2 rounded-sm bg-brand px-8 text-lg text-on-brand sm:flex-none",
-                "transition-transform duration-150 ease-[var(--ease-out-strong)]",
+                "display flex min-h-13 flex-1 items-center justify-center gap-2 rounded-sm bg-copper px-8 text-lg text-on-copper sm:flex-none",
+                "transition-transform duration-150 ease-[var(--ease-out)]",
                 "enabled:active:scale-[0.97] disabled:opacity-40",
               )}
             >
@@ -445,10 +445,10 @@ function Stepper({ step }: { step: number }) {
   return (
     <>
       <div className="mb-3 flex items-baseline justify-between sm:hidden">
-        <span className="data text-[11px] uppercase tracking-[0.25em] text-brand">
+        <span className="data text-[11px] uppercase tracking-[0.25em] text-copper">
           Paso {step + 1} de {STEPS.length}
         </span>
-        <span className="display text-2xl text-ink">{STEPS[step]}</span>
+        <span className="display text-2xl text-chalk">{STEPS[step]}</span>
       </div>
 
       <ol className="mb-3 hidden items-center gap-2 text-xs uppercase tracking-wider sm:flex">
@@ -458,21 +458,21 @@ function Stepper({ step }: { step: number }) {
               className={clsx(
                 "flex h-9 w-9 items-center justify-center rounded-full border text-sm",
                 "transition-colors duration-200",
-                i < step && "border-brand bg-brand text-on-brand",
-                i === step && "border-brand text-brand shadow-[0_0_16px_rgba(42,70,150,0.25)]",
-                i > step && "border-line text-ink-soft",
+                i < step && "border-copper bg-copper text-on-copper",
+                i === step && "border-copper text-copper shadow-[0_0_16px_rgba(42,70,150,0.25)]",
+                i > step && "border-edge text-smoke",
               )}
             >
               {i < step ? <Check size={14} /> : i + 1}
             </span>
-            <span className={i === step ? "text-brand" : "text-ink-soft/70"}>{label}</span>
+            <span className={i === step ? "text-copper" : "text-smoke/70"}>{label}</span>
           </li>
         ))}
       </ol>
 
-      <div className="mb-10 h-0.5 w-full overflow-hidden rounded-full bg-wash">
+      <div className="mb-10 h-0.5 w-full overflow-hidden rounded-full bg-ash">
         <motion.div
-          className="h-full bg-brand"
+          className="h-full bg-copper"
           animate={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           transition={{ duration: 0.28, ease: EASE_OUT }}
         />
@@ -514,24 +514,24 @@ function ServiceStep({
             aria-pressed={active}
             className={clsx(
               "flex min-h-16 w-full items-center justify-between gap-3 rounded-sm border px-4 py-4 text-left sm:px-5",
-              "transition-[border-color,background-color,transform] duration-150 ease-[var(--ease-out-strong)]",
+              "transition-[border-color,background-color,transform] duration-150 ease-[var(--ease-out)]",
               "active:scale-[0.99]",
-              active ? "border-brand bg-brand/10" : "border-line bg-card",
-              !active && "hover:border-brand/40",
+              active ? "border-copper bg-copper/10" : "border-edge bg-coal",
+              !active && "hover:border-copper/40",
             )}
           >
             <span className="min-w-0">
-              <span className="block text-base text-ink">{service.name}</span>
-              <span className="text-xs text-ink-soft">{service.duration_min} min</span>
+              <span className="block text-base text-chalk">{service.name}</span>
+              <span className="text-xs text-smoke">{service.duration_min} min</span>
             </span>
             <span className="flex shrink-0 items-center gap-3">
-              <span className="data text-lg font-semibold text-brand">
+              <span className="data text-lg font-semibold text-copper">
                 {formatCOP(service.price_cop)}
               </span>
               <span
                 className={clsx(
                   "flex h-7 w-7 items-center justify-center rounded-full border transition-colors duration-150",
-                  active ? "border-brand bg-brand text-on-brand" : "border-line",
+                  active ? "border-copper bg-copper text-on-copper" : "border-edge",
                 )}
               >
                 {active && <Check size={15} />}
@@ -542,9 +542,9 @@ function ServiceStep({
       })}
 
       {totals.chosen.length > 0 && (
-        <p className="pt-2 text-right text-sm text-ink-soft">
+        <p className="pt-2 text-right text-sm text-smoke">
           Total{party > 1 ? ` × ${party} personas` : ""}:{" "}
-          <span className="data text-lg font-semibold text-brand">
+          <span className="data text-lg font-semibold text-copper">
             {formatCOP(totals.price * party)}
           </span>
           {" · "}
@@ -552,9 +552,9 @@ function ServiceStep({
         </p>
       )}
 
-      <div className="mt-4 rounded-sm border border-line bg-card px-4 py-3.5">
-        <p className="data text-[11px] uppercase tracking-[0.25em] text-ink-soft">
-          ¿Cuántos se cortan? <span className="text-brand">turnos seguidos</span>
+      <div className="mt-4 rounded-sm border border-edge bg-coal px-4 py-3.5">
+        <p className="data text-[11px] uppercase tracking-[0.25em] text-smoke">
+          ¿Cuántos se cortan? <span className="text-copper">turnos seguidos</span>
         </p>
         <div className="mt-2.5 flex gap-2">
           {[1, 2, 3].map((size) => (
@@ -566,11 +566,11 @@ function ServiceStep({
               aria-pressed={party === size}
               className={clsx(
                 "data min-h-11 flex-1 rounded-sm border text-sm",
-                "transition-[border-color,background-color,color,transform] duration-150 ease-[var(--ease-out-strong)]",
+                "transition-[border-color,background-color,color,transform] duration-150 ease-[var(--ease-out)]",
                 "active:scale-[0.97]",
                 party === size
-                  ? "border-brand bg-brand/10 text-brand"
-                  : "border-line text-ink-soft hover:border-brand/40",
+                  ? "border-copper bg-copper/10 text-copper"
+                  : "border-edge text-smoke hover:border-copper/40",
               )}
             >
               {size === 1 ? "Solo yo" : `${size} personas`}
@@ -578,7 +578,7 @@ function ServiceStep({
           ))}
         </div>
         {companions.length > 0 && (
-          <p className="mt-2 text-[11px] text-ink-soft/70">
+          <p className="mt-2 text-[11px] text-smoke/70">
             Mismos servicios para todos, uno detrás del otro (padre e hijo, parche).
           </p>
         )}
@@ -604,18 +604,18 @@ function SlotPanel({
 }) {
   return (
     <div ref={ref} className="scroll-mt-4">
-      <p className="data mb-3 text-sm uppercase tracking-widest text-ink-soft">
+      <p className="data mb-3 text-sm uppercase tracking-widest text-smoke">
         {date ? `Horarios · ${date}` : "Elige un día"}
       </p>
       {loading ? (
-        <div className="flex items-center gap-2 text-brand">
+        <div className="flex items-center gap-2 text-copper">
           <Loader2 className="animate-spin" size={20} />
           <span className="data text-xs uppercase tracking-widest">Buscando huecos…</span>
         </div>
       ) : availability?.is_day_off ? (
-        <p className="text-sm text-err">Will descansa ese día. Elige otra fecha.</p>
+        <p className="text-sm text-brick">Will descansa ese día. Elige otra fecha.</p>
       ) : availability && availability.slots.length === 0 ? (
-        <p className="text-sm text-ink-soft">
+        <p className="text-sm text-smoke">
           Ese día quedó lleno. Prueba con otra fecha — se libera seguido.
         </p>
       ) : (
@@ -632,11 +632,11 @@ function SlotPanel({
               className={clsx(
                 "data min-h-12 rounded-sm border px-3 text-base sm:min-h-11 sm:text-sm",
                 // El feedback vive en el press, y es instantáneo
-                "transition-[background-color,border-color,color,transform] duration-150 ease-[var(--ease-out-strong)]",
+                "transition-[background-color,border-color,color,transform] duration-150 ease-[var(--ease-out)]",
                 "active:scale-[0.95]",
                 selected === slot
-                  ? "border-brand bg-brand text-on-brand shadow-[0_0_16px_rgba(42,70,150,0.3)]"
-                  : "border-line bg-card text-ink hover:border-brand/50",
+                  ? "border-copper bg-copper text-on-copper shadow-[0_0_16px_rgba(42,70,150,0.3)]"
+                  : "border-edge bg-coal text-chalk hover:border-copper/50",
               )}
             >
               {slot}
@@ -688,32 +688,32 @@ function DetailsStep({
   summary: { totals: Totals; date: string | null; time: string | null; party: number };
 }) {
   const inputClass =
-    "focus-ring min-h-13 w-full rounded-sm border border-line bg-card px-4 py-3.5 text-base text-ink placeholder:text-ink-soft/50";
+    "focus-ring min-h-13 w-full rounded-sm border border-edge bg-coal px-4 py-3.5 text-base text-chalk placeholder:text-smoke/50";
   const { totals, date, time, party } = summary;
 
   return (
     <div className="mx-auto max-w-md space-y-5">
       {/* El resumen deja de ser un paso propio y encabeza el último: el usuario
           ve lo que va a confirmar mientras escribe sus datos. */}
-      <div className="card-frame border border-line bg-card p-5">
-        <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">Tu turno</p>
-        <p className="display mt-2 text-2xl text-ink">
+      <div className="surface border border-edge bg-coal p-5">
+        <p className="data text-[11px] uppercase tracking-[0.3em] text-copper">Tu turno</p>
+        <p className="display mt-2 text-2xl text-chalk">
           {date} · {time}
         </p>
-        <p className="mt-1 text-sm text-ink-soft">
+        <p className="mt-1 text-sm text-smoke">
           {totals.chosen.map((s) => s.name).join(", ")} · {totals.minutes * party} min
           {party > 1 ? ` · ${party} personas` : ""}
         </p>
-        <p className="mt-3 border-t border-line pt-3 text-sm text-ink-soft">
+        <p className="mt-3 border-t border-edge pt-3 text-sm text-smoke">
           Total:{" "}
-          <span className="display text-xl text-brand">{formatCOP(totals.price * party)}</span>
+          <span className="display text-xl text-copper">{formatCOP(totals.price * party)}</span>
           <span className="ml-2 text-xs">se paga en el local</span>
         </p>
       </div>
 
       {/* text-base (16px) evita el zoom automático de iOS al enfocar */}
       <label className="block">
-        <span className="mb-1.5 block text-sm text-ink-soft">Tu nombre</span>
+        <span className="mb-1.5 block text-sm text-smoke">Tu nombre</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -723,7 +723,7 @@ function DetailsStep({
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-sm text-ink-soft">WhatsApp</span>
+        <span className="mb-1.5 block text-sm text-smoke">WhatsApp</span>
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
@@ -732,13 +732,13 @@ function DetailsStep({
           autoComplete="tel"
           className={inputClass}
         />
-        <span className="mt-1.5 block text-xs text-ink-soft/70">
+        <span className="mt-1.5 block text-xs text-smoke/70">
           Solo lo usamos si hay que avisarte algo de tu turno.
         </span>
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-sm text-ink-soft">
-          Correo <span className="text-ink-soft/60">(opcional)</span>
+        <span className="mb-1.5 block text-sm text-smoke">
+          Correo <span className="text-smoke/60">(opcional)</span>
         </span>
         <input
           value={email}
@@ -749,14 +749,14 @@ function DetailsStep({
           autoComplete="email"
           className={inputClass}
         />
-        <span className="mt-1.5 block text-xs text-ink-soft/70">
+        <span className="mt-1.5 block text-xs text-smoke/70">
           Te llega una copia de la confirmación con tu código.
         </span>
       </label>
 
       {companions.map((companion, index) => (
         <label key={index} className="block">
-          <span className="mb-1.5 block text-sm text-ink-soft">Acompañante {index + 1}</span>
+          <span className="mb-1.5 block text-sm text-smoke">Acompañante {index + 1}</span>
           <input
             value={companion}
             onChange={(e) =>
@@ -769,33 +769,33 @@ function DetailsStep({
       ))}
 
       {companions.length === 0 && (
-        <div className="rounded-sm border border-line bg-card px-4 py-3">
+        <div className="rounded-sm border border-edge bg-coal px-4 py-3">
           <button
             type="button"
             onClick={() => setCodesOpen(!codesOpen)}
             aria-expanded={codesOpen}
-            className="data w-full text-left text-[11px] uppercase tracking-[0.25em] text-ink-soft transition-colors duration-150 hover:text-brand"
+            className="data w-full text-left text-[11px] uppercase tracking-[0.25em] text-smoke transition-colors duration-150 hover:text-copper"
           >
             ¿Tienes código de regalo o de amigo? {codesOpen ? "−" : "+"}
           </button>
           {codesOpen && (
             <div className="mt-3 grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="mb-1 block text-xs text-ink-soft">Regalo</span>
+                <span className="mb-1 block text-xs text-smoke">Regalo</span>
                 <input
                   value={giftCode}
                   onChange={(e) => setGiftCode(e.target.value.toUpperCase())}
                   placeholder="G-XXXXXX"
-                  className="focus-ring data min-h-12 w-full rounded-sm border border-line bg-paper px-3 text-sm uppercase text-ink placeholder:text-ink-soft/40"
+                  className="focus-ring data min-h-12 w-full rounded-sm border border-edge bg-night px-3 text-sm uppercase text-chalk placeholder:text-smoke/40"
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs text-ink-soft">Código de amigo</span>
+                <span className="mb-1 block text-xs text-smoke">Código de amigo</span>
                 <input
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   placeholder="BB-XXXX"
-                  className="focus-ring data min-h-12 w-full rounded-sm border border-line bg-paper px-3 text-sm uppercase text-ink placeholder:text-ink-soft/40"
+                  className="focus-ring data min-h-12 w-full rounded-sm border border-edge bg-night px-3 text-sm uppercase text-chalk placeholder:text-smoke/40"
                 />
               </label>
             </div>
@@ -840,27 +840,27 @@ function Calendar({
   ];
 
   return (
-    <div className="rounded-sm border border-line bg-card p-4">
+    <div className="rounded-sm border border-edge bg-coal p-4">
       <div className="mb-3 flex items-center justify-between">
         <button
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
-          className="flex h-11 w-11 items-center justify-center text-ink-soft transition-colors duration-150 hover:text-brand"
+          className="flex h-11 w-11 items-center justify-center text-smoke transition-colors duration-150 hover:text-copper"
           aria-label="Mes anterior"
         >
           <ChevronLeft size={20} />
         </button>
-        <p className="display text-lg text-ink">
+        <p className="display text-lg text-chalk">
           {MONTHS[month.getMonth()]} {month.getFullYear()}
         </p>
         <button
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
-          className="flex h-11 w-11 items-center justify-center text-ink-soft transition-colors duration-150 hover:text-brand"
+          className="flex h-11 w-11 items-center justify-center text-smoke transition-colors duration-150 hover:text-copper"
           aria-label="Mes siguiente"
         >
           <ChevronRight size={20} />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-ink-soft">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-smoke">
         {["L", "M", "X", "J", "V", "S", "D"].map((d) => (
           <span key={d} className="py-1">
             {d}
@@ -905,10 +905,10 @@ function CalendarDay({
       aria-pressed={isSelected}
       className={clsx(
         "aspect-square min-h-10 rounded-sm text-base sm:text-sm",
-        "transition-[background-color,color,transform] duration-150 ease-[var(--ease-out-strong)]",
-        isSelected && "scale-105 bg-brand text-on-brand shadow-[0_0_14px_rgba(42,70,150,0.35)]",
-        !isSelected && selectable && "text-ink hover:bg-wash active:scale-95",
-        !selectable && "cursor-not-allowed text-ink-soft/25 line-through",
+        "transition-[background-color,color,transform] duration-150 ease-[var(--ease-out)]",
+        isSelected && "scale-105 bg-copper text-on-copper shadow-[0_0_14px_rgba(42,70,150,0.35)]",
+        !isSelected && selectable && "text-chalk hover:bg-ash active:scale-95",
+        !selectable && "cursor-not-allowed text-smoke/25 line-through",
       )}
     >
       {day.getDate()}
@@ -949,40 +949,40 @@ function Confirmation({
       transition={{ duration: 0.28, ease: EASE_OUT }}
       className="mx-auto max-w-md px-5 pb-24 text-center"
     >
-      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand">
-        <Check size={32} className="text-on-brand" />
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-copper">
+        <Check size={32} className="text-on-copper" />
       </div>
-      <h2 className="display text-4xl text-ink">
+      <h2 className="display text-4xl text-chalk">
         {appointment.status === "pendiente" ? "¡Turno apartado!" : "¡Turno confirmado!"}
       </h2>
-      <p className="mt-2 text-lg text-brand">
+      <p className="mt-2 text-lg text-copper">
         {appointment.status === "pendiente"
           ? `Falta un paso, ${appointment.customer_name.split(" ")[0]}.`
           : `La silla es tuya, ${appointment.customer_name.split(" ")[0]}.`}
       </p>
-      <p className="mt-2 text-ink-soft">
-        Te espero el <span className="data text-ink">{appointment.date_local}</span> a las{" "}
-        <span className="data text-ink">{appointment.time_local}</span>.
+      <p className="mt-2 text-smoke">
+        Te espero el <span className="data text-chalk">{appointment.date_local}</span> a las{" "}
+        <span className="data text-chalk">{appointment.time_local}</span>.
       </p>
 
       {/* EL MOMENTO SEÑAL: el tiquete se imprime y el código queda sellado.
           Es el único medio de gestión del turno: protagonista absoluto. */}
-      <div className="plate card-frame mt-8 p-5 sm:p-6">
-        <p className="data text-xs uppercase tracking-[0.3em] text-brand">
+      <div className="surface surface mt-8 p-5 sm:p-6">
+        <p className="data text-xs uppercase tracking-[0.3em] text-copper">
           Tu código de gestión
         </p>
         <RazorReveal code={appointment.manage_code} className="mt-4">
-          <div className="texture-pinstripe h-28 rounded-sm border border-dashed border-brand/40 bg-paper/60" />
+          <div className="h-28 rounded-sm border border-dashed border-copper/40 bg-night/60" />
         </RazorReveal>
         <button
           onClick={copyCode}
-          className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-sm border border-brand px-5 text-sm text-brand transition-[background-color,color,transform] duration-150 ease-[var(--ease-out-strong)] hover:bg-brand hover:text-on-brand active:scale-[0.97]"
+          className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-sm border border-copper px-5 text-sm text-copper transition-[background-color,color,transform] duration-150 ease-[var(--ease-out)] hover:bg-copper hover:text-on-copper active:scale-[0.97]"
         >
           {copied ? <Check size={15} /> : <Copy size={15} />}
           {copied ? "¡Copiado!" : "Copiar código"}
         </button>
-        <p className="mt-5 flex items-start gap-2 text-left text-sm text-ink">
-          <TriangleAlert size={18} className="mt-0.5 shrink-0 text-brand" />
+        <p className="mt-5 flex items-start gap-2 text-left text-sm text-chalk">
+          <TriangleAlert size={18} className="mt-0.5 shrink-0 text-copper" />
           <span>
             <strong>Guarda este código:</strong> lo necesitas para consultar o cancelar tu
             turno. Tómale una captura o cópialo ahora
@@ -990,7 +990,7 @@ function Confirmation({
               <>
                 {" "}
                 — también te llega una copia a{" "}
-                <span className="data text-brand">{email}</span> al quedar confirmado.
+                <span className="data text-copper">{email}</span> al quedar confirmado.
               </>
             ) : (
               <> — no se envía por ningún otro medio.</>
@@ -999,22 +999,22 @@ function Confirmation({
         </p>
       </div>
 
-      <div className="card-frame mt-6 border border-line bg-card px-6 py-4">
-        <p className="data text-xs uppercase tracking-widest text-ink-soft">Turno del día</p>
-        <p className="data mt-1 text-4xl font-semibold text-brand">
+      <div className="surface mt-6 border border-edge bg-coal px-6 py-4">
+        <p className="data text-xs uppercase tracking-widest text-smoke">Turno del día</p>
+        <p className="data mt-1 text-4xl font-semibold text-copper">
           #{appointment.daily_number}
         </p>
       </div>
 
       {appointment.gift_description && (
-        <p className="data mt-4 rounded-sm border border-brand/40 bg-brand/10 px-4 py-3 text-sm text-brand">
+        <p className="data mt-4 rounded-sm border border-copper/40 bg-copper/10 px-4 py-3 text-sm text-copper">
           🎁 Regalo aplicado: {appointment.gift_description} — se redime en el local
         </p>
       )}
 
       {groupExtras.length > 0 && (
-        <div className="card-frame mt-4 border border-line bg-card p-4 text-left">
-          <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
+        <div className="surface mt-4 border border-edge bg-coal p-4 text-left">
+          <p className="data text-[11px] uppercase tracking-[0.3em] text-copper">
             Los turnos del parche
           </p>
           <ul className="mt-2 space-y-2">
@@ -1023,17 +1023,17 @@ function Confirmation({
                 key={extra.manage_code}
                 className="flex items-center justify-between gap-3 text-sm"
               >
-                <span className="truncate text-ink">
+                <span className="truncate text-chalk">
                   {extra.customer_name} ·{" "}
-                  <span className="data text-brand">{extra.time_local}</span>
+                  <span className="data text-copper">{extra.time_local}</span>
                 </span>
-                <span className="data selectable tracking-[0.2em] text-ink">
+                <span className="data selectable tracking-[0.2em] text-chalk">
                   {extra.manage_code}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-ink-soft/70">
+          <p className="mt-2 text-[11px] text-smoke/70">
             Cada uno gestiona su turno con su propio código.
           </p>
         </div>
@@ -1055,19 +1055,19 @@ function Confirmation({
       <div className="mt-8 flex flex-col gap-3">
         <Link
           href={`/turno/${appointment.manage_code}`}
-          className="display rounded-sm bg-brand px-6 py-3 text-lg text-on-brand transition-transform duration-150 ease-[var(--ease-out-strong)] active:scale-[0.97]"
+          className="display rounded-sm bg-copper px-6 py-3 text-lg text-on-copper transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Ver mi tiquete vivo
         </Link>
         <Link
           href="/hoy"
-          className="data text-xs uppercase tracking-widest text-ink-soft transition-colors duration-150 hover:text-brand"
+          className="data text-xs uppercase tracking-widest text-smoke transition-colors duration-150 hover:text-copper"
         >
           ¿Cómo va la fila hoy? →
         </Link>
         <Link
           href="/"
-          className="text-sm text-ink-soft transition-colors duration-150 hover:text-brand"
+          className="text-sm text-smoke transition-colors duration-150 hover:text-copper"
         >
           Volver al inicio
         </Link>

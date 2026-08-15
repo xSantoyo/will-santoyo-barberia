@@ -66,6 +66,11 @@ export default async function HomePage() {
             `${NEGOCIO.oficio} en ${NEGOCIO.ciudad}`
           }
           slides={gallery.slice(0, 4)}
+          desde={
+            services.length > 0
+              ? Math.min(...services.map((s) => s.price_cop))
+              : null
+          }
         />
         <LiveStrip />
         <About tenant={tenant} />

@@ -34,14 +34,14 @@ export default function ProductosPage() {
       const asset = await adminApi.uploadImage("product", file);
       await adminApi.updateProduct(product.id, { photo_key: asset.s3_key });
       load();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Error subiendo la foto");
+    } catch (brick) {
+      alert(brick instanceof Error ? brick.message : "Error subiendo la foto");
     }
   }
 
   if (loading)
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-brand">
+      <div className="flex min-h-[50vh] items-center justify-center text-copper">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
@@ -60,7 +60,7 @@ export default function ProductosPage() {
       />
 
       {products.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-sm border border-line bg-card py-16 text-ink-soft">
+        <div className="flex flex-col items-center gap-3 rounded-sm border border-edge bg-coal py-16 text-smoke">
           <Package size={32} />
           <p className="text-sm">La vitrina está vacía — agrega el primer producto.</p>
         </div>
@@ -69,11 +69,11 @@ export default function ProductosPage() {
           {products.map((product) => (
             <div
               key={product.id}
-              className={`card-frame border bg-card ${
-                product.is_active ? "border-line" : "border-err/40 opacity-60"
+              className={`surface border bg-coal ${
+                product.is_active ? "border-edge" : "border-brick/40 opacity-60"
               }`}
             >
-              <label className="group relative block aspect-square cursor-pointer overflow-hidden bg-wash">
+              <label className="group relative block aspect-square cursor-pointer overflow-hidden bg-ash">
                 {product.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -86,8 +86,8 @@ export default function ProductosPage() {
                     BB
                   </span>
                 )}
-                <span className="absolute inset-0 hidden items-center justify-center bg-paper/70 group-hover:flex">
-                  <Camera size={20} className="text-brand" />
+                <span className="absolute inset-0 hidden items-center justify-center bg-night/70 group-hover:flex">
+                  <Camera size={20} className="text-copper" />
                 </span>
                 <input
                   type="file"
@@ -100,8 +100,8 @@ export default function ProductosPage() {
                 />
               </label>
               <div className="p-4">
-                <h2 className="text-ink">{product.name}</h2>
-                <p className="data mt-1 text-lg font-semibold text-brand">
+                <h2 className="text-chalk">{product.name}</h2>
+                <p className="data mt-1 text-lg font-semibold text-copper">
                   {formatCOP(product.price_cop)}
                 </p>
                 <button onClick={() => setEditing(product)} className={`${buttonGhost} mt-3`}>
@@ -155,8 +155,8 @@ function ProductModal({
       if (product) await adminApi.updateProduct(product.id, payload);
       else await adminApi.createProduct(payload);
       onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+    } catch (brick) {
+      setError(brick instanceof Error ? brick.message : "Error al guardar");
       setSaving(false);
     }
   }
@@ -165,9 +165,9 @@ function ProductModal({
     <Modal title={product ? `Editar ${product.name}` : "Nuevo producto"} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         {error && (
-          <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">{error}</div>
+          <div className="rounded-sm border border-brick bg-brick/15 px-3 py-2 text-sm">{error}</div>
         )}
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Nombre
           <input
             required
@@ -176,7 +176,7 @@ function ProductModal({
             className={`${inputClass} mt-1`}
           />
         </label>
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Descripción
           <input
             value={form.description ?? ""}
@@ -185,7 +185,7 @@ function ProductModal({
             placeholder="Fijación fuerte, brillo cero…"
           />
         </label>
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Precio (COP)
           <input
             type="number"
@@ -198,7 +198,7 @@ function ProductModal({
           />
         </label>
         {product && (
-          <label className="flex items-center gap-2 text-sm text-ink-soft">
+          <label className="flex items-center gap-2 text-sm text-smoke">
             <input
               type="checkbox"
               checked={form.is_active}

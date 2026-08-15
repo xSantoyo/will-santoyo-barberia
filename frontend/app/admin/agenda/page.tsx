@@ -88,7 +88,7 @@ export default function AgendaPage() {
       />
 
       {loading || !data ? (
-        <div className="flex min-h-[40vh] items-center justify-center text-brand">
+        <div className="flex min-h-[40vh] items-center justify-center text-copper">
           <Loader2 className="animate-spin" size={32} />
         </div>
       ) : (
@@ -112,16 +112,16 @@ export default function AgendaPage() {
                       key={iso}
                       className={`min-h-28 rounded-sm border p-2.5 ${
                         iso === todayISO
-                          ? "border-brand/60 bg-brand/5"
-                          : "border-line bg-card"
+                          ? "border-copper/60 bg-copper/5"
+                          : "border-edge bg-coal"
                       } ${isRest ? "opacity-70" : ""}`}
                     >
                       <p className="mb-2 flex items-baseline justify-between text-xs">
-                        <span className={iso === todayISO ? "text-brand" : "text-ink-soft"}>
+                        <span className={iso === todayISO ? "text-copper" : "text-smoke"}>
                           {day.toLocaleDateString("es-CO", { weekday: "short", day: "numeric" })}
                         </span>
                         {isRest && (
-                          <span className="text-[10px] uppercase tracking-wider text-err">
+                          <span className="text-[10px] uppercase tracking-wider text-brick">
                             {timeOff ? (timeOff.reason ?? "Descanso") : "Descanso"}
                           </span>
                         )}
@@ -130,18 +130,18 @@ export default function AgendaPage() {
                         {appointments.map((appointment) => (
                           <li
                             key={appointment.id}
-                            className="rounded-sm bg-paper px-2 py-1.5 text-xs"
+                            className="rounded-sm bg-night px-2 py-1.5 text-xs"
                             title={`${appointment.customer_name} · ${appointment.services
                               .map((s) => s.name)
                               .join(", ")}`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="data font-medium text-brand">
+                              <span className="data font-medium text-copper">
                                 {appointment.time_local}
                               </span>
                               <StatusBadge status={appointment.status} />
                             </div>
-                            <p className="mt-0.5 truncate text-ink">
+                            <p className="mt-0.5 truncate text-chalk">
                               {appointment.customer_name}
                             </p>
                           </li>

@@ -47,8 +47,8 @@ export default function GaleriaPage() {
     for (const file of list) {
       try {
         await adminApi.uploadImage(kind, file);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error subiendo una imagen");
+      } catch (brick) {
+        setError(brick instanceof Error ? brick.message : "Error subiendo una imagen");
       } finally {
         setUploading((n) => n - 1);
       }
@@ -71,8 +71,8 @@ export default function GaleriaPage() {
             onClick={() => setKind(option.value)}
             className={`rounded-sm border px-4 py-2 text-sm transition-colors ${
               kind === option.value
-                ? "border-brand bg-brand/10 text-brand"
-                : "border-line text-ink-soft hover:text-ink"
+                ? "border-copper bg-copper/10 text-copper"
+                : "border-edge text-smoke hover:text-chalk"
             }`}
           >
             {option.label}
@@ -94,19 +94,19 @@ export default function GaleriaPage() {
         }}
         onClick={() => inputRef.current?.click()}
         className={`mb-8 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-sm border-2 border-dashed px-6 py-12 text-center transition-colors ${
-          dragOver ? "border-brand bg-brand/5" : "border-line hover:border-brand/40"
+          dragOver ? "border-copper bg-copper/5" : "border-edge hover:border-copper/40"
         }`}
       >
         {uploading > 0 ? (
           <>
-            <Loader2 className="animate-spin text-brand" size={32} />
-            <p className="text-sm text-ink-soft">Subiendo {uploading} imagen(es)…</p>
+            <Loader2 className="animate-spin text-copper" size={32} />
+            <p className="text-sm text-smoke">Subiendo {uploading} imagen(es)…</p>
           </>
         ) : (
           <>
-            <UploadCloud size={32} className="text-brand" />
-            <p className="text-ink">Arrastra tus fotos aquí o haz clic para elegirlas</p>
-            <p className="text-xs text-ink-soft">JPG, PNG, WebP o AVIF · máx. 10 MB por imagen</p>
+            <UploadCloud size={32} className="text-copper" />
+            <p className="text-chalk">Arrastra tus fotos aquí o haz clic para elegirlas</p>
+            <p className="text-xs text-smoke">JPG, PNG, WebP o AVIF · máx. 10 MB por imagen</p>
           </>
         )}
         <input
@@ -120,18 +120,18 @@ export default function GaleriaPage() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
+        <div className="mb-6 rounded-sm border border-brick bg-brick/15 px-4 py-3 text-sm">
           {error}
         </div>
       )}
 
       {/* Grilla de imágenes */}
       {loading ? (
-        <div className="flex min-h-[20vh] items-center justify-center text-brand">
+        <div className="flex min-h-[20vh] items-center justify-center text-copper">
           <Loader2 className="animate-spin" size={28} />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-sm border border-line bg-card py-16 text-ink-soft">
+        <div className="flex flex-col items-center gap-3 rounded-sm border border-edge bg-coal py-16 text-smoke">
           <ImagePlus size={32} />
           <p className="text-sm">Aún no hay fotos en esta categoría.</p>
         </div>
@@ -140,7 +140,7 @@ export default function GaleriaPage() {
           {items.map((item) => (
             <figure
               key={item.id}
-              className="group relative overflow-hidden rounded-sm border border-line bg-card"
+              className="group relative overflow-hidden rounded-sm border border-edge bg-coal"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -155,7 +155,7 @@ export default function GaleriaPage() {
                     adminApi.deleteMedia(item.id).then(load);
                   }
                 }}
-                className="absolute right-2 top-2 hidden rounded-sm bg-paper/80 p-2 text-err backdrop-blur group-hover:block"
+                className="absolute right-2 top-2 hidden rounded-sm bg-night/80 p-2 text-brick backdrop-blur group-hover:block"
                 aria-label="Eliminar imagen"
               >
                 <Trash2 size={16} />

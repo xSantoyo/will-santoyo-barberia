@@ -32,8 +32,8 @@ export default function AccountPage() {
       setCurrent("");
       setNext("");
       setConfirm("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo cambiar la contraseña");
+    } catch (brick) {
+      setError(brick instanceof Error ? brick.message : "No se pudo cambiar la contraseña");
     } finally {
       setSaving(false);
     }
@@ -48,10 +48,10 @@ export default function AccountPage() {
 
       <form
         onSubmit={submit}
-        className="card-frame max-w-md space-y-4 border border-line bg-card p-6"
+        className="surface max-w-md space-y-4 border border-edge bg-coal p-6"
       >
-        <h2 className="display flex items-center gap-2 text-2xl text-ink">
-          <KeyRound size={20} className="text-brand" /> Cambiar contraseña
+        <h2 className="display flex items-center gap-2 text-2xl text-chalk">
+          <KeyRound size={20} className="text-copper" /> Cambiar contraseña
         </h2>
 
         {done && (
@@ -61,12 +61,12 @@ export default function AccountPage() {
           </div>
         )}
         {error && (
-          <div className="rounded-sm border border-err bg-err/15 px-4 py-3 text-sm">
+          <div className="rounded-sm border border-brick bg-brick/15 px-4 py-3 text-sm">
             {error}
           </div>
         )}
 
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Contraseña actual
           <input
             type="password"
@@ -77,7 +77,7 @@ export default function AccountPage() {
             className={`${inputClass} mt-1`}
           />
         </label>
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Contraseña nueva
           <input
             type="password"
@@ -87,11 +87,11 @@ export default function AccountPage() {
             autoComplete="new-password"
             className={`${inputClass} mt-1`}
           />
-          <span className="mt-1 block text-xs text-ink-soft/70">
+          <span className="mt-1 block text-xs text-smoke/70">
             Mínimo 10 caracteres, combinando letras y números.
           </span>
         </label>
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Repite la contraseña nueva
           <input
             type="password"
@@ -102,7 +102,7 @@ export default function AccountPage() {
             className={`${inputClass} mt-1`}
           />
           {confirm.length > 0 && next !== confirm && (
-            <span className="mt-1 block text-xs text-err">No coinciden.</span>
+            <span className="mt-1 block text-xs text-brick">No coinciden.</span>
           )}
         </label>
 

@@ -9,17 +9,17 @@ import { adminApi } from "@/lib/admin-api";
 import type { SecurityEventRow } from "@/lib/types";
 import { PageTitle, buttonGhost } from "@/components/admin/shared";
 
-const KIND_LABELS: Record<string, { label: string; tone: "info" | "warn" | "bad" }> = {
+const KIND_LABELS: Record<string, { label: string; tone: "info" | "amber" | "bad" }> = {
   login_success: { label: "Login correcto", tone: "info" },
-  login_failed: { label: "Login fallido", tone: "warn" },
+  login_failed: { label: "Login fallido", tone: "amber" },
   login_locked: { label: "Cuenta/IP bloqueada", tone: "bad" },
   password_changed: { label: "Contraseña cambiada", tone: "info" },
-  rate_limited: { label: "Rate limit activado", tone: "warn" },
+  rate_limited: { label: "Rate limit activado", tone: "amber" },
   honeypot: { label: "Bot (honeypot)", tone: "bad" },
-  captcha_failed: { label: "CAPTCHA fallido", tone: "warn" },
+  captcha_failed: { label: "CAPTCHA fallido", tone: "amber" },
   webhook_bad_signature: { label: "Webhook: firma inválida", tone: "bad" },
-  webhook_rejected: { label: "Webhook rechazado", tone: "warn" },
-  booking_burst: { label: "Ráfaga de reservas", tone: "warn" },
+  webhook_rejected: { label: "Webhook rechazado", tone: "amber" },
+  booking_burst: { label: "Ráfaga de reservas", tone: "amber" },
   booking_created: { label: "Reserva pública", tone: "info" },
 };
 
@@ -33,9 +33,9 @@ const FILTERS = [
 ];
 
 const TONE_CLASS = {
-  info: "border-line text-ink-soft",
-  warn: "border-brand/50 text-brand",
-  bad: "border-err/60 text-err",
+  info: "border-edge text-smoke",
+  amber: "border-copper/50 text-copper",
+  bad: "border-brick/60 text-brick",
 };
 
 export default function SecurityPage() {
@@ -48,12 +48,12 @@ export default function SecurityPage() {
     adminApi
       .securityEvents(kind || undefined)
       .then((rows) => setEvents(rows.filter((r) => r.kind !== "booking_created")))
-      .catch((err) => setError(err.message));
+      .catch((brick) => setError(brick.message));
   }, [kind]);
 
   useEffect(load, [load]);
 
-  if (error) return <p className="text-err">{error}</p>;
+  if (error) return <p className="text-brick">{error}</p>;
 
   return (
     <>
@@ -67,13 +67,13 @@ export default function SecurityPage() {
         }
       />
 
-      <div className="mb-5 flex flex-wrap gap-1 rounded-sm border border-line p-1">
+      <div className="mb-5 flex flex-wrap gap-1 rounded-sm border border-edge p-1">
         {FILTERS.map((filter) => (
           <button
             key={filter.kind}
             onClick={() => setKind(filter.kind)}
             className={`data rounded-sm px-3 py-1.5 text-xs uppercase tracking-wider transition-colors ${
-              kind === filter.kind ? "bg-brand text-on-brand" : "text-ink-soft hover:text-ink"
+              kind === filter.kind ? "bg-copper text-on-copper" : "text-smoke hover:text-chalk"
             }`}
           >
             {filter.label}
@@ -82,19 +82,19 @@ export default function SecurityPage() {
       </div>
 
       {!events ? (
-        <div className="flex min-h-[40vh] items-center justify-center text-brand">
+        <div className="flex min-h-[40vh] items-center justify-center text-copper">
           <Loader2 className="animate-spin" size={32} />
         </div>
       ) : events.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-sm border border-dashed border-line p-12 text-center">
-          <ShieldAlert size={28} className="text-ink-soft/50" />
-          <p className="text-sm text-ink-soft">Sin eventos registrados. Todo tranquilo.</p>
+        <div className="flex flex-col items-center gap-3 rounded-sm border border-dashed border-edge p-12 text-center">
+          <ShieldAlert size={28} className="text-smoke/50" />
+          <p className="text-sm text-smoke">Sin eventos registrados. Todo tranquilo.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-line">
+        <div className="overflow-x-auto rounded-sm border border-edge">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-card">
-              <tr className="data text-[11px] uppercase tracking-wider text-ink-soft">
+            <thead className="bg-coal">
+              <tr className="data text-[11px] uppercase tracking-wider text-smoke">
                 <th className="px-4 py-3">Cuándo</th>
                 <th className="px-4 py-3">Evento</th>
                 <th className="px-4 py-3">Usuario</th>
@@ -109,8 +109,8 @@ export default function SecurityPage() {
                   tone: "info" as const,
                 };
                 return (
-                  <tr key={event.id} className="border-t border-line">
-                    <td className="data whitespace-nowrap px-4 py-2.5 text-xs text-ink-soft">
+                  <tr key={event.id} className="border-t border-edge">
+                    <td className="data whitespace-nowrap px-4 py-2.5 text-xs text-smoke">
                       {new Date(event.created_at).toLocaleString("es-CO", {
                         day: "2-digit",
                         month: "short",
@@ -125,11 +125,11 @@ export default function SecurityPage() {
                         {meta.label}
                       </span>
                     </td>
-                    <td className="data px-4 py-2.5 text-xs text-ink">
+                    <td className="data px-4 py-2.5 text-xs text-chalk">
                       {event.username ?? "—"}
                     </td>
-                    <td className="data px-4 py-2.5 text-xs text-ink-soft">{event.ip ?? "—"}</td>
-                    <td className="data max-w-[280px] truncate px-4 py-2.5 text-xs text-ink-soft">
+                    <td className="data px-4 py-2.5 text-xs text-smoke">{event.ip ?? "—"}</td>
+                    <td className="data max-w-[280px] truncate px-4 py-2.5 text-xs text-smoke">
                       {Object.entries(event.detail ?? {})
                         .filter(([, v]) => v != null && v !== "")
                         .map(([k, v]) => `${k}: ${String(v)}`)

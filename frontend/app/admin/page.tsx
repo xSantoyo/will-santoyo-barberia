@@ -49,7 +49,7 @@ export default function DashboardPage() {
     adminApi
       .dashboard()
       .then(setData)
-      .catch((err) => setError(err.message));
+      .catch((brick) => setError(brick.message));
   }, []);
 
   useEffect(() => {
@@ -98,17 +98,17 @@ export default function DashboardPage() {
     try {
       await adminApi.setStatus(appointment.id, status);
       load();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Error");
+    } catch (brick) {
+      alert(brick instanceof Error ? brick.message : "Error");
     } finally {
       setBusy(null);
     }
   }
 
-  if (error) return <p className="text-err">{error}</p>;
+  if (error) return <p className="text-brick">{error}</p>;
   if (!data)
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-brand">
+      <div className="flex min-h-[50vh] items-center justify-center text-copper">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
@@ -129,45 +129,45 @@ export default function DashboardPage() {
       {/* Resumen ejecutivo: el pulso del día de un vistazo */}
       {summary && (
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="plate card-frame p-4">
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
-              <Banknote size={13} className="text-brand" /> Caja de hoy
+          <div className="surface surface p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
+              <Banknote size={13} className="text-copper" /> Caja de hoy
             </p>
-            <p className="data mt-1 text-2xl font-semibold text-brand">
+            <p className="data mt-1 text-2xl font-semibold text-copper">
               {formatCOP(summary.earned)}
             </p>
-            <p className="data mt-0.5 text-[11px] text-ink-soft">
+            <p className="data mt-0.5 text-[11px] text-smoke">
               + {formatCOP(summary.expected)} por atender
             </p>
           </div>
-          <div className="plate card-frame p-4">
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
-              <Scissors size={13} className="text-brand" /> Atendidos
+          <div className="surface surface p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
+              <Scissors size={13} className="text-copper" /> Atendidos
             </p>
-            <p className="data mt-1 text-2xl font-semibold text-ink">{summary.doneCount}</p>
+            <p className="data mt-1 text-2xl font-semibold text-chalk">{summary.doneCount}</p>
           </div>
-          <div className="plate card-frame p-4">
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
-              <Clock3 size={13} className="text-brand" /> En fila
+          <div className="surface surface p-4">
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
+              <Clock3 size={13} className="text-copper" /> En fila
             </p>
-            <p className="data mt-1 text-2xl font-semibold text-ink">{summary.activeCount}</p>
+            <p className="data mt-1 text-2xl font-semibold text-chalk">{summary.activeCount}</p>
           </div>
           <div
-            className={`plate card-frame p-4 ${summary.overdue.length > 0 ? "border-err/60" : ""}`}
+            className={`surface surface p-4 ${summary.overdue.length > 0 ? "border-brick/60" : ""}`}
           >
-            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
-              <UserX size={13} className={summary.overdue.length > 0 ? "text-err" : "text-brand"} />
+            <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
+              <UserX size={13} className={summary.overdue.length > 0 ? "text-brick" : "text-copper"} />
               Vencidos sin atender
             </p>
             <p
               className={`data mt-1 text-2xl font-semibold ${
-                summary.overdue.length > 0 ? "text-err" : "text-ink"
+                summary.overdue.length > 0 ? "text-brick" : "text-chalk"
               }`}
             >
               {summary.overdue.length}
             </p>
             {summary.overdue.length > 0 && (
-              <p className="data mt-0.5 truncate text-[11px] text-ink-soft">
+              <p className="data mt-0.5 truncate text-[11px] text-smoke">
                 {summary.overdue.map((a) => `#${a.daily_number} ${a.time_local}`).join(" · ")}
               </p>
             )}
@@ -176,14 +176,14 @@ export default function DashboardPage() {
       )}
 
       {newAppointments.length > 0 && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-brand/50 bg-brand/10 px-4 py-3">
-          <p className="flex items-center gap-2 text-sm text-ink">
-            <BellRing size={16} className="shrink-0 text-brand" />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-copper/50 bg-copper/10 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-chalk">
+            <BellRing size={16} className="shrink-0 text-copper" />
             <span>
-              <strong className="text-brand">{newAppointments.length}</strong> turno(s)
+              <strong className="text-copper">{newAppointments.length}</strong> turno(s)
               nuevo(s) sin revisar hoy
               {newAppointments.length <= 3 && (
-                <span className="text-ink-soft">
+                <span className="text-smoke">
                   {" · "}
                   {newAppointments
                     .map((a) => `${a.time_local} ${a.customer_name}`)
@@ -194,7 +194,7 @@ export default function DashboardPage() {
           </p>
           <button
             onClick={markSeen}
-            className="rounded-sm border border-brand px-3 py-1.5 text-xs text-brand transition-colors hover:bg-brand hover:text-on-brand"
+            className="rounded-sm border border-copper px-3 py-1.5 text-xs text-copper transition-colors hover:bg-copper hover:text-on-copper"
           >
             Marcar como revisados
           </button>
@@ -202,23 +202,23 @@ export default function DashboardPage() {
       )}
 
       <div className="mx-auto max-w-2xl">
-          <section className="rounded-sm border border-line bg-card p-5">
+          <section className="rounded-sm border border-edge bg-coal p-5">
             <header className="mb-4 flex items-center justify-between gap-2">
-              <h2 className="display text-2xl text-ink">Hoy en la silla</h2>
+              <h2 className="display text-2xl text-chalk">Hoy en la silla</h2>
               <div className="flex items-center gap-2">
                 {data.is_day_off ? (
-                  <span className="data rounded-full border border-err/50 px-3 py-0.5 text-[11px] uppercase tracking-wider text-err">
+                  <span className="data rounded-full border border-brick/50 px-3 py-0.5 text-[11px] uppercase tracking-wider text-brick">
                     Descansa hoy
                   </span>
                 ) : (
                   <>
-                    <span className="data text-xs text-ink-soft">
+                    <span className="data text-xs text-smoke">
                       {data.done_count} atendidos
                     </span>
                     <button
                       onClick={() => setWalkInOpen(true)}
                       title="Cliente sin cita: toma el próximo hueco de hoy"
-                      className="data flex items-center gap-1.5 rounded-sm border border-brand/40 px-2.5 py-1 text-[11px] uppercase tracking-wider text-brand transition-colors hover:bg-brand hover:text-on-brand"
+                      className="data flex items-center gap-1.5 rounded-sm border border-copper/40 px-2.5 py-1 text-[11px] uppercase tracking-wider text-copper transition-colors hover:bg-copper hover:text-on-copper"
                     >
                       <Footprints size={12} /> Walk-in
                     </button>
@@ -229,12 +229,12 @@ export default function DashboardPage() {
 
             {/* Turno en curso */}
             {data.current ? (
-              <div className="mb-4 rounded-sm border border-brand/50 bg-brand/10 p-4">
-                <p className="mb-1 text-[11px] uppercase tracking-widest text-brand">
+              <div className="mb-4 rounded-sm border border-copper/50 bg-copper/10 p-4">
+                <p className="mb-1 text-[11px] uppercase tracking-widest text-copper">
                   En el sillón · #{data.current.daily_number}
                 </p>
-                <p className="text-ink">{data.current.customer_name}</p>
-                <p className="text-xs text-ink-soft">
+                <p className="text-chalk">{data.current.customer_name}</p>
+                <p className="text-xs text-smoke">
                   {data.current.time_local}–{data.current.end_time_local} ·{" "}
                   {data.current.services.map((s) => s.name).join(", ")}
                 </p>
@@ -243,7 +243,7 @@ export default function DashboardPage() {
                     <button
                       disabled={busy === data.current.id}
                       onClick={() => setStatus(data.current!, "en_curso")}
-                      className="rounded-sm bg-brand px-3 py-1.5 text-xs text-on-brand"
+                      className="rounded-sm bg-copper px-3 py-1.5 text-xs text-on-copper"
                     >
                       Iniciar
                     </button>
@@ -251,7 +251,7 @@ export default function DashboardPage() {
                   <button
                     disabled={busy === data.current.id}
                     onClick={() => setStatus(data.current!, "completado")}
-                    className="rounded-sm border border-brand/50 px-3 py-1.5 text-xs text-brand"
+                    className="rounded-sm border border-copper/50 px-3 py-1.5 text-xs text-copper"
                   >
                     Completar
                   </button>
@@ -259,32 +259,32 @@ export default function DashboardPage() {
               </div>
             ) : (
               !data.is_day_off && (
-                <p className="mb-4 rounded-sm border border-dashed border-line p-4 text-center text-xs text-ink-soft">
+                <p className="mb-4 rounded-sm border border-dashed border-edge p-4 text-center text-xs text-smoke">
                   Sillón libre
                 </p>
               )
             )}
 
             {/* Próximos */}
-            <p className="mb-2 text-[11px] uppercase tracking-widest text-ink-soft">
+            <p className="mb-2 text-[11px] uppercase tracking-widest text-smoke">
               Próximos ({data.upcoming.length})
             </p>
             <ul className="space-y-2">
               {data.upcoming.slice(0, 5).map((appointment) => (
                 <li
                   key={appointment.id}
-                  className="flex items-center justify-between gap-3 rounded-sm bg-paper px-3 py-2.5"
+                  className="flex items-center justify-between gap-3 rounded-sm bg-night px-3 py-2.5"
                 >
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 truncate text-sm text-ink">
-                      <span className="data font-medium text-brand">
+                    <p className="flex items-center gap-1.5 truncate text-sm text-chalk">
+                      <span className="data font-medium text-copper">
                         {appointment.time_local}
                       </span>
                       {appointment.customer_whatsapp ? (
                         <button
                           onClick={() => setProfilePhone(appointment.customer_whatsapp)}
                           title="Ver perfil del cliente (historial, fidelidad, notas)"
-                          className="truncate underline-offset-4 transition-colors hover:text-brand hover:underline"
+                          className="truncate underline-offset-4 transition-colors hover:text-copper hover:underline"
                         >
                           {appointment.customer_name}
                         </button>
@@ -294,17 +294,17 @@ export default function DashboardPage() {
                       {appointment.attendance_confirmed && (
                         <CircleCheck
                           size={13}
-                          className="shrink-0 text-brand"
+                          className="shrink-0 text-copper"
                           aria-label="Asistencia confirmada"
                         />
                       )}
                     </p>
-                    <p className="truncate text-xs text-ink-soft">
+                    <p className="truncate text-xs text-smoke">
                       #{appointment.daily_number} ·{" "}
                       {appointment.services.map((s) => s.name).join(", ")} ·{" "}
                       {formatCOP(appointment.total_cop)}
                       {appointment.attendance_pending && (
-                        <span className="data ml-1.5 text-[10px] uppercase tracking-wider text-err">
+                        <span className="data ml-1.5 text-[10px] uppercase tracking-wider text-brick">
                           sin confirmar
                         </span>
                       )}
@@ -314,7 +314,7 @@ export default function DashboardPage() {
                 </li>
               ))}
               {data.upcoming.length === 0 && (
-                <li className="py-2 text-center text-xs text-ink-soft/60">
+                <li className="py-2 text-center text-xs text-smoke/60">
                   Sin más turnos hoy
                 </li>
               )}
@@ -369,8 +369,8 @@ function WalkInModal({
       });
       setResult(appointment);
       onCreated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo registrar el walk-in");
+    } catch (brick) {
+      setError(brick instanceof Error ? brick.message : "No se pudo registrar el walk-in");
     } finally {
       setSaving(false);
     }
@@ -392,18 +392,18 @@ function WalkInModal({
       {result ? (
         /* La placa del walk-in: número, hora y código para dictar al cliente */
         <div className="text-center">
-          <p className="data text-[11px] uppercase tracking-[0.3em] text-brand">
+          <p className="data text-[11px] uppercase tracking-[0.3em] text-copper">
             En la fila de hoy
           </p>
-          <p className="stamped mt-2 text-6xl text-ink">
-            <span className="text-brand">#</span>
+          <p className="stamped mt-2 text-6xl text-chalk">
+            <span className="text-copper">#</span>
             {result.daily_number}
           </p>
-          <p className="data mt-2 text-sm text-ink-soft">
-            Pasa a las <span className="font-semibold text-brand">{result.time_local}</span>
+          <p className="data mt-2 text-sm text-smoke">
+            Pasa a las <span className="font-semibold text-copper">{result.time_local}</span>
           </p>
-          <div className="plate card-frame mt-5 p-4">
-            <p className="data text-[11px] uppercase tracking-[0.3em] text-ink-soft">
+          <div className="surface surface mt-5 p-4">
+            <p className="data text-[11px] uppercase tracking-[0.3em] text-smoke">
               Código del cliente
             </p>
             <p className="stamped selectable mt-1 text-3xl tracking-[0.25em]">
@@ -411,14 +411,14 @@ function WalkInModal({
             </p>
             <button
               onClick={copyCode}
-              className="data mx-auto mt-3 flex items-center gap-2 rounded-sm border border-brand px-4 py-1.5 text-xs uppercase tracking-wider text-brand transition-colors hover:bg-brand hover:text-on-brand"
+              className="data mx-auto mt-3 flex items-center gap-2 rounded-sm border border-copper px-4 py-1.5 text-xs uppercase tracking-wider text-copper transition-colors hover:bg-copper hover:text-on-copper"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />}
               {copied ? "Copiado" : "Copiar"}
             </button>
-            <p className="mt-3 text-xs text-ink-soft">
+            <p className="mt-3 text-xs text-smoke">
               Díctaselo o envíaselo: con él sigue su posición en vivo en{" "}
-              <span className="data text-brand">/turno/{result.manage_code}</span>
+              <span className="data text-copper">/turno/{result.manage_code}</span>
             </p>
           </div>
           <button onClick={onClose} className={`${buttonPrimary} mt-5 w-full`}>
@@ -427,16 +427,16 @@ function WalkInModal({
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
-          <p className="text-sm text-ink-soft">
-            Cliente sin cita: toma el <strong className="text-ink">próximo hueco de hoy</strong>{" "}
+          <p className="text-sm text-smoke">
+            Cliente sin cita: toma el <strong className="text-chalk">próximo hueco de hoy</strong>{" "}
             y entra a La Fila con su número.
           </p>
           {error && (
-            <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">
+            <div className="rounded-sm border border-brick bg-brick/15 px-3 py-2 text-sm">
               {error}
             </div>
           )}
-          <label className="block text-sm text-ink-soft">
+          <label className="block text-sm text-smoke">
             Nombre
             <input
               required
@@ -447,7 +447,7 @@ function WalkInModal({
               placeholder="Nombre del cliente"
             />
           </label>
-          <label className="block text-sm text-ink-soft">
+          <label className="block text-sm text-smoke">
             WhatsApp (opcional)
             <input
               value={phone}
@@ -457,7 +457,7 @@ function WalkInModal({
             />
           </label>
           <fieldset>
-            <legend className="mb-1 text-sm text-ink-soft">Servicios</legend>
+            <legend className="mb-1 text-sm text-smoke">Servicios</legend>
             <div className="grid grid-cols-2 gap-2">
               {services.map((service) => {
                 const active = serviceIds.includes(service.id);
@@ -473,7 +473,7 @@ function WalkInModal({
                       )
                     }
                     className={`rounded-sm border px-3 py-2 text-left text-xs transition-colors ${
-                      active ? "border-brand bg-brand/10 text-brand" : "border-line text-ink-soft"
+                      active ? "border-copper bg-copper/10 text-copper" : "border-edge text-smoke"
                     }`}
                   >
                     {service.name}

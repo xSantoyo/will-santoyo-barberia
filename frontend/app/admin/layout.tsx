@@ -59,12 +59,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-svh">
-      <aside className="texture-pinstripe fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-line bg-card lg:w-56">
-        <Link href="/" className="display px-3 py-6 text-center text-xl text-ink lg:px-5 lg:text-left">
+      <aside className="fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-edge bg-coal lg:w-56">
+        <Link href="/" className="display px-3 py-6 text-center text-xl text-chalk lg:px-5 lg:text-left">
           <span className="hidden lg:inline">
-            Will<span className="text-brand"> Santoyo</span>
+            Will<span className="text-copper"> Santoyo</span>
           </span>
-          <span className="text-brand lg:hidden">BB</span>
+          <span className="text-copper lg:hidden">BB</span>
         </Link>
         <div className="barber-stripe mx-3 mb-4 lg:mx-5" />
         <nav className="flex-1 space-y-1 px-2">
@@ -74,14 +74,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={href}
                 href={href}
-                className={`relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-[background-color,color] duration-150 ease-[var(--ease-out-strong)] ${
+                className={`relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-[background-color,color] duration-150 ease-[var(--ease-out)] ${
                   active
-                    ? "bg-brand/15 text-brand"
-                    : "text-ink-soft hover:translate-x-0.5 hover:bg-wash hover:text-ink"
+                    ? "bg-copper/15 text-copper"
+                    : "text-smoke hover:translate-x-0.5 hover:bg-ash hover:text-chalk"
                 }`}
               >
                 {active && (
-                  <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-brand" />
+                  <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-copper" />
                 )}
                 <Icon size={18} className="shrink-0" />
                 <span className="hidden lg:inline">{label}</span>
@@ -89,16 +89,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
-        <div className="border-t border-line p-3">
-          <p className="hidden truncate px-1 pb-2 text-xs text-ink-soft lg:block">
-            {auth.username} · <span className="text-brand">{auth.role}</span>
+        <div className="border-t border-edge p-3">
+          <p className="hidden truncate px-1 pb-2 text-xs text-smoke lg:block">
+            {auth.username} · <span className="text-copper">{auth.role}</span>
           </p>
           <button
             onClick={() => {
               adminApi.logout();
               router.replace("/admin/login");
             }}
-            className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-err/20 hover:text-ink"
+            className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm text-smoke transition-colors hover:bg-brick/20 hover:text-chalk"
           >
             <LogOut size={18} className="shrink-0" />
             <span className="hidden lg:inline">Salir</span>

@@ -38,18 +38,18 @@ export default function LiveStrip() {
       initial={{ opacity: 0, y: reduce ? 0 : 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0.2 } : { delay: 0.2, duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-      className="relative z-10 border-y border-line bg-card"
+      className="relative z-10 border-y border-edge bg-coal"
     >
       <div className="barber-stripe" />
       <Link
         href="/hoy"
-        className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-3 transition-colors hover:bg-brand/[0.04]"
+        className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-3 transition-colors hover:bg-copper/[0.04]"
       >
-        <span className="data flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink">
-          <Radio size={13} className="animate-pulse text-brand" />
-          <span className="text-brand">Ahora mismo</span> · {headline}
+        <span className="data flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-chalk">
+          <Radio size={13} className="animate-pulse text-copper" />
+          <span className="text-copper">Ahora mismo</span> · {headline}
         </span>
-        <span className="data flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-ink-soft">
+        <span className="data flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-smoke">
           Ver la fila en vivo <ArrowRight size={13} />
         </span>
       </Link>

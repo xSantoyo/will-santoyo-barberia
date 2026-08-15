@@ -1,58 +1,64 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   «Estudio Santoyo» — papel cálido, tinta espresso, añil de poste de barbero.
-   La definición completa y sus razones viven en DESIGN_SYSTEM.md (raíz).
-   La piel anterior está archivada en legacy-styles/ y nada la importa.
+   «Después de las 6» — carbón cálido, luz de cobre.
+   Definición y razones completas en DESIGN_SYSTEM.md (raíz).
+   Pieles anteriores en legacy-styles/ (v1 Bad Boys, v2 Estudio Santoyo).
    ========================================================================== */
 @theme {
-  /* Curvas canónicas de la skill `animate` (ver DESIGN_SYSTEM.md §6) */
-  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Curvas textuales de la skill `animate` — no se inventan curvas propias */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
-  --color-paper: #f1eee6;
-  --color-card: #fbfaf7;
-  --color-wash: #e7e2d6;
-  --color-line: #d8d2c3;
-  --color-ink: #221d15;
-  --color-ink-soft: #5f594c;
-  --color-brand: #2a4696;
-  --color-brand-deep: #1d3370;
-  --color-brand-tint: #dee5f5;
-  --color-on-brand: #ffffff;
-  --color-ok: #1e6f42;
-  --color-warn: #7a5a0e;
-  --color-err: #9e3225;
-  --color-err-tint: #f3dcd7;
+  /* Superficies: negro CÁLIDO (lleva rojo dentro), no el neutro de framework */
+  --color-night: #141210;
+  --color-coal: #1e1a17;
+  --color-ash: #2a2420;
+  --color-edge: #3b322c;
 
-  --font-display: var(--font-fraunces), "Georgia", serif;
+  /* Texto */
+  --color-chalk: #f4efe9;
+  --color-smoke: #a79c91;
+
+  /* Acento cálido: cobre anaranjado, no oro amarillo */
+  --color-copper: #e08b4c;
+  --color-ember: #c96c31;
+  /* El acento es CLARO: el texto encima va oscuro. Blanco sobre copper
+     da 2.64:1 y falla AA; night da 7.09:1 AAA. Ver DESIGN_SYSTEM.md §1. */
+  --color-on-copper: #141210;
+
+  /* Estados */
+  --color-sage: #7fb08a;
+  --color-amber: #e0b84c;
+  --color-brick: #e06a5c;
+
+  --font-display: var(--font-bricolage), "Segoe UI", sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: ui-monospace, "Cascadia Mono", "Consolas", monospace;
 
-  /* Controles suaves: sobrescribe el radio pequeño por defecto de Tailwind */
-  --radius-sm: 10px;
-  --radius-card: 16px;
+  --radius-sm: 12px;
+  --radius-card: 20px;
 
-  --shadow-card: 0 1px 2px rgba(34, 29, 21, 0.05), 0 10px 28px rgba(34, 29, 21, 0.07);
-  --shadow-pop: 0 2px 6px rgba(34, 29, 21, 0.08), 0 20px 48px rgba(34, 29, 21, 0.14);
+  /* Solo para superficies flotantes reales (modal, popover) */
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.55);
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
+  background-color: var(--color-night);
+  color: var(--color-chalk);
   font-family: var(--font-body);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 /* --------------------------------------------------------------------------
    Interacción de texto: el contenido estático no se comporta como editable.
-   Se re-habilita solo en formularios y en lo explícitamente copiable
-   (.selectable: código de gestión, teléfono, dirección).
+   Se re-habilita en formularios y en lo explícitamente copiable.
    -------------------------------------------------------------------------- */
 body {
   cursor: default;
@@ -76,146 +82,162 @@ input, textarea {
   -webkit-touch-callout: default;
 }
 ::selection {
-  background: var(--color-brand);
-  color: var(--color-on-brand);
+  background: var(--color-copper);
+  color: var(--color-on-copper);
 }
 
-/* Datos: precios, horas, códigos — siempre tabulares */
+/* --------------------------------------------------------------------------
+   Tipografía. Tracking e interlineado específicos por tamaño (apple-design §15):
+   nunca un solo valor para todos.
+   -------------------------------------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/* El hero: más peso, tracking más cerrado, interlineado más apretado */
+.display-xl {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+/* Datos: precios, horas, códigos — siempre tabulares para que no bailen */
 .data {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
 
-/* Titulares: serif óptica, tracking negativo, sin transformar el texto */
-.display {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.08;
-}
-
-/* Regla de acento bajo títulos de sección */
-.brand-rule {
-  width: 56px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--color-brand);
+/* Etiqueta pequeña: aquí el tracking POSITIVO sí ayuda a leer */
+.kicker {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
 /* --------------------------------------------------------------------------
-   Texturas de papel — casi imperceptibles, en tinta sobre claro
+   Elevación en oscuro: superficie + canto superior de luz, no sombra.
+   Sobre negro una sombra proyectada no separa nada (DESIGN_SYSTEM.md §2).
+   -------------------------------------------------------------------------- */
+.surface {
+  background: var(--color-coal);
+  border: 1px solid var(--color-edge);
+  border-top-color: rgba(244, 239, 233, 0.09);
+  border-radius: var(--radius-card);
+}
+
+/* Superficie flotante real: ahí sí, sombra ambiental */
+.surface-pop {
+  background: var(--color-coal);
+  border: 1px solid var(--color-edge);
+  border-top-color: rgba(244, 239, 233, 0.12);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-pop);
+}
+
+/* --------------------------------------------------------------------------
+   Texturas: casi imperceptibles, en luz cálida sobre carbón
    -------------------------------------------------------------------------- */
 
-/* Fibra de papel (ruido fractal muy sutil) */
+/* Grano de película, para que el negro plano no se lea digital */
 .grain::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.04;
+  opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Rayado fino diagonal, como papel de carta */
-.texture-pinstripe {
-  background-image: repeating-linear-gradient(
-    -55deg,
-    transparent 0px,
-    transparent 13px,
-    rgba(34, 29, 21, 0.03) 13px,
-    rgba(34, 29, 21, 0.03) 14px
+/* Halo cálido: la luz del local cayendo desde arriba */
+.glow-warm {
+  background-image: radial-gradient(
+    70% 50% at 50% 0%,
+    rgba(224, 139, 76, 0.1) 0%,
+    transparent 70%
   );
 }
 
-/* Cuadrícula de cuaderno técnico */
-.texture-grid {
-  background-image:
-    linear-gradient(rgba(34, 29, 21, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 29, 21, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* Micro-firma del oficio: poste de barbero en añil/papel/teja */
+/* Franja del oficio, reinterpretada en cobre */
 .barber-stripe {
   height: 4px;
   border-radius: 2px;
   background: repeating-linear-gradient(
     -45deg,
-    var(--color-brand) 0 12px,
-    var(--color-card) 12px 20px,
-    var(--color-err) 20px 28px,
-    var(--color-card) 28px 36px
+    var(--color-copper) 0 12px,
+    var(--color-night) 12px 20px,
+    var(--color-chalk) 20px 28px,
+    var(--color-night) 28px 36px
   );
-  opacity: 0.9;
 }
 
-/* Palabra-marca gigante de fondo (contorno en tinta) */
+/* Palabra-marca gigante de fondo */
 .text-outline {
   color: transparent;
-  -webkit-text-stroke: 1px rgba(34, 29, 21, 0.1);
+  -webkit-text-stroke: 1px rgba(244, 239, 233, 0.07);
   user-select: none;
   pointer-events: none;
 }
 
-/* Tarjeta estándar del sistema (reemplaza la placa de esquina cortada) */
-.card-frame {
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-}
-
-/* Tarjeta destacada: canto superior añil. (El tiquete perforado del código
-   vive en components/public/Razor.tsx, no aquí.) */
-.plate {
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-top: 3px solid var(--color-brand);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  position: relative;
-}
-
-/* Caracteres del código: sellados en tinta de caucho */
+/* Código de gestión: sellado en cobre */
 .stamped {
   font-family: var(--font-data);
   font-weight: 600;
-  color: var(--color-brand);
-  letter-spacing: 0.14em;
+  color: var(--color-copper);
+  letter-spacing: 0.16em;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: var(--color-edge) transparent;
 }
 
 .focus-ring:focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--color-copper);
   outline-offset: 2px;
 }
 
-/* Entrada suave para el panel (CSS: corre fuera del hilo principal) */
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* --------------------------------------------------------------------------
+   Skeleton de carga: brillo cálido recorriendo la superficie.
+   CSS puro — corre fuera del hilo principal, que es justo lo que se necesita
+   mientras la página está ocupada cargando datos.
+   -------------------------------------------------------------------------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ash);
+  border-radius: var(--radius-sm);
 }
-.animate-fade-up {
-  animation: fade-up 0.24s var(--ease-out-strong) both;
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(244, 239, 233, 0.06),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-up {
-    animation: fade 0.2s ease both;
-  }
-  @keyframes fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  /* Reduced motion = más suave, no cero: el skeleton deja de recorrer
+     pero sigue distinguiéndose del contenido real. */
+  .skeleton::after {
+    animation: none;
   }
 }

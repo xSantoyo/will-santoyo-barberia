@@ -1,141 +1,170 @@
-# Sistema de diseño — «Estudio Santoyo»
+# Sistema de diseño — «Después de las 6»
 
-**Fase 6 · agosto 2026.** Sustituye por completo la identidad heredada de Bad Boys
-Barbershop (negro + dorado, tipografía condensada de bloque, texturas de navaja),
-archivada en `legacy-styles/`. Implementado en `frontend/app/globals.css`.
+**v3 · agosto 2026.** La barbería de Will al caer la noche: carbón cálido, luz de
+cobre, tipografía de estudio. Implementado en `frontend/app/globals.css`.
+Versiones anteriores archivadas en `legacy-styles/` (v1 Bad Boys, v2 Estudio
+Santoyo) — no se eliminan, sirven de referencia y de columna "antes".
 
-## Dirección
+## Qué gobierna este documento
 
-Un **estudio de oficio a la luz del día**: papel cálido, tinta espresso y el azul
-añil del poste de barbero como único acento. La piel anterior vendía "barbería
-nocturna urbana" para un equipo; la nueva vende a **una persona que trabaja con
-las manos y a la que le confías la cabeza** — cercana, precisa, sin humo.
+La skill `emilkowalski/skills` define el **movimiento** de forma exhaustiva
+(curvas, duraciones, física, accesibilidad) y las **librerías**. No define
+paleta, espaciado ni escala tipográfica: ahí el documento sigue sus *principios*
+(sobre todo `apple-design` §15 sobre tipografía y §16 sobre jerarquía) y toma
+decisiones propias, declaradas abajo con su razón.
 
-Es deliberadamente un **tema claro**: la inversión más fuerte posible respecto al
-negro heredado, y la que mejor sirve a un flujo de reserva móvil a plena luz
-(la mayoría reserva desde el celular, muchas veces en la calle).
+## 0. La idea
+
+No es "negro y dorado de barbería genérica" (eso fue la v1, y está archivada).
+Es **el local a las siete de la tarde**: la calle ya oscura, la luz cálida
+adentro, el cobre de los apliques sobre el espejo. El negro es **cálido**
+(#141210, con rojo dentro), no el neutro azulado de los frameworks. El acento es
+**cobre anaranjado**, no oro amarillo.
 
 ## 1. Paleta
 
-Ningún hex coincide con `legacy-styles/bad-boys-globals.css`. Ratios calculados
-contra su superficie de uso (WCAG 2.1).
+Ratios WCAG 2.1 **calculados**, no estimados (`scratchpad/paleta.py`).
+Ningún hex coincide con la v1 ni con la v2.
 
-| Token | Hex | Rol semántico | Contraste |
+| Token | Hex | Rol | Sobre `night` |
 |---|---|---|---|
-| `paper` | `#F1EEE6` | Superficie base (página) | — |
-| `card` | `#FBFAF7` | Superficie elevada (tarjetas, modales) | — |
-| `wash` | `#E7E2D6` | Relleno sutil: hover de filas, pistas de barra | — |
-| `line` | `#D8D2C3` | Bordes y divisores | — |
-| `ink` | `#221D15` | Texto primario | ≈13.9:1 sobre `paper` (AAA) |
-| `ink-soft` | `#5F594C` | Texto secundario | ≈6.0:1 sobre `paper` (AA) |
-| `brand` | `#2A4696` | Acento y acción (azul añil de poste) | ≈7.4:1 sobre `paper` (AAA) |
-| `brand-deep` | `#1D3370` | Hover/activo del acento | ≈10.5:1 sobre `paper` |
-| `brand-tint` | `#DEE5F5` | Selección, fondos de estado activo | — |
-| `on-brand` | `#FFFFFF` | Texto sobre `brand` | ≈8.7:1 sobre `brand` (AAA) |
-| `ok` | `#1E6F42` | Éxito | ≈5.3:1 sobre `paper` (AA) |
-| `warn` | `#7A5A0E` | Advertencia | ≈5.5:1 sobre `paper` (AA) |
-| `err` | `#9E3225` | Error / destructivo | ≈6.1:1 sobre `paper` (AA) |
-| `err-tint` | `#F3DCD7` | Fondo de avisos de error | — |
+| `night` | `#141210` | Superficie base (página) | — |
+| `coal` | `#1E1A17` | Superficie elevada (tarjetas, modales) | 1.08:1 de separación |
+| `ash` | `#2A2420` | Relleno: hover de filas, pistas de barra | 1.13:1 sobre `coal` |
+| `edge` | `#3B322C` | Bordes y divisores | 1.38:1 sobre `coal` |
+| `chalk` | `#F4EFE9` | Texto primario | **16.35:1 AAA** |
+| `smoke` | `#A79C91` | Texto secundario | **6.95:1 AA** |
+| `copper` | `#E08B4C` | Acento y acción | **7.09:1 AAA** |
+| `ember` | `#C96C31` | Hover/activo del acento | 5.05:1 AA |
+| `sage` | `#7FB08A` | Éxito | 7.55:1 AAA |
+| `amber` | `#E0B84C` | Advertencia | 9.90:1 AAA |
+| `brick` | `#E06A5C` | Error / destructivo | 5.68:1 AA |
+
+### La regla que un implementador ingenuo rompería
+
+**El texto sobre el botón cobre es `night`, nunca blanco.** Blanco sobre
+`copper` da **2.64:1 — falla AA**; `night` sobre `copper` da **7.09:1 AAA**. El
+acento es claro, así que se comporta como un color de fondo *claro*: pide texto
+oscuro encima. Está codificado en el token `--color-on-copper`.
 
 **Por qué (apple-design §16.6, «Simplicity»):** un solo acento hace que lo más
-importante sea lo más obvio — todo lo azul es accionable, todo lo demás es
-contenido. El dorado heredado era acento, borde, textura y marca a la vez;
-aquí cada color tiene un rol único.
+importante sea lo más obvio — todo lo que es cobre se puede pulsar. Los estados
+(`sage`/`amber`/`brick`) nunca se usan como acento decorativo.
 
-## 2. Tipografía
+## 2. Elevación en oscuro: superficie, no sombra
+
+Sobre fondo oscuro una sombra proyectada no se ve — el negro sobre negro no
+separa nada. La jerarquía se construye con **luminosidad de superficie** y un
+**canto superior de luz** (borde hairline claro arriba), que es como se
+comporta un material real bajo una luz cenital.
+
+```css
+.surface-raised {
+  background: var(--color-coal);
+  border: 1px solid var(--color-edge);
+  border-top-color: rgba(244, 239, 233, 0.09); /* el canto que atrapa la luz */
+}
+```
+
+Se permite una sombra difusa **solo** en superficies flotantes reales (modal,
+popover) y como profundidad ambiental, nunca como separador.
+
+## 3. Tipografía
 
 | Nivel | Familia | Peso | Tamaño / interlineado | Tracking |
 |---|---|---|---|---|
-| Display XL (hero) | Fraunces | 600 | `clamp(2.6rem, 7vw, 4.5rem)` / 1.02 | `-0.02em` |
-| Display (títulos de sección) | Fraunces | 600 | 39px / 1.08 | `-0.015em` |
-| Título de tarjeta | Fraunces | 500 | 25px / 1.15 | `-0.01em` |
-| Cuerpo | system-ui | 400/600 | 16px / 1.5 | `0` |
-| Secundario | system-ui | 400 | 14px / 1.45 | `0` |
+| Display XL (hero) | Bricolage Grotesque | 700 | `clamp(3rem, 8vw, 5.5rem)` / 0.95 | `-0.03em` |
+| Display (secciones) | Bricolage Grotesque | 600 | `clamp(2rem, 4vw, 3rem)` / 1.05 | `-0.02em` |
+| Título de tarjeta | Bricolage Grotesque | 600 | 20px / 1.2 | `-0.01em` |
+| Cuerpo | system-ui | 400 | 16px / 1.6 | `0` |
+| Secundario | system-ui | 400 | 14px / 1.5 | `0` |
 | Datos (precios, horas, códigos) | ui-monospace | 500 | 13–20px / 1.3 | `0.01em`, `tabular-nums` |
-| Kicker / etiqueta | system-ui | 600 | 11px / 1.2 | `0.18em`, mayúsculas |
+| Kicker / etiqueta | ui-monospace | 500 | 11px / 1.2 | `0.22em`, mayúsculas |
 
-- **Fraunces** (serif óptica variable) reemplaza a Anton: aporta el carácter de
-  oficio sin el bloque condensado de "barbershop genérico" que el encargo
-  descarta. Su eje óptico cumple apple-design §15: el trazo cambia con el tamaño.
-- **system-ui** para UI es aplicación directa de apple-design §15 (*"default to
-  the platform's system font"*): ya trae optical sizing y tuning de legibilidad,
-  y elimina la dependencia de Inter (heredada).
-- Tracking específico por tamaño, nunca fijo: negativo en display, neutro en
-  cuerpo, positivo solo en etiquetas pequeñas (apple-design §15).
+- **Bricolage Grotesque** es variable con eje óptico y de ancho: el trazo cambia
+  con el tamaño, que es exactamente lo que pide apple-design §15. Es un grotesk
+  con carácter — nada que ver con la Anton condensada de la v1 ni con la Fraunces
+  serif de la v2.
+- **system-ui** para todo el texto de interfaz: apple-design §15 lo pide
+  explícitamente (*"default to the platform's system font… override only with a
+  reason"*). La razón para la excepción del display es la voz de marca.
+- **Tracking negativo agresivo en display** (`-0.03em`): a tamaño grande las
+  letras se leen demasiado separadas. Cuerpo en `0`. Etiquetas pequeñas en
+  `+0.22em`, que es donde el tracking positivo sí ayuda a la legibilidad.
+- **Interlineado inverso al tamaño**: 0.95 en el hero, 1.6 en cuerpo.
 
-## 3. Espaciado
+## 4. Espaciado
 
-Base **4px**, progresión 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96. Razón: pasos
-1×–2×–3×–4× para ritmo fino dentro de componentes y saltos ×1.5 entre bloques
-(24→32→48) para jerarquía de sección. Se usa la escala de utilidades de
-Tailwind (base 4px), que la implementa tal cual.
+Base **4px**; escala 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 · 128. Pasos
+1×–4× para ritmo dentro de componentes; saltos ×1.5 entre bloques (24→32→48) para
+jerarquía de sección. Es la escala nativa de Tailwind, usada tal cual.
 
-## 4. Radios y sombras
+**Secciones oscuras respiran más:** el padding vertical de sección sube a
+`96px` móvil / `128px` desktop. Sobre fondo oscuro el aire es lo que separa;
+apretarlo hace que todo se lea como una masa.
+
+## 5. Radios y sombras
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--radius-sm` | `10px` | Controles: botones, inputs, chips (sobrescribe el default de Tailwind) |
-| `--radius-card` | `16px` | Tarjetas y modales (`.card-frame`) |
-| `rounded-full` | píldora | Avatares, badges de estado |
-| `--shadow-card` | `0 1px 2px rgba(34,29,21,.05), 0 10px 28px rgba(34,29,21,.07)` | Elevación de tarjeta |
-| `--shadow-pop` | `0 2px 6px rgba(34,29,21,.08), 0 20px 48px rgba(34,29,21,.14)` | Modales, popovers |
+| `--radius-sm` | `12px` | Controles: botones, inputs, chips |
+| `--radius-card` | `20px` | Tarjetas y modales |
+| `rounded-full` | píldora | Badges de estado, avatares |
+| `--shadow-pop` | `0 16px 48px rgba(0,0,0,.55)` | Solo modales y popovers flotantes |
 
-Sombras neutras de dos capas (contacto + ambiente); desaparecen los *glows*
-dorados. **Por qué (emil-design-eng, «unseen details»):** la elevación debe
-leerse como luz, no como efecto; sobre papel claro un glow de color es ruido.
+Radios distintos de v1 (2px afilado) y v2 (10/16px). Nada de *glows* de color:
+la v1 los usaba en dorado y eran su firma; aquí la luz la da el canto superior.
 
-## 5. Estados de interacción
+## 6. Estados de interacción
 
 | Estado | Tratamiento |
 |---|---|
 | Reposo | Token base del componente |
-| Hover (solo `hover:hover` + `pointer:fine`) | Fondo → `wash` en filas; `brand → brand-deep` en acciones |
-| Activo (press) | `transform: scale(0.97)` a 150ms — feedback en el *down* (apple-design §1) |
-| Foco | `.focus-ring`: outline `2px solid brand`, offset 2px — visible siempre por teclado |
-| Seleccionado | Fondo `brand-tint`, borde `brand` |
+| Hover (solo `hover:hover` + `pointer:fine`) | `copper → ember` en acciones; fondo → `ash` en filas |
+| Activo (press) | `transform: scale(0.97)` a 160 ms — feedback en el *down* |
+| Foco | `.focus-ring`: outline `2px solid copper`, offset 2px |
+| Seleccionado | Borde `copper`, fondo `copper/10` |
 | Deshabilitado | `opacity: 0.4`, sin eventos de puntero |
 
-## 6. Movimiento
+## 7. Movimiento
 
-| Token | Valor | Regla de uso |
+Tokens **textuales de la skill** (`animate` §5, regla dura: no inventar curvas):
+
+| Token | Valor | Uso |
 |---|---|---|
-| `--dur-tap` | `150ms` | Feedback de press, hovers |
-| `--dur-ui` | `220ms` | Entradas/salidas de UI (dropdown, paso de wizard) |
-| `--dur-scene` | `280ms` | Modales, confirmaciones, reveals de scroll |
-| `--ease-out-strong` | `cubic-bezier(0.23, 1, 0.32, 1)` | Entradas y salidas |
-| `--ease-in-out-strong` | `cubic-bezier(0.77, 0, 0.175, 1)` | Movimiento en pantalla |
+| `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` | Entradas y salidas |
+| `--ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` | Movimiento en pantalla |
 | `--ease-drawer` | `cubic-bezier(0.32, 0.72, 0, 1)` | Sheets y drawers |
 
-Reglas duras (skill `animate`): solo `transform` y `opacity`; nunca
-`transition-all`; nunca `ease-in`; nada por encima de 300ms en UI;
-`prefers-reduced-motion` conserva los fundidos y elimina el desplazamiento.
+Duraciones, de la tabla de la skill: press 100–160 ms · tooltips 125–200 ·
+dropdowns 150–250 · modales/drawers 200–500. **Techo de 300 ms para UI.**
 
-**Nota de no-coincidencia:** las tres curvas son idénticas a las que la hoja
-archivada adquirió en la Fase 5, y es deliberado. No son herencia de Bad Boys:
-son los valores canónicos de la skill `animate`, cuya regla dura 2 prohíbe
-inventar curvas propias (*"Never invent `cubic-bezier(...)` because it looks
-familiar"*). Forkear la curva para cumplir la prohibición de coincidencia
-violaría la skill que gobierna el movimiento; la prohibición del encargo
-enumera hex, tamaños de fuente y radios, y ahí la divergencia es total.
+Reglas que no se negocian: solo `transform` y `opacity`; nunca `transition:
+all`; nunca `ease-in`; nunca `scale(0)` (mínimo `scale(0.95)` + opacidad);
+`prefers-reduced-motion` conserva los fundidos y elimina el desplazamiento;
+hover gateado por puntero fino.
 
-## 7. Decisiones mayores, con su principio
+**Dónde vive el presupuesto de delight** (tabla de frecuencia de la skill):
 
-- **Tema claro** — apple-design §16.1 («Purpose»): el trabajo del sitio es que
-  alguien reserve desde el celular en segundos; papel claro con un acento de
-  alto contraste optimiza exactamente eso, y rompe con la piel heredada de la
-  forma más verificable posible.
-- **Serif de oficio + sans de sistema** — emil-design-eng («taste is the
-  differentiator»): la voz de marca vive en los titulares; el cuerpo es
-  herramienta y no compite. §15 de apple-design da el sans de sistema gratis.
-- **El poste de barbero, reinterpretado** — la franja `.barber-stripe` sobrevive
-  como micro-firma en añil/papel/teja, porque es el símbolo del *oficio* de
-  Will, no de la marca vieja. Lo descartado era negro+dorado+navaja, y nada de
-  eso queda.
-- **La placa troquelada muere; nace el tiquete** — el código de gestión pasa de
-  "placa metálica con navaja" a **tiquete de papel** con borde perforado
-  (componente del código); `.plate` queda como tarjeta destacada con canto
-  añil. Mismo protagonismo (emil-design-eng: el momento raro admite delight),
-  materialidad coherente con el papel.
-- **Radios 10/16px** — apple-design §16.4 («Familiarity»): controles suaves y
-  tarjetas generosas leen como app nativa moderna; el 2px afilado heredado
-  pertenecía a la estética de placa metálica.
+| Superficie | Frecuencia | Movimiento permitido |
+|---|---|---|
+| Home | Primera visita | Scroll reveal, stagger, entrada del hero |
+| Wizard de reserva | Ocasional | Transición direccional entre pasos, press, carga |
+| Tiquete / confirmación | Rara, alta emoción | Aquí sí: el código se imprime, delight |
+| La Fila | Consulta repetida | Solo el número que rueda; nada más |
+| Panel de Will | Decenas de veces al día | Press feedback y nada más. Sin reveals |
+
+## 8. Decisiones mayores, con su principio
+
+- **Negro cálido, no neutro** — el brief pedía explícitamente huir del gris/azul
+  por defecto de los frameworks. `#141210` lleva rojo dentro; a la vista es
+  "local con luz cálida", no "dashboard oscuro".
+- **Cobre, no oro** — el oro amarillo (`#c9a24b`) era la firma de la v1. El
+  cobre anaranjado (`#E08B4C`) ocupa el mismo rol funcional con otra
+  temperatura, y además pasa AAA sobre la superficie base.
+- **Elevación por superficie y canto de luz** — apple-design §12: el material
+  debe leerse como material. En oscuro, la sombra no informa; la luminosidad sí.
+- **Un solo display face** — apple-design §15 pide system font por defecto;
+  la excepción se paga una sola vez, en los titulares.
+- **La franja de barbero sobrevive, reinterpretada** — es el símbolo del oficio
+  de Will, no de la marca vieja. Pasa a cobre/carbón/hueso.

@@ -35,10 +35,10 @@ export default function MyPerformancePage() {
     adminApi
       .stats(days)
       .then(setStats)
-      .catch((err) => setError(err.message));
+      .catch((brick) => setError(brick.message));
   }, [days]);
 
-  if (error) return <p className="text-err">{error}</p>;
+  if (error) return <p className="text-brick">{error}</p>;
 
   return (
     <>
@@ -46,13 +46,13 @@ export default function MyPerformancePage() {
         title="Mi desempeño"
         subtitle="Will Santoyo"
         action={
-          <div className="flex gap-1 rounded-sm border border-line p-1">
+          <div className="flex gap-1 rounded-sm border border-edge p-1">
             {RANGES.map((range) => (
               <button
                 key={range.days}
                 onClick={() => setDays(range.days)}
                 className={`data rounded-sm px-3 py-1.5 text-xs uppercase tracking-wider transition-colors ${
-                  days === range.days ? "bg-brand text-on-brand" : "text-ink-soft hover:text-ink"
+                  days === range.days ? "bg-copper text-on-copper" : "text-smoke hover:text-chalk"
                 }`}
               >
                 {range.label}
@@ -63,32 +63,32 @@ export default function MyPerformancePage() {
       />
 
       {!stats ? (
-        <div className="flex min-h-[40vh] items-center justify-center text-brand">
+        <div className="flex min-h-[40vh] items-center justify-center text-copper">
           <Loader2 className="animate-spin" size={32} />
         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
-              icon={<Scissors size={13} className="text-brand" />}
+              icon={<Scissors size={13} className="text-copper" />}
               label="Cortes completados"
               value={String(stats.completed_count)}
               hint={`en los últimos ${stats.days} días`}
             />
             <StatCard
-              icon={<Banknote size={13} className="text-brand" />}
+              icon={<Banknote size={13} className="text-copper" />}
               label="Ingresos generados"
               value={formatCOP(stats.revenue_cop)}
               gold
               hint="registro del local, no cobro en línea"
             />
             <StatCard
-              icon={<Users size={13} className="text-brand" />}
+              icon={<Users size={13} className="text-copper" />}
               label="Clientes distintos"
               value={String(stats.unique_clients)}
             />
             <StatCard
-              icon={<Star size={13} className="text-brand" />}
+              icon={<Star size={13} className="text-copper" />}
               label="Mi calificación"
               value={stats.rating != null ? `${stats.rating} ★` : "—"}
               hint={`${stats.review_count} reseña(s) públicas`}
@@ -97,27 +97,27 @@ export default function MyPerformancePage() {
 
           <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
-              icon={<CalendarClock size={13} className="text-brand" />}
+              icon={<CalendarClock size={13} className="text-copper" />}
               label="Aún por atender hoy"
               value={String(stats.upcoming_today)}
             />
             <StatCard
-              icon={<UserX size={13} className={stats.no_show_count > 0 ? "text-err" : "text-brand"} />}
+              icon={<UserX size={13} className={stats.no_show_count > 0 ? "text-brick" : "text-copper"} />}
               label="No-shows"
               value={String(stats.no_show_count)}
               alert={stats.no_show_count > 0}
             />
             <StatCard
-              icon={<UserX size={13} className="text-brand" />}
+              icon={<UserX size={13} className="text-copper" />}
               label="Cancelados"
               value={String(stats.cancelled_count)}
             />
           </div>
 
-          <section className="mt-8 max-w-xl rounded-sm border border-line bg-card p-5">
-            <h2 className="display mb-4 text-2xl text-ink">Mis servicios más pedidos</h2>
+          <section className="mt-8 max-w-xl rounded-sm border border-edge bg-coal p-5">
+            <h2 className="display mb-4 text-2xl text-chalk">Mis servicios más pedidos</h2>
             {stats.top_services.length === 0 ? (
-              <p className="text-sm text-ink-soft">
+              <p className="text-sm text-smoke">
                 Aún no hay cortes completados en este periodo.
               </p>
             ) : (
@@ -126,15 +126,15 @@ export default function MyPerformancePage() {
                   const max = stats.top_services[0].count;
                   return (
                     <li key={service.name} className="flex items-center gap-3">
-                      <span className="data w-5 text-xs text-ink-soft">{index + 1}.</span>
+                      <span className="data w-5 text-xs text-smoke">{index + 1}.</span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm text-ink">{service.name}</p>
-                          <span className="data text-xs text-brand">{service.count}</span>
+                          <p className="truncate text-sm text-chalk">{service.name}</p>
+                          <span className="data text-xs text-copper">{service.count}</span>
                         </div>
-                        <div className="mt-1 h-1 rounded-full bg-paper">
+                        <div className="mt-1 h-1 rounded-full bg-night">
                           <div
-                            className="h-1 rounded-full bg-brand/70"
+                            className="h-1 rounded-full bg-copper/70"
                             style={{ width: `${Math.max(8, (service.count / max) * 100)}%` }}
                           />
                         </div>
@@ -146,7 +146,7 @@ export default function MyPerformancePage() {
             )}
           </section>
 
-          <p className="mt-6 max-w-xl text-xs text-ink-soft">
+          <p className="mt-6 max-w-xl text-xs text-smoke">
             Estos números cubren únicamente tu propia silla. Las analíticas del
             negocio completo viven en el panel del administrador.
           </p>
@@ -172,18 +172,18 @@ function StatCard({
   alert?: boolean;
 }) {
   return (
-    <div className={`plate card-frame p-4 ${alert ? "border-err/60" : ""}`}>
-      <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink-soft">
+    <div className={`surface surface p-4 ${alert ? "border-brick/60" : ""}`}>
+      <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
         {icon} {label}
       </p>
       <p
         className={`data mt-1 text-2xl font-semibold ${
-          alert ? "text-err" : gold ? "text-brand" : "text-ink"
+          alert ? "text-brick" : gold ? "text-copper" : "text-chalk"
         }`}
       >
         {value}
       </p>
-      {hint && <p className="data mt-0.5 text-[11px] text-ink-soft">{hint}</p>}
+      {hint && <p className="data mt-0.5 text-[11px] text-smoke">{hint}</p>}
     </div>
   );
 }

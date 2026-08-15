@@ -23,7 +23,7 @@ export default function ServiciosPage() {
 
   if (loading)
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-brand">
+      <div className="flex min-h-[50vh] items-center justify-center text-copper">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
@@ -41,10 +41,10 @@ export default function ServiciosPage() {
         }
       />
 
-      <div className="overflow-x-auto rounded-sm border border-line">
+      <div className="overflow-x-auto rounded-sm border border-edge">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="border-b border-line bg-card text-left text-xs uppercase tracking-wider text-ink-soft">
+            <tr className="border-b border-edge bg-coal text-left text-xs uppercase tracking-wider text-smoke">
               <th className="px-4 py-3">Servicio</th>
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3">Duración</th>
@@ -52,19 +52,19 @@ export default function ServiciosPage() {
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
+          <tbody className="divide-y divide-edge">
             {services.map((service) => (
-              <tr key={service.id} className="bg-paper hover:bg-card">
-                <td className="px-4 py-3 text-ink">{service.name}</td>
-                <td className="data px-4 py-3 font-semibold text-brand">
+              <tr key={service.id} className="bg-night hover:bg-coal">
+                <td className="px-4 py-3 text-chalk">{service.name}</td>
+                <td className="data px-4 py-3 font-semibold text-copper">
                   {formatCOP(service.price_cop)}
                 </td>
-                <td className="data px-4 py-3 text-ink-soft">{service.duration_min} min</td>
+                <td className="data px-4 py-3 text-smoke">{service.duration_min} min</td>
                 <td className="px-4 py-3">
                   {service.is_active ? (
                     <span className="text-xs text-emerald-400">Activo</span>
                   ) : (
-                    <span className="text-xs text-err">Inactivo</span>
+                    <span className="text-xs text-brick">Inactivo</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -119,8 +119,8 @@ function ServiceModal({
       if (service) await adminApi.updateService(service.id, form);
       else await adminApi.createService(form);
       onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+    } catch (brick) {
+      setError(brick instanceof Error ? brick.message : "Error al guardar");
       setSaving(false);
     }
   }
@@ -129,9 +129,9 @@ function ServiceModal({
     <Modal title={service ? `Editar ${service.name}` : "Nuevo servicio"} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         {error && (
-          <div className="rounded-sm border border-err bg-err/15 px-3 py-2 text-sm">{error}</div>
+          <div className="rounded-sm border border-brick bg-brick/15 px-3 py-2 text-sm">{error}</div>
         )}
-        <label className="block text-sm text-ink-soft">
+        <label className="block text-sm text-smoke">
           Nombre
           <input
             required
@@ -141,7 +141,7 @@ function ServiceModal({
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm text-ink-soft">
+          <label className="block text-sm text-smoke">
             Precio (COP)
             <input
               type="number"
@@ -153,7 +153,7 @@ function ServiceModal({
               className={`${inputClass} mt-1`}
             />
           </label>
-          <label className="block text-sm text-ink-soft">
+          <label className="block text-sm text-smoke">
             Duración (min)
             <input
               type="number"
@@ -167,7 +167,7 @@ function ServiceModal({
           </label>
         </div>
         {service && (
-          <label className="flex items-center gap-2 text-sm text-ink-soft">
+          <label className="flex items-center gap-2 text-sm text-smoke">
             <input
               type="checkbox"
               checked={form.is_active}

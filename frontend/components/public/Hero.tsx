@@ -1,17 +1,39 @@
 "use client";
 
+/**
+ * Hero — «Después de las 6».
+ *
+ * Composición: la luz cálida cae desde arriba (`.glow-warm`), el nombre ocupa
+ * la pantalla en display XL con tracking cerrado, y al pie asoman tres datos
+ * que responden lo único que importa antes de reservar: dónde estoy, cuándo
+ * abro, cuánto cuesta empezar.
+ *
+ * Movimiento (skill `animate`, tier "primera visita" = donde vive el delight):
+ * las líneas del nombre suben desde su propio alto con `translateY(110%)` bajo
+ * un contenedor que las recorta — la palabra se revela, no aparece. Escalonado
+ * de 90 ms entre líneas. Con `prefers-reduced-motion` todo se reduce a un
+ * fundido: se conserva la comprensión, se elimina el desplazamiento.
+ */
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { ArrowRight, Clock, MapPin, Scissors } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
+import { NEGOCIO } from "@/lib/negocio";
 import type { MediaAsset } from "@/lib/types";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
-/** Hero del estudio: papel a plena luz, nombre propio en serif y un solo CTA
- * dominante. Si hay fotos, entran como lámina lateral — nunca detrás del
- * texto, para no sacrificar contraste (DESIGN_SYSTEM.md §1). */
-export default function Hero({ tagline, slides }: { tagline: string; slides: MediaAsset[] }) {
+export default function Hero({
+  tagline,
+  slides,
+  desde,
+}: {
+  tagline: string;
+  slides: MediaAsset[];
+  /** Precio del servicio más barato, para el dato "desde". */
+  desde: number | null;
+}) {
   const [index, setIndex] = useState(0);
   const reduce = useReducedMotion();
 
@@ -21,94 +43,106 @@ export default function Hero({ tagline, slides }: { tagline: string; slides: Med
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  /** Una línea del nombre: sube desde su propio alto, recortada por el padre. */
+  const Line = ({
+    children,
+    delay,
+    accent,
+  }: {
+    children: string;
+    delay: number;
+    accent?: boolean;
+  }) => (
+    <span className="block overflow-hidden">
+      <motion.span
+        className={accent ? "inline-block text-copper" : "inline-block"}
+        initial={{
+          transform: reduce ? "translateY(0%)" : "translateY(110%)",
+          opacity: reduce ? 0 : 1,
+        }}
+        animate={{ transform: "translateY(0%)", opacity: 1 }}
+        transition={{ delay, duration: reduce ? 0.2 : 0.6, ease: EASE }}
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+
   return (
-    <section className="grain texture-grid relative flex min-h-svh items-center overflow-hidden bg-paper">
-      {/* Palabra-marca gigante de fondo, contorno en tinta */}
+    <section className="grain glow-warm relative flex min-h-svh flex-col justify-center overflow-hidden bg-night">
       <span
         aria-hidden
-        className="display text-outline absolute -right-8 top-1/2 hidden -translate-y-1/2 text-[22vw] leading-none lg:block"
+        className="display text-outline pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 text-[24vw] leading-none lg:block"
       >
         WS
       </span>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 px-5 pt-24 pb-16 lg:grid-cols-[1fr_minmax(0,380px)]">
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-12 px-5 pt-28 pb-12 lg:grid-cols-[1.15fr_minmax(0,400px)]">
         <div>
           <motion.p
-            initial={{ opacity: 0, y: reduce ? 0 : 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.3, ease: EASE }}
-            className="data mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-brand"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="kicker mb-6 text-copper"
           >
-            Barbería · Soacha, Cundinamarca
+            {NEGOCIO.ciudad} · {NEGOCIO.region}
           </motion.p>
 
-          <h1 className="display max-w-4xl text-6xl text-ink sm:text-7xl md:text-8xl">
-            <span className="block overflow-hidden">
-              <motion.span
-                className="inline-block"
-                initial={{ y: reduce ? 0 : "110%" }}
-                animate={{ y: 0 }}
-                transition={{ delay: 0.2, duration: reduce ? 0.2 : 0.55, ease: EASE }}
-              >
-                Will
-              </motion.span>
-            </span>
-            <span className="block overflow-hidden text-brand">
-              <motion.span
-                className="inline-block"
-                initial={{ y: reduce ? 0 : "110%" }}
-                animate={{ y: 0 }}
-                transition={{ delay: 0.34, duration: reduce ? 0.2 : 0.55, ease: EASE }}
-              >
-                Santoyo
-              </motion.span>
-            </span>
+          <h1 className="display-xl text-[clamp(3rem,8vw,5.5rem)] text-chalk">
+            <Line delay={0.18}>Will</Line>
+            <Line delay={0.27} accent>
+              Santoyo
+            </Line>
           </h1>
 
           <motion.div
-            initial={{ scaleX: reduce ? 1 : 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 0.55, duration: reduce ? 0 : 0.45, ease: EASE }}
-            className="barber-stripe mt-8 w-40 origin-left"
+            initial={{ transform: reduce ? "scaleX(1)" : "scaleX(0)" }}
+            animate={{ transform: "scaleX(1)" }}
+            transition={{ delay: 0.5, duration: reduce ? 0 : 0.45, ease: EASE }}
+            className="barber-stripe mt-8 w-44 origin-left"
           />
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
-            className="mt-6 max-w-xl text-lg text-ink-soft"
+            transition={{ delay: 0.55, duration: 0.3 }}
+            className="mt-7 max-w-md text-lg leading-relaxed text-smoke"
           >
             {tagline}
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.3, ease: EASE }}
-            className="mt-10 flex flex-wrap gap-4"
+            initial={{ opacity: 0, transform: reduce ? "translateY(0px)" : "translateY(10px)" }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            transition={{ delay: 0.65, duration: 0.3, ease: EASE }}
+            className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center"
           >
             <Link
               href="/agendar"
-              className="display block rounded-sm bg-brand px-8 py-4 text-lg text-on-brand transition-[transform,background-color] duration-150 ease-[var(--ease-out-strong)] hover:bg-brand-deep active:scale-[0.97]"
+              className="group display inline-flex min-h-14 items-center justify-center gap-2 rounded-sm bg-copper px-8 text-lg text-on-copper transition-[transform,background-color] duration-150 ease-[var(--ease-out)] hover:bg-ember active:scale-[0.97]"
             >
-              Reservar con Will
+              Reservar mi turno
+              <ArrowRight
+                size={18}
+                className="transition-transform duration-150 ease-[var(--ease-out)] group-hover:translate-x-0.5"
+              />
             </Link>
             <Link
-              href="/#servicios"
-              className="display block rounded-sm border border-line px-8 py-4 text-lg text-ink transition-[border-color,color] duration-150 ease-[var(--ease-out-strong)] hover:border-brand hover:text-brand"
+              href="/hoy"
+              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-sm px-6 text-base text-smoke transition-colors duration-150 hover:text-chalk"
             >
-              Ver servicios
+              Ver la fila de hoy
             </Link>
           </motion.div>
         </div>
 
-        {/* Lámina de fotos: al costado, como retrato colgado del estudio */}
+        {/* Lámina lateral: el trabajo, no un adorno detrás del texto */}
         {slides.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: reduce ? 0.2 : 0.5, ease: EASE }}
-            className="card-frame relative hidden aspect-[4/5] overflow-hidden lg:block"
+            initial={{ opacity: 0, transform: reduce ? "translateY(0px)" : "translateY(16px)" }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            transition={{ delay: 0.4, duration: reduce ? 0.2 : 0.5, ease: EASE }}
+            className="surface relative hidden aspect-[4/5] overflow-hidden lg:block"
           >
             {slides.map((slide, i) => (
               <motion.div
@@ -119,16 +153,48 @@ export default function Hero({ tagline, slides }: { tagline: string; slides: Med
                 transition={{ duration: reduce ? 0 : 0.8 }}
               />
             ))}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-night/80 to-transparent" />
           </motion.div>
         )}
       </div>
 
-      {/* Indicador de scroll (quieto con reduced-motion) */}
+      {/* Barra de datos: lo que alguien necesita saber antes de reservar */}
       <motion.div
-        className="absolute bottom-8 left-1/2 h-10 w-px -translate-x-1/2 bg-gradient-to-b from-brand to-transparent"
-        animate={reduce ? { opacity: 0.6 } : { opacity: [0.2, 1, 0.2] }}
-        transition={reduce ? undefined : { repeat: Infinity, duration: 2 }}
-      />
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
+        className="relative z-10 border-t border-edge/60"
+      >
+        <dl className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-edge/60 px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <Dato icon={MapPin} label="Dónde" value={NEGOCIO.calle} />
+          <Dato icon={Clock} label="Horario" value="Lun a sáb · desde 9:00" />
+          <Dato
+            icon={Scissors}
+            label="Corte clásico"
+            value={desde ? `$ ${desde.toLocaleString("es-CO")}` : "Consulta"}
+          />
+        </dl>
+      </motion.div>
     </section>
+  );
+}
+
+function Dato({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof MapPin;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-5 sm:justify-center sm:px-6">
+      <Icon size={16} className="shrink-0 text-copper" aria-hidden />
+      <div className="min-w-0">
+        <dt className="kicker text-smoke/70">{label}</dt>
+        <dd className="mt-1 truncate text-sm text-chalk">{value}</dd>
+      </div>
+    </div>
   );
 }

@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces } from "next/font/google";
+import { Bricolage_Grotesque } from "next/font/google";
 import { Toaster } from "sonner";
 import { DIRECCION_COMPLETA, NEGOCIO } from "@/lib/negocio";
 import "./globals.css";
 
-// Única fuente descargada: la voz de marca vive en los titulares (Fraunces,
-// serif óptica). Cuerpo y datos usan las pilas del sistema — apple-design §15.
-const fraunces = Fraunces({
-  weight: ["500", "600"],
+// Única fuente descargada: la voz de marca vive en los titulares. Grotesk
+// variable con eje óptico — el trazo cambia con el tamaño (apple-design §15).
+// Cuerpo y datos usan las pilas del sistema, que ya traen tuning de legibilidad.
+const bricolage = Bricolage_Grotesque({
+  weight: ["600", "700"],
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-bricolage",
   display: "swap",
 });
 
@@ -44,12 +45,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Will Santoyo",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f1eee6",
+  themeColor: "#141210",
   viewportFit: "cover", // respeta el notch: la barra fija usa safe-area-inset
 };
 
@@ -106,8 +107,8 @@ const JSON_LD = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={fraunces.variable}>
-      <body className="min-h-screen bg-paper text-ink antialiased">
+    <html lang="es" className={bricolage.variable}>
+      <body className="min-h-screen bg-night text-chalk antialiased">
         <script
           type="application/ld+json"
           // Objeto propio y estático: no hay entrada de usuario que escapar.
@@ -116,15 +117,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         {/* Un solo Toaster, montado en la raíz: dos duplicarían cada aviso. */}
         <Toaster
-          theme="light"
+          theme="dark"
           position="top-center"
           richColors
           closeButton
           toastOptions={{
             classNames: {
-              toast: "!bg-card !border-line !text-ink !rounded-sm",
+              toast: "!bg-coal !border-edge !text-chalk !rounded-[var(--radius-card)]",
               title: "!font-semibold",
-              description: "!text-ink-soft",
+              description: "!text-smoke",
             },
           }}
         />
