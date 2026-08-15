@@ -138,7 +138,10 @@ def availability(
         services = booking.load_services(db, tenant, query.service_ids)
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
-    duration = sum(s.duration_min for s in services) * query.party
+    # Duración canónica (1 h), no la suma de servicios: la agenda va por bloques
+    from ..config import get_settings
+
+    duration = get_settings().appointment_minutes * query.party
     is_day_off, slots = compute_slots(db, tenant, professional, query.date, duration)
     return DayAvailability(date=query.date, is_day_off=is_day_off, slots=slots)
 

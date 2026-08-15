@@ -100,7 +100,7 @@ export default function PortalPage() {
         {data && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             {/* Tarjeta de fidelidad: cada corte suma — sin pagos en línea */}
-            <div className="surface surface mt-8 p-5">
+            <div className="surface mt-8 p-5">
               <p className="data text-[11px] uppercase tracking-[0.3em] text-copper">
                 Tarjeta de fidelidad · {data.customer_name.split(" ")[0]}
               </p>

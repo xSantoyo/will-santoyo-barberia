@@ -117,11 +117,12 @@ def test_daily_number_increments_per_day(client, professional):
     assert second["daily_number"] == first["daily_number"] + 1
 
 
-def test_multiple_services_extend_duration(client, professional):
-    """Corte + barba (60') + color (90') = 150 minutos: bloquea 10 slots de 15'."""
+def test_duration_is_always_one_hour(client, professional):
+    """Regla de negocio: el turno dura 1 h SIEMPRE, elija los servicios que elija.
+    El precio sí suma; el tiempo no."""
     day = next_working_date(professional, weeks_ahead=2)
     services = client.get(f"{BASE}/services").json()
-    combo = [services[1]["id"], services[5]["id"]]  # 60 + 90 min
+    combo = [s["id"] for s in services[:2]] if len(services) > 1 else [services[0]["id"]]
 
     availability = _get_slot(client, professional.id, day, combo)
     slot = availability["slots"][0]
@@ -134,14 +135,13 @@ def test_multiple_services_extend_duration(client, professional):
         },
     )
     assert response.status_code == 201
-    total = response.json()["total_cop"]
-    assert total == services[1]["price_cop"] + services[5]["price_cop"]
 
-    # Un servicio de 15 min a mitad del bloque de 150 min debe estar bloqueado
-    short = _get_slot(client, professional.id, day, [services[3]["id"]])
-    hour, minute = map(int, slot.split(":"))
-    inside = f"{hour + 1:02d}:{minute:02d}"  # 60 min después del inicio
-    assert inside not in short["slots"]
+    # La hora siguiente queda libre: el bloque ocupa exactamente 60 minutos
+    hora, minuto = map(int, slot.split(":"))
+    siguiente = f"{hora + 1:02d}:{minuto:02d}"
+    libres = _get_slot(client, professional.id, day, combo)["slots"]
+    assert slot not in libres, "el slot reservado debe desaparecer"
+    assert siguiente in libres, "la hora siguiente NO debe quedar bloqueada"
 
 
 def test_booking_on_day_off_rejected(client, professional):
@@ -196,3 +196,52 @@ def test_invalid_phone_rejected(client, professional):
 def test_unknown_tenant_404(client):
     response = client.get("/api/v1/public/no-existe/professional")
     assert response.status_code == 404
+
+
+def test_cancel_window_closes_15_minutes_before(client, db, tenant, professional):
+    """Regla de negocio: se cancela hasta 15 min antes del inicio.
+
+    El backend es la fuente de verdad: aunque el botón del frontend esté
+    deshabilitado, pegar la request directo debe chocar con la misma regla.
+    """
+    import uuid
+    from datetime import timedelta
+
+    from app.db import utcnow
+    from app.models import Appointment
+
+    def _turno(minutos_al_inicio: int) -> str:
+        starts = utcnow() + timedelta(minutes=minutos_al_inicio)
+        code = uuid.uuid4().hex[:8].upper()
+        db.add(
+            Appointment(
+                tenant_id=tenant.id,
+                professional_id=professional.id,
+                customer_name="Cliente Ventana",
+                customer_whatsapp="+573001112233",
+                starts_at=starts,
+                ends_at=starts + timedelta(hours=1),
+                status="confirmado",
+                daily_number=1,
+                manage_code=code,
+            )
+        )
+        db.commit()
+        return code
+
+    # Falta media hora: se puede cancelar
+    holgado = _turno(30)
+    ticket = client.get(f"{BASE}/appointments/{holgado}").json()
+    assert ticket["can_cancel"] is True
+    assert ticket["cancel_blocked_reason"] is None
+    assert client.post(f"{BASE}/appointments/{holgado}/cancel", json={}).status_code == 200
+
+    # Faltan 10 minutos: la ventana ya cerró
+    justo = _turno(10)
+    ticket = client.get(f"{BASE}/appointments/{justo}").json()
+    assert ticket["can_cancel"] is False
+    assert "menos de 15 minutos" in ticket["cancel_blocked_reason"]
+
+    response = client.post(f"{BASE}/appointments/{justo}/cancel", json={})
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "cancel_window_closed"

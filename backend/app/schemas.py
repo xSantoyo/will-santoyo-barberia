@@ -138,6 +138,10 @@ class AppointmentPublic(ORMModel):
     can_review: bool = False
     review_rating: int | None = None
     gift_description: str | None = None  # regalo aplicado (se redime en el local)
+    # Ventana de cancelación: el frontend deshabilita el botón con el motivo
+    # en vez de recalcular la regla (el backend es la fuente de verdad).
+    can_cancel: bool = False
+    cancel_blocked_reason: str | None = None
 
 
 class AppointmentFind(BaseModel):

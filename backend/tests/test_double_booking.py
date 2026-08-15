@@ -42,28 +42,22 @@ def test_exact_same_slot_rejected(client, professional):
 
 
 def test_partial_overlap_rejected(client, professional):
-    """Corte clásico dura 45': una reserva a las 11:00 bloquea 11:15 y 11:30,
-    y también una reserva larga que la envuelva."""
+    """Con bloques de 1 h, una reserva a las 11:00 ocupa hasta las 12:00.
+    Reservar de nuevo a las 11:00 choca; a las 12:00 ya no."""
     day = next_working_date(professional, weeks_ahead=5)
     services = _services(client)
 
     assert _book(client, professional.id, day, "11:00", services=services).status_code == 201
 
-    for time in ("11:15", "11:30"):
-        response = _book(client, professional.id, day, time, phone="3063333333",
-                         services=services)
-        assert response.status_code == 409, f"El slot {time} debió rechazarse"
-
-    # Reserva de 150 min empezando antes (10:30 + 150' = 13:00) envuelve a la de 11:00
-    long_combo = [services[1]["id"], services[5]["id"]]
-    response = _book(client, professional.id, day, "10:30", phone="3064444444",
-                     service_ids=long_combo, services=services)
-    assert response.status_code == 409
-
-    # A las 11:45 la primera reserva (11:00–11:45) ya terminó: debe aceptarse
-    response = _book(client, professional.id, day, "11:45", phone="3065555555",
+    # Mismo inicio: solapamiento directo
+    repetido = _book(client, professional.id, day, "11:00", phone="3063333333",
                      services=services)
-    assert response.status_code == 201
+    assert repetido.status_code == 409
+
+    # 12:00 arranca justo cuando termina el anterior: contiguo, permitido
+    contiguo = _book(client, professional.id, day, "12:00", phone="3065555555",
+                     services=services)
+    assert contiguo.status_code == 201
 
 
 def test_cancelled_slot_reusable(client, professional):

@@ -49,7 +49,7 @@ export default function DashboardPage() {
     adminApi
       .dashboard()
       .then(setData)
-      .catch((brick) => setError(brick.message));
+      .catch((err) => setError(err.message));
   }, []);
 
   useEffect(() => {
@@ -98,8 +98,8 @@ export default function DashboardPage() {
     try {
       await adminApi.setStatus(appointment.id, status);
       load();
-    } catch (brick) {
-      alert(brick instanceof Error ? brick.message : "Error");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error");
     } finally {
       setBusy(null);
     }
@@ -129,7 +129,7 @@ export default function DashboardPage() {
       {/* Resumen ejecutivo: el pulso del día de un vistazo */}
       {summary && (
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="surface surface p-4">
+          <div className="surface p-4">
             <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
               <Banknote size={13} className="text-copper" /> Caja de hoy
             </p>
@@ -140,20 +140,20 @@ export default function DashboardPage() {
               + {formatCOP(summary.expected)} por atender
             </p>
           </div>
-          <div className="surface surface p-4">
+          <div className="surface p-4">
             <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
               <Scissors size={13} className="text-copper" /> Atendidos
             </p>
             <p className="data mt-1 text-2xl font-semibold text-chalk">{summary.doneCount}</p>
           </div>
-          <div className="surface surface p-4">
+          <div className="surface p-4">
             <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
               <Clock3 size={13} className="text-copper" /> En fila
             </p>
             <p className="data mt-1 text-2xl font-semibold text-chalk">{summary.activeCount}</p>
           </div>
           <div
-            className={`surface surface p-4 ${summary.overdue.length > 0 ? "border-brick/60" : ""}`}
+            className={`surface p-4 ${summary.overdue.length > 0 ? "border-brick/60" : ""}`}
           >
             <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
               <UserX size={13} className={summary.overdue.length > 0 ? "text-brick" : "text-copper"} />
@@ -369,8 +369,8 @@ function WalkInModal({
       });
       setResult(appointment);
       onCreated();
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "No se pudo registrar el walk-in");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo registrar el walk-in");
     } finally {
       setSaving(false);
     }
@@ -402,7 +402,7 @@ function WalkInModal({
           <p className="data mt-2 text-sm text-smoke">
             Pasa a las <span className="font-semibold text-copper">{result.time_local}</span>
           </p>
-          <div className="surface surface mt-5 p-4">
+          <div className="surface mt-5 p-4">
             <p className="data text-[11px] uppercase tracking-[0.3em] text-smoke">
               Código del cliente
             </p>

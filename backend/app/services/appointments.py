@@ -211,7 +211,7 @@ def create_appointment(
 ) -> Appointment:
     professional = get_professional(db, tenant)
     services = load_services(db, tenant, data.service_ids)
-    duration_min = sum(s.duration_min for s in services)
+    duration_min = get_settings().appointment_minutes
 
     starts_at, ends_at = _validate_slot(
         tenant, professional, db, data.date, data.time, duration_min, enforce_lead=enforce_lead
@@ -270,6 +270,19 @@ def create_appointment(
     return appointment
 
 
+def cancel_window_open(appointment: Appointment) -> bool:
+    """¿El cliente todavía está a tiempo de cancelar por su cuenta?
+
+    Se usa en dos sitios y debe dar el mismo resultado en ambos: aquí, para
+    rechazar la cancelación, y en el serializador del tiquete, para que el
+    botón salga deshabilitado con el motivo antes de que el cliente lo intente.
+    """
+    if appointment.status not in ACTIVE_STATUSES or appointment.status == "en_curso":
+        return False
+    margen = timedelta(minutes=get_settings().cancel_window_minutes)
+    return appointment.starts_at - utcnow() > margen
+
+
 def cancel_appointment(
     db: Session,
     appointment: Appointment,
@@ -285,9 +298,18 @@ def cancel_appointment(
     if not by_admin:
         if appointment.status == "en_curso":
             raise BookingError("El turno ya está en curso.", 409, "not_cancellable")
-        if appointment.starts_at <= utcnow():
-            raise BookingError("El turno ya pasó y no se puede cancelar en línea.", 409,
-                               "not_cancellable")
+        # Ventana de cancelación: el cliente puede cancelar hasta N minutos
+        # antes del inicio. Faltando menos, el hueco ya no alcanza a revenderse
+        # y Will ya contó con ese turno. Es la FUENTE DE VERDAD: aunque el botón
+        # del frontend esté deshabilitado, quien pegue la request directo choca
+        # con esta misma regla.
+        if not cancel_window_open(appointment):
+            raise BookingError(
+                "Ya no se puede cancelar este turno: faltan menos de "
+                f"{get_settings().cancel_window_minutes} minutos para empezar. "
+                "Escríbele a Will por WhatsApp si tuviste un imprevisto.",
+                409, "cancel_window_closed",
+            )
     appointment.status = "cancelado"
     appointment.cancel_reason = reason
     appointment.cancelled_at = utcnow()
@@ -321,7 +343,7 @@ def reschedule_appointment(
             409, "not_reschedulable",
         )
     professional = get_professional(db, tenant)
-    duration_min = sum(s.duration_min for s in appointment.services)
+    duration_min = get_settings().appointment_minutes
     starts_at, ends_at = _validate_slot(
         tenant, professional, db, new_date, new_time, duration_min, enforce_lead=False
     )
@@ -457,7 +479,7 @@ def create_walk_in(
 
     professional = get_professional(db, tenant)
     services = load_services(db, tenant, service_ids)
-    duration_min = sum(s.duration_min for s in services)
+    duration_min = get_settings().appointment_minutes
 
     release_unconfirmed(db, tenant)  # primero libera huecos vencidos
 
@@ -553,7 +575,7 @@ def create_group_appointment(db: Session, tenant: Tenant, data) -> list[Appointm
 
     for index, member in enumerate(data.customers):
         services = load_services(db, tenant, member.service_ids)
-        duration_min = sum(s.duration_min for s in services)
+        duration_min = get_settings().appointment_minutes
         starts_at, ends_at = _validate_slot(
             tenant, professional, db, data.date, cursor_time, duration_min,
             enforce_lead=(index == 0),

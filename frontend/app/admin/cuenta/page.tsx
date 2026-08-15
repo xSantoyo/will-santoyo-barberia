@@ -32,8 +32,8 @@ export default function AccountPage() {
       setCurrent("");
       setNext("");
       setConfirm("");
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "No se pudo cambiar la contraseña");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo cambiar la contraseña");
     } finally {
       setSaving(false);
     }

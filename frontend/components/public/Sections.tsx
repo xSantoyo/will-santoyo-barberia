@@ -45,7 +45,7 @@ function SectionTitle({ kicker, title }: { kicker: string; title: string }) {
     <Reveal>
       <p className="data mb-2 text-xs uppercase tracking-[0.3em] text-copper">{kicker}</p>
       <h2 className="display text-4xl text-chalk sm:text-5xl">{title}</h2>
-      <div className="copper-rule mt-4" />
+      <div className="barber-stripe mt-4 w-14" />
     </Reveal>
   );
 }
@@ -243,7 +243,7 @@ export function Reviews({ data }: { data: ReviewsResponse | null }) {
         <StaggerGroup className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.items.slice(0, 6).map((review, i) => (
             <StaggerItem key={`${review.date_local}-${i}`}>
-              <figure className="surface surface h-full p-5">
+              <figure className="surface h-full p-5">
                 <p className="data text-sm text-copper">
                   {"★".repeat(review.rating)}
                   <span className="text-smoke/40">{"★".repeat(5 - review.rating)}</span>

@@ -64,7 +64,7 @@ export default function BoardPage() {
             <h1 className="display mt-3 text-5xl text-chalk sm:text-6xl">
               La fila <span className="text-copper">en vivo</span>
             </h1>
-            <div className="copper-rule mt-3" />
+            <div className="barber-stripe mt-3 w-14" />
           </div>
           {board && (
             <p className="data text-sm text-smoke">
@@ -124,7 +124,7 @@ function Lane({ board }: { board: QueueBoard }) {
       initial={{ opacity: 0, y: reduce ? 0 : 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0.2 } : { duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-      className="surface surface relative p-5"
+      className="surface relative p-5"
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="display text-2xl text-chalk">La silla de Will</h2>

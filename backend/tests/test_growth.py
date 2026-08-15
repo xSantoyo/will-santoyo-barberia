@@ -146,7 +146,7 @@ def test_group_booking_back_to_back(client, professional):
     """Padre e hijo: dos turnos seguidos, todo o nada."""
     day = next_working_date(professional, weeks_ahead=17)
     services = _services(client)
-    corte = services[0]  # 45 min
+    corte = services[0]  # el turno dura 1 h
 
     group = client.post(
         f"{BASE}/appointments/group",
@@ -161,14 +161,15 @@ def test_group_booking_back_to_back(client, professional):
     )
     assert group.status_code == 201, group.text
     created = group.json()["appointments"]
-    assert [a["time_local"] for a in created] == ["09:00", "09:45"]
+    # Bloques de 1 h: el segundo arranca justo cuando termina el primero
+    assert [a["time_local"] for a in created] == ["09:00", "10:00"]
     assert created[1]["daily_number"] == created[0]["daily_number"] + 1
 
-    # Un grupo grande en tramos libres (10:15, 11:00, 11:45) sí entra completo
+    # Un grupo grande en tramos libres (11:00, 12:00, 13:00) sí entra completo
     trio = client.post(
         f"{BASE}/appointments/group",
         json={
-            "date": day.isoformat(), "time": "10:15",
+            "date": day.isoformat(), "time": "11:00",
             "customer_whatsapp": "3163330002",
             "customers": [
                 {"name": "Parche Uno", "service_ids": [corte["id"]]},
@@ -179,12 +180,12 @@ def test_group_booking_back_to_back(client, professional):
     )
     assert trio.status_code == 201
     assert [a["time_local"] for a in trio.json()["appointments"]] == [
-        "10:15", "11:00", "11:45",
+        "11:00", "12:00", "13:00",
     ]
     clash = client.post(
         f"{BASE}/appointments/group",
         json={
-            "date": day.isoformat(), "time": "09:30",
+            "date": day.isoformat(), "time": "09:00",
             "customer_whatsapp": "3163330003",
             "customers": [{"name": "Tarde Uno", "service_ids": [corte["id"]]}],
         },

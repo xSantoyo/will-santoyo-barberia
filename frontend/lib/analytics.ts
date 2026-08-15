@@ -43,9 +43,7 @@ export type AnalyticsEvent =
   | "wizard_paso"
   | "reserva_completada"
   | "reserva_fallida"
-  | "pago_checkout_abierto"
-  | "pago_resultado"
-  | "regalo_checkout"
+  | "whatsapp_confirmacion_abierta"
   | "resena_enviada"
   | "fila_vista";
 

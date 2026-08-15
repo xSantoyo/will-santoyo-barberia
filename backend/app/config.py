@@ -39,7 +39,14 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
 
     # --- Reglas de negocio ---
-    slot_step_minutes: int = 15         # granularidad de la grilla de horarios
+    # Un turno dura SIEMPRE esto, sin importar cuántos servicios se elijan:
+    # la agenda de Will trabaja en bloques de una hora.
+    appointment_minutes: int = 60
+    # La grilla avanza igual que la duración: así los bloques no se solapan
+    # ni dejan huecos muertos de 15 minutos entre turnos.
+    slot_step_minutes: int = 60         # granularidad de la grilla de horarios
+    # Hasta cuántos minutos antes del inicio puede cancelar el cliente.
+    cancel_window_minutes: int = 15
     booking_lead_minutes: int = 30      # antelación mínima para reservar
     booking_horizon_days: int = 30      # hasta cuántos días adelante se puede reservar
     no_show_grace_minutes: int = 15     # tolerancia antes de alertar no-show

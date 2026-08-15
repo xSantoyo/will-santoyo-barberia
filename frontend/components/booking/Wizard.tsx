@@ -33,6 +33,7 @@ import { track } from "@/lib/analytics";
 import { HoneypotField, Turnstile, turnstileEnabled } from "@/components/security/BotShield";
 import { RazorReveal } from "@/components/public/Razor";
 import AddToCalendar from "@/components/public/AddToCalendar";
+import WhatsAppConfirm from "@/components/public/WhatsAppConfirm";
 import { DIRECCION_COMPLETA, NEGOCIO } from "@/lib/negocio";
 import {
   formatCOP,
@@ -248,27 +249,27 @@ export default function Wizard() {
         description: `Te esperamos el ${appointment.date_local} a las ${appointment.time_local}.`,
       });
       setConfirmed(appointment);
-    } catch (brick) {
+    } catch (err) {
       track("reserva_fallida", {
-        codigo: brick instanceof ApiError ? brick.code : "desconocido",
+        codigo: err instanceof ApiError ? err.code : "desconocido",
       });
       // Colisión: alguien ganó el horario entre que lo elegiste y confirmaste.
       // Se devuelve al paso de horarios con la lista ya refrescada, y todo lo
       // demás que llenaste sigue en su sitio.
-      if (brick instanceof ApiError && brick.code === "overlap") {
+      if (err instanceof ApiError && err.code === "overlap") {
         toast.error("Ese horario acaba de ocuparse", {
           description: "Te dejamos los horarios libres de ese día. Elige otro.",
         });
         goTo(1);
         loadSlots(date);
-      } else if (brick instanceof ApiError && brick.code === "day_off") {
+      } else if (err instanceof ApiError && err.code === "day_off") {
         toast.error("Will no atiende ese día", { description: "Elige otra fecha." });
         goTo(1);
       } else {
         toast.error("No pudimos crear la reserva", {
           description:
-            brick instanceof Error
-              ? brick.message
+            err instanceof Error
+              ? err.message
               : "Revisa tu conexión e intenta de nuevo; no perdiste nada de lo que llenaste.",
         });
       }
@@ -965,9 +966,24 @@ function Confirmation({
         <span className="data text-chalk">{appointment.time_local}</span>.
       </p>
 
+      {/* Acción principal, visible sin hacer scroll: abre WhatsApp con el
+          mensaje ya escrito (no lo envía solo — eso requeriría la Business API). */}
+      <div className="mt-7">
+        <WhatsAppConfirm
+          nombre={appointment.customer_name}
+          servicios={appointment.services.map((s) => s.name)}
+          fecha={appointment.date_local}
+          hora={appointment.time_local}
+          codigo={appointment.manage_code}
+        />
+        <p className="mt-2 text-xs text-smoke/70">
+          Se abre WhatsApp con el mensaje listo; tú le das enviar.
+        </p>
+      </div>
+
       {/* EL MOMENTO SEÑAL: el tiquete se imprime y el código queda sellado.
           Es el único medio de gestión del turno: protagonista absoluto. */}
-      <div className="surface surface mt-8 p-5 sm:p-6">
+      <div className="surface mt-8 p-5 sm:p-6">
         <p className="data text-xs uppercase tracking-[0.3em] text-copper">
           Tu código de gestión
         </p>

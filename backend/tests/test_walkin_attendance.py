@@ -53,7 +53,7 @@ def frozen_day_off(monkeypatch):
 
 def test_walk_in_takes_next_slot_today(client, admin_headers, professional, frozen_now):
     services = client.get(f"{BASE_PUBLIC}/services").json()
-    corte = services[0]  # 45 min
+    corte = services[0]  # el turno dura 1 h
 
     first = client.post(
         f"{BASE_ADMIN}/appointments/walk-in",
@@ -73,7 +73,7 @@ def test_walk_in_takes_next_slot_today(client, admin_headers, professional, froz
     assert data["notes"] == "Walk-in"
     assert len(data["manage_code"]) == 8  # entra a La Fila con tiquete propio
 
-    # El segundo walk-in cae después del primero (45 min → 15:45)
+    # El segundo walk-in cae después del primero (bloque de 1 h → 16:00)
     second = client.post(
         f"{BASE_ADMIN}/appointments/walk-in",
         json={
@@ -85,7 +85,7 @@ def test_walk_in_takes_next_slot_today(client, admin_headers, professional, froz
         headers=admin_headers,
     )
     assert second.status_code == 201
-    assert second.json()["time_local"] == "15:45"
+    assert second.json()["time_local"] == "16:00"
     assert second.json()["daily_number"] == data["daily_number"] + 1
 
 

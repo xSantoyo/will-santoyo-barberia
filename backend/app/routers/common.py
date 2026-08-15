@@ -10,7 +10,7 @@ from ..schemas import (
     AppointmentServiceOut,
     ProfessionalPublic,
 )
-from ..services.appointments import attendance_state
+from ..services.appointments import attendance_state, cancel_window_open
 from ..services.storage import get_storage
 
 
@@ -27,6 +27,24 @@ def professional_to_public(professional: Professional) -> ProfessionalPublic:
         instagram=professional.instagram,
         photo_url=professional_photo_url(professional),
         schedule=professional.schedule or {},
+    )
+
+
+def _cancel_blocked_reason(appointment: Appointment) -> str | None:
+    """Por qué NO se puede cancelar, en palabras para el cliente."""
+    from ..config import get_settings
+
+    if cancel_window_open(appointment):
+        return None
+    if appointment.status == "cancelado":
+        return "Este turno ya está cancelado."
+    if appointment.status in ("completado", "no_show"):
+        return "Este turno ya se cerró."
+    if appointment.status == "en_curso":
+        return "Tu turno ya empezó."
+    return (
+        "Ya no se puede cancelar este turno: faltan menos de "
+        f"{get_settings().cancel_window_minutes} minutos para empezar."
     )
 
 
@@ -53,6 +71,8 @@ def appointment_to_public(appointment: Appointment, tenant: Tenant) -> Appointme
         can_review=appointment.status == "completado" and appointment.review is None,
         review_rating=appointment.review.rating if appointment.review else None,
         gift_description=appointment.gift.description if appointment.gift else None,
+        can_cancel=cancel_window_open(appointment),
+        cancel_blocked_reason=_cancel_blocked_reason(appointment),
     )
 
 

@@ -29,10 +29,10 @@ export default function AdminLoginPage() {
         captcha_token: captchaToken,
       });
       router.replace("/admin");
-    } catch (brick) {
+    } catch (err) {
       setError(
-        brick instanceof AdminApiError && brick.status === 429
-          ? brick.message
+        err instanceof AdminApiError && err.status === 429
+          ? err.message
           : "Usuario o contraseña incorrectos.",
       );
       setLoading(false);

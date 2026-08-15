@@ -48,7 +48,7 @@ export default function SecurityPage() {
     adminApi
       .securityEvents(kind || undefined)
       .then((rows) => setEvents(rows.filter((r) => r.kind !== "booking_created")))
-      .catch((brick) => setError(brick.message));
+      .catch((err) => setError(err.message));
   }, [kind]);
 
   useEffect(load, [load]);

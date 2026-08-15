@@ -34,8 +34,8 @@ export default function ProductosPage() {
       const asset = await adminApi.uploadImage("product", file);
       await adminApi.updateProduct(product.id, { photo_key: asset.s3_key });
       load();
-    } catch (brick) {
-      alert(brick instanceof Error ? brick.message : "Error subiendo la foto");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error subiendo la foto");
     }
   }
 
@@ -155,8 +155,8 @@ function ProductModal({
       if (product) await adminApi.updateProduct(product.id, payload);
       else await adminApi.createProduct(payload);
       onSaved();
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "Error al guardar");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar");
       setSaving(false);
     }
   }

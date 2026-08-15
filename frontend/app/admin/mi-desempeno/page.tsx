@@ -35,7 +35,7 @@ export default function MyPerformancePage() {
     adminApi
       .stats(days)
       .then(setStats)
-      .catch((brick) => setError(brick.message));
+      .catch((err) => setError(err.message));
   }, [days]);
 
   if (error) return <p className="text-brick">{error}</p>;
@@ -172,7 +172,7 @@ function StatCard({
   alert?: boolean;
 }) {
   return (
-    <div className={`surface surface p-4 ${alert ? "border-brick/60" : ""}`}>
+    <div className={`surface p-4 ${alert ? "border-brick/60" : ""}`}>
       <p className="data flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-smoke">
         {icon} {label}
       </p>

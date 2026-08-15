@@ -55,8 +55,8 @@ export default function TurnosPage() {
     try {
       await fn();
       load();
-    } catch (brick) {
-      alert(brick instanceof Error ? brick.message : "Error");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error");
     }
   }
 
@@ -256,8 +256,8 @@ function ManualBookingModal({
         notes: form.notes || null,
       });
       onCreated();
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "Error al crear el turno");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al crear el turno");
       setSaving(false);
     }
   }
@@ -382,8 +382,8 @@ function RescheduleModal({
     try {
       await adminApi.reschedule(appointment.id, form);
       onDone();
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "No se pudo reprogramar");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo reprogramar");
       setSaving(false);
     }
   }

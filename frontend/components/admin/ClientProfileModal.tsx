@@ -25,7 +25,7 @@ export default function ClientProfileModal({
     adminApi
       .clientProfile(phone)
       .then(setProfile)
-      .catch((brick) => setError(brick.message));
+      .catch((err) => setError(err.message));
   }, [phone]);
 
   useEffect(load, [load]);
@@ -38,8 +38,8 @@ export default function ClientProfileModal({
       await adminApi.addClientNote(phone, note.trim());
       setNote("");
       load();
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "Error");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setSaving(false);
     }
@@ -85,7 +85,7 @@ export default function ClientProfileModal({
           </div>
 
           {/* Fidelidad */}
-          <div className="surface surface p-4">
+          <div className="surface p-4">
             <p className="data flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-copper">
               <Scissors size={12} /> Fidelidad: {profile.loyalty.progress}/
               {profile.loyalty.target}

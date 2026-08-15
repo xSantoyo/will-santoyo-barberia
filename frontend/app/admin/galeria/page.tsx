@@ -47,8 +47,8 @@ export default function GaleriaPage() {
     for (const file of list) {
       try {
         await adminApi.uploadImage(kind, file);
-      } catch (brick) {
-        setError(brick instanceof Error ? brick.message : "Error subiendo una imagen");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error subiendo una imagen");
       } finally {
         setUploading((n) => n - 1);
       }

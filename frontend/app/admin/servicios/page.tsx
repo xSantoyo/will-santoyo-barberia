@@ -119,8 +119,8 @@ function ServiceModal({
       if (service) await adminApi.updateService(service.id, form);
       else await adminApi.createService(form);
       onSaved();
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "Error al guardar");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar");
       setSaving(false);
     }
   }

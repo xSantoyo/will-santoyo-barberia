@@ -10,7 +10,7 @@
  *   El backend valida el token solo cuando TURNSTILE_SECRET_KEY está
  *   configurado: ambos lados se activan en pareja.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
@@ -18,8 +18,24 @@ export function turnstileEnabled(): boolean {
   return Boolean(TURNSTILE_SITE_KEY);
 }
 
-/** Campo señuelo. `website` nunca lo llena un humano: está fuera de pantalla,
- * fuera del tab order y marcado autocomplete=off. */
+/** Campo señuelo: un bot que rellena todo lo que encuentra cae; un humano no.
+ *
+ * INCIDENTE (ago-2026): la versión anterior usaba `name="website"` con la
+ * etiqueta visible "Sitio web". Eso es justo lo que las heurísticas de
+ * autocompletado de Chrome reconocen como campo de URL, así que el navegador lo
+ * rellenaba solo al autocompletar los datos de contacto del cliente — y el
+ * backend rechazaba a clientes reales creyéndolos bots. Un honeypot que bloquea
+ * compradores es peor que no tener honeypot.
+ *
+ * Las tres defensas contra eso, en orden de importancia:
+ *   1. Sin etiqueta ni `name` semánticos: nada que el autocompletado mapee.
+ *   2. `autocomplete="off"` (débil por sí solo — Chrome lo ignora a menudo).
+ *   3. `readOnly` hasta que el campo recibe foco: el autocompletado no escribe
+ *      en campos de solo lectura, pero un bot que hace focus+type sí entra.
+ *
+ * El nombre del campo en el JSON que viaja al backend sigue siendo `website`:
+ * el contrato de la API no cambia.
+ */
 export function HoneypotField({
   value,
   onChange,
@@ -27,19 +43,23 @@ export function HoneypotField({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const [locked, setLocked] = useState(true);
+
   return (
     <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden">
-      <label>
-        Sitio web
-        <input
-          type="text"
-          name="website"
-          tabIndex={-1}
-          autoComplete="off"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      </label>
+      <input
+        type="text"
+        name="cf-ref"
+        id="cf-ref"
+        tabIndex={-1}
+        readOnly={locked}
+        onFocus={() => setLocked(false)}
+        autoComplete="off"
+        data-lpignore="true"
+        data-1p-ignore="true"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }

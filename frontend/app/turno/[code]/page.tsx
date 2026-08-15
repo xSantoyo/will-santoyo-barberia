@@ -17,6 +17,8 @@ import { publicApi } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import FlipNumber from "@/components/public/FlipNumber";
 import AddToCalendar from "@/components/public/AddToCalendar";
+import WhatsAppConfirm from "@/components/public/WhatsAppConfirm";
+import Button from "@/components/ui/Button";
 import {
   formatCOP,
   STATUS_LABELS,
@@ -73,8 +75,8 @@ export default function ManageAppointmentPage({
     try {
       const updated = await publicApi.confirmAttendance(code);
       setAppointment(updated);
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "No pudimos registrar la confirmación.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos registrar la confirmación.");
     } finally {
       setConfirming(false);
     }
@@ -87,8 +89,8 @@ export default function ManageAppointmentPage({
       const updated = await publicApi.cancel(code, reason.trim() || undefined);
       setAppointment(updated);
       setConfirmOpen(false);
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "No pudimos cancelar el turno.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos cancelar el turno.");
     } finally {
       setCancelling(false);
     }
@@ -167,7 +169,7 @@ export default function ManageAppointmentPage({
 
         {/* Tiquete vivo: hoy la fila avanza en tiempo real */}
         {showLiveQueue && (
-          <div className="surface surface mt-8 p-5 text-center">
+          <div className="surface mt-8 p-5 text-center">
             <p className="data flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.3em] text-copper">
               <Radio size={13} className="animate-pulse" /> La fila hoy
             </p>
@@ -246,19 +248,34 @@ export default function ManageAppointmentPage({
         </div>
 
         {isActive && (
-          <div className="mt-4">
-            <AddToCalendar
-              event={{
-                title: `Will Santoyo — turno #${appointment.daily_number}`,
-                dateLocal: appointment.date_local,
-                timeLocal: appointment.time_local,
-                durationMin:
-                  appointment.services.reduce((sum, s) => sum + s.duration_min, 0) || 45,
-                description: `Con Will. Código de gestión: ${appointment.manage_code}.`,
-                location: "Will Santoyo — Calle 35 Sur & Cra 15B, Soacha",
-              }}
-            />
-          </div>
+          <>
+            {/* Mismo componente y mismo mensaje que en la confirmación: desde
+                aquí el cliente puede reenviarlo cuando quiera. */}
+            <div className="mt-6">
+              <WhatsAppConfirm
+                nombre={appointment.customer_name}
+                servicios={appointment.services.map((s) => s.name)}
+                fecha={appointment.date_local}
+                hora={appointment.time_local}
+                codigo={appointment.manage_code}
+                variant="secondary"
+                label="Escribirle a Will por WhatsApp"
+              />
+            </div>
+
+            <div className="mt-4">
+              <AddToCalendar
+                event={{
+                  title: `Will Santoyo — turno #${appointment.daily_number}`,
+                  dateLocal: appointment.date_local,
+                  timeLocal: appointment.time_local,
+                  durationMin: 60, // el turno dura siempre 1 h
+                  description: `Con Will. Código de gestión: ${appointment.manage_code}.`,
+                  location: "Will Santoyo — Calle 35 Sur & Cra 15B, Soacha",
+                }}
+              />
+            </div>
+          </>
         )}
 
         {error && (
@@ -267,13 +284,30 @@ export default function ManageAppointmentPage({
           </div>
         )}
 
+        {/* La ventana de cancelación la decide el BACKEND (can_cancel). Cuando
+            se cierra, el botón no desaparece: se muestra deshabilitado con el
+            motivo, para que el cliente entienda qué pasó en vez de buscarlo. */}
         {isCancellable && !confirmOpen && (
-          <button
-            onClick={() => setConfirmOpen(true)}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-sm border border-brick px-6 py-3 text-brick transition-colors hover:bg-brick hover:text-chalk"
-          >
-            <CalendarX2 size={18} /> Cancelar mi turno
-          </button>
+          <div className="mt-6">
+            <Button
+              variant="danger"
+              size="md"
+              full
+              disabled={!appointment.can_cancel}
+              onClick={() => setConfirmOpen(true)}
+            >
+              <CalendarX2 size={18} aria-hidden />
+              {appointment.can_cancel
+                ? "Cancelar mi turno"
+                : "Ya no se puede cancelar este turno"}
+            </Button>
+            {!appointment.can_cancel && appointment.cancel_blocked_reason && (
+              <p className="mt-2 text-center text-xs text-smoke">
+                {appointment.cancel_blocked_reason} Escríbele por WhatsApp si
+                tuviste un imprevisto.
+              </p>
+            )}
+          </div>
         )}
 
         <AnimatePresence>
@@ -378,10 +412,10 @@ function RebookWidget({ code }: { code: string }) {
     try {
       const next = await publicApi.rebook(code, weeks);
       setDone({ code: next.manage_code, date: next.date_local });
-    } catch (brick) {
+    } catch (err) {
       setError(
-        brick instanceof Error
-          ? `${brick.message} Prueba otra semana o agenda desde el inicio.`
+        err instanceof Error
+          ? `${err.message} Prueba otra semana o agenda desde el inicio.`
           : "No se pudo repetir.",
       );
     } finally {
@@ -453,8 +487,8 @@ function ReviewWidget({
       await publicApi.leaveReview(code, rating, comment.trim() || undefined);
       track("resena_enviada", { estrellas: rating, con_comentario: Boolean(comment.trim()) });
       onDone(rating);
-    } catch (brick) {
-      setError(brick instanceof Error ? brick.message : "No pudimos guardar tu reseña.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos guardar tu reseña.");
       setSending(false);
     }
   }

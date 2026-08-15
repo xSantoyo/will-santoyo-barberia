@@ -35,8 +35,8 @@ export default function RegalosPage() {
       );
       setDescription("");
       load();
-    } catch (brick) {
-      alert(brick instanceof Error ? brick.message : "Error");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error");
     } finally {
       setSaving(false);
     }

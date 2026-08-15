@@ -61,6 +61,9 @@ export interface AppointmentPublic {
   can_review: boolean;
   review_rating: number | null;
   gift_description: string | null;
+  /** Ventana de cancelación: la decide el backend, no el cliente. */
+  can_cancel: boolean;
+  cancel_blocked_reason: string | null;
 }
 
 /* --- Tanda 4: crecimiento --- */
