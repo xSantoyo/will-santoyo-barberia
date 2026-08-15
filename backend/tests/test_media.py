@@ -4,7 +4,7 @@ from __future__ import annotations
 import io
 
 ADMIN = "/api/v1/admin"
-PUBLIC = "/api/v1/public/bad-boys"
+PUBLIC = "/api/v1/public/will-santoyo"
 
 # PNG mínimo válido (1x1 transparente)
 TINY_PNG = bytes.fromhex(
@@ -22,7 +22,7 @@ def test_presign_contract_local_mode(client, admin_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "direct"  # backend local: subida multipart al backend
-    assert data["key"].startswith("tenants/bad-boys/gallery/")
+    assert data["key"].startswith("tenants/will-santoyo/gallery/")
 
 
 def test_upload_list_and_delete(client, admin_headers):
@@ -35,7 +35,7 @@ def test_upload_list_and_delete(client, admin_headers):
     assert upload.status_code == 201, upload.text
     asset = upload.json()
     assert asset["kind"] == "cut"
-    assert asset["url"].startswith("/media/bad-boys/cuts/")
+    assert asset["url"].startswith("/media/will-santoyo/cuts/")
 
     # La imagen servida por el backend responde 200
     served = client.get(asset["url"])
@@ -71,11 +71,3 @@ def test_upload_rejects_bad_type_and_kind(client, admin_headers):
     assert bad_kind.status_code == 400
 
 
-def test_upload_requires_admin(client, barbero_headers):
-    response = client.post(
-        f"{ADMIN}/media/upload",
-        data={"kind": "gallery"},
-        files={"file": ("foto.png", io.BytesIO(TINY_PNG), "image/png")},
-        headers=barbero_headers,
-    )
-    assert response.status_code == 403

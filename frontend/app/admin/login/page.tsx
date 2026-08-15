@@ -3,24 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock } from "lucide-react";
-import { adminApi } from "@/lib/admin-api";
+import { AdminApiError, adminApi } from "@/lib/admin-api";
+import { HoneypotField, Turnstile, turnstileEnabled } from "@/components/security/BotShield";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot: un humano nunca lo llena
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (turnstileEnabled() && !captchaToken) {
+      setError("Completa la verificación anti-bot para continuar.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await adminApi.login(username.trim(), password);
+      await adminApi.login(username.trim(), password, {
+        website,
+        captcha_token: captchaToken,
+      });
       router.replace("/admin");
-    } catch {
-      setError("Usuario o contraseña incorrectos.");
+    } catch (err) {
+      setError(
+        err instanceof AdminApiError && err.status === 429
+          ? err.message
+          : "Usuario o contraseña incorrectos.",
+      );
       setLoading(false);
     }
   }
@@ -70,6 +84,8 @@ export default function AdminLoginPage() {
               className="focus-gold w-full rounded-sm border border-ink-3 bg-ink px-4 py-3 text-bone"
             />
           </label>
+          <HoneypotField value={website} onChange={setWebsite} />
+          <Turnstile onToken={setCaptchaToken} />
           <button
             type="submit"
             disabled={loading}

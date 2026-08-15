@@ -374,6 +374,53 @@ test("anchos móviles reales: 375px y 428px", async ({ page }) => {
   await shot(page, "29-home-428", true);
 });
 
+test("ronda de seguridad: vista del barbero y panel de seguridad", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // Un par de intentos fallidos (menos de 5: no dispara el bloqueo) para que
+  // el panel de seguridad tenga eventos reales que mostrar en la captura.
+  const api = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+  for (let i = 0; i < 2; i++) {
+    await page.request.post(`${api}/api/v1/auth/login`, {
+      data: { username: "admin", password: "clave-incorrecta" },
+      failOnStatusCode: false,
+    });
+  }
+  await page.request.post(`${api}/api/v1/auth/login`, {
+    data: { username: "admin", password: "x", website: "http://bot.example" },
+    failOnStatusCode: false,
+  });
+
+  // ---- El barbero solo ve SU mundo: dashboard propio, desempeño y cuenta
+  await page.goto("/admin");
+  await page.getByLabel(/usuario/i).fill("barbero1");
+  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByRole("button", { name: /entrar/i }).click();
+  await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
+  await shot(page, "48-barbero-dashboard");
+
+  await page.getByRole("link", { name: /mi desempeño/i }).click();
+  await expect(page.getByRole("heading", { name: /mi desempeño/i })).toBeVisible();
+  await page.waitForTimeout(1000);
+  await shot(page, "49-barbero-mi-desempeno");
+
+  await page.getByRole("link", { name: /mi cuenta/i }).click();
+  await expect(page.getByRole("heading", { name: /mi cuenta/i })).toBeVisible();
+  await shot(page, "50-barbero-mi-cuenta");
+
+  // ---- El admin ve el registro de seguridad
+  await page.getByRole("button", { name: /salir/i }).click();
+  await expect(page.getByRole("button", { name: /entrar/i })).toBeVisible();
+  await page.getByLabel(/usuario/i).fill("admin");
+  await page.getByLabel(/contraseña/i).fill("BadBoys2026!");
+  await page.getByRole("button", { name: /entrar/i }).click();
+  await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("link", { name: /seguridad/i }).click();
+  await expect(page.getByRole("heading", { name: "Seguridad" })).toBeVisible();
+  await page.waitForTimeout(900);
+  await shot(page, "51-admin-seguridad");
+});
+
 test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/admin");

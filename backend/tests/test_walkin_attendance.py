@@ -18,20 +18,21 @@ from app.services import appointments as appointments_service
 from app.services import availability as availability_service
 
 TZ = ZoneInfo("America/Bogota")
-BASE_PUBLIC = "/api/v1/public/bad-boys"
+BASE_PUBLIC = "/api/v1/public/will-santoyo"
 BASE_ADMIN = "/api/v1/admin"
 
 
-def _next_tuesday_far() -> datetime:
+def _far_weekday(weekday: int) -> datetime:
     day = (datetime.now(TZ) + timedelta(days=130)).replace(
         hour=15, minute=0, second=0, microsecond=0
     )
-    while day.weekday() != 1:  # martes
+    while day.weekday() != weekday:
         day += timedelta(days=1)
     return day
 
 
-FROZEN = _next_tuesday_far()
+FROZEN = _far_weekday(1)        # martes: Will trabaja
+FROZEN_DAY_OFF = _far_weekday(6)  # domingo: descansa
 
 
 @pytest.fixture()
@@ -41,16 +42,23 @@ def frozen_now(monkeypatch):
     return FROZEN
 
 
+@pytest.fixture()
+def frozen_day_off(monkeypatch):
+    for module in (appointments_service, availability_service):
+        monkeypatch.setattr(module, "utcnow", lambda: FROZEN_DAY_OFF)
+    return FROZEN_DAY_OFF
+
+
 # ------------------------------------------------------------------ walk-ins
 
-def test_walk_in_takes_next_slot_today(client, admin_headers, barbers, frozen_now):
+def test_walk_in_takes_next_slot_today(client, admin_headers, professional, frozen_now):
     services = client.get(f"{BASE_PUBLIC}/services").json()
     corte = services[0]  # 45 min
 
     first = client.post(
         f"{BASE_ADMIN}/appointments/walk-in",
         json={
-            "barber_id": barbers[0].id,
+            
             "service_ids": [corte["id"]],
             "customer_name": "Walkin Uno",
             "customer_whatsapp": None,  # no dejó teléfono
@@ -63,13 +71,13 @@ def test_walk_in_takes_next_slot_today(client, admin_headers, barbers, frozen_no
     assert data["date_local"] == FROZEN.date().isoformat()
     assert data["customer_whatsapp"] is None
     assert data["notes"] == "Walk-in"
-    assert len(data["manage_code"]) == 6  # entra a La Fila con tiquete propio
+    assert len(data["manage_code"]) == 8  # entra a La Fila con tiquete propio
 
     # El segundo walk-in cae después del primero (45 min → 15:45)
     second = client.post(
         f"{BASE_ADMIN}/appointments/walk-in",
         json={
-            "barber_id": barbers[0].id,
+            
             "service_ids": [corte["id"]],
             "customer_name": "Walkin Dos",
             "customer_whatsapp": "3001234567",
@@ -81,12 +89,12 @@ def test_walk_in_takes_next_slot_today(client, admin_headers, barbers, frozen_no
     assert second.json()["daily_number"] == data["daily_number"] + 1
 
 
-def test_walk_in_rejected_on_day_off(client, admin_headers, barbers, frozen_now):
+def test_walk_in_rejected_on_day_off(client, admin_headers, professional, frozen_day_off):
     services = client.get(f"{BASE_PUBLIC}/services").json()
     response = client.post(
         f"{BASE_ADMIN}/appointments/walk-in",
         json={
-            "barber_id": barbers[1].id,  # descansa los martes
+            # domingo: Will descansa
             "service_ids": [services[0]["id"]],
             "customer_name": "Walkin Fallido",
         },
@@ -96,27 +104,11 @@ def test_walk_in_rejected_on_day_off(client, admin_headers, barbers, frozen_now)
     assert response.json()["detail"]["code"] == "day_off"
 
 
-def test_barbero_can_only_walk_in_own_chair(client, barbero_headers, barbers, frozen_now):
-    services = client.get(f"{BASE_PUBLIC}/services").json()
-    response = client.post(
-        f"{BASE_ADMIN}/appointments/walk-in",
-        json={
-            "barber_id": barbers[2].id,  # barbero1 intenta la silla de otro
-            "service_ids": [services[0]["id"]],
-            "customer_name": "Walkin Ajeno",
-        },
-        headers=barbero_headers,
-    )
-    assert response.status_code == 403
-
-
-# ------------------------------------------------------- confirmación
-
-def _make_appointment(db, tenant, barber, *, starts, created, confirmed_at=None,
+def _make_appointment(db, tenant, professional, *, starts, created, confirmed_at=None,
                       status="confirmado"):
     appointment = Appointment(
         tenant_id=tenant.id,
-        barber_id=barber.id,
+        professional_id=professional.id,
         customer_name="Cliente Asistencia",
         customer_whatsapp="+573007770000",
         starts_at=starts,
@@ -132,11 +124,11 @@ def _make_appointment(db, tenant, barber, *, starts, created, confirmed_at=None,
     return appointment.manage_code, appointment.id
 
 
-def test_confirm_attendance_flow(client, tenant, barbers, frozen_now):
+def test_confirm_attendance_flow(client, tenant, professional, frozen_now):
     db = SessionLocal()
     # Reservó hace 30h para dentro de 5h: la ventana está abierta (límite -3h)
     code, _ = _make_appointment(
-        db, tenant, barbers[0],
+        db, tenant, professional,
         starts=FROZEN + timedelta(hours=5), created=FROZEN - timedelta(hours=30),
     )
 
@@ -156,11 +148,11 @@ def test_confirm_attendance_flow(client, tenant, barbers, frozen_now):
     db.close()
 
 
-def test_confirm_too_early_and_not_required(client, tenant, barbers, frozen_now):
+def test_confirm_too_early_and_not_required(client, tenant, professional, frozen_now):
     db = SessionLocal()
     # Turno en 30h: la ventana abre en 6h → aún no
     early_code, _ = _make_appointment(
-        db, tenant, barbers[0],
+        db, tenant, professional,
         starts=FROZEN + timedelta(hours=30), created=FROZEN - timedelta(hours=1),
     )
     response = client.post(f"{BASE_PUBLIC}/appointments/{early_code}/confirm")
@@ -169,7 +161,7 @@ def test_confirm_too_early_and_not_required(client, tenant, barbers, frozen_now)
 
     # Reserva de último minuto (creada hace 1h para dentro de 2h): no aplica
     lastminute_code, _ = _make_appointment(
-        db, tenant, barbers[0],
+        db, tenant, professional,
         starts=FROZEN + timedelta(hours=2), created=FROZEN - timedelta(hours=1),
     )
     ticket = client.get(f"{BASE_PUBLIC}/appointments/{lastminute_code}").json()
@@ -179,17 +171,16 @@ def test_confirm_too_early_and_not_required(client, tenant, barbers, frozen_now)
     db.close()
 
 
-def test_unconfirmed_slot_is_released_automatically(client, tenant, barbers, frozen_now):
+def test_unconfirmed_slot_is_released_automatically(client, tenant, professional, frozen_now):
     db = SessionLocal()
-    barber = barbers[0]
     # Venció su ventana (empieza en 2h, límite era hace... -3h → ya pasó) y NO confirmó
     released_code, released_id = _make_appointment(
-        db, tenant, barber,
+        db, tenant, professional,
         starts=FROZEN + timedelta(hours=2), created=FROZEN - timedelta(hours=40),
     )
     # Su gemelo SÍ confirmó: debe sobrevivir
     kept_code, _ = _make_appointment(
-        db, tenant, barber,
+        db, tenant, professional,
         starts=FROZEN + timedelta(hours=2, minutes=30),
         created=FROZEN - timedelta(hours=40),
         confirmed_at=FROZEN - timedelta(hours=6),
@@ -200,7 +191,7 @@ def test_unconfirmed_slot_is_released_automatically(client, tenant, barbers, fro
     client.post(
         f"{BASE_PUBLIC}/availability",
         json={
-            "barber_id": barber.id,
+            
             "date": (FROZEN + timedelta(hours=2)).astimezone(TZ).date().isoformat(),
             "service_ids": [services[0]["id"]],
         },

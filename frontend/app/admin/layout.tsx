@@ -9,14 +9,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
+  ChartNoAxesColumn,
   CreditCard,
   Gift,
   Images,
+  KeyRound,
   LayoutDashboard,
   ListChecks,
   LogOut,
   Package,
   Scissors,
+  ShieldAlert,
   Users,
 } from "lucide-react";
 import { adminApi, getAuth, type StoredAuth } from "@/lib/admin-api";
@@ -24,6 +27,7 @@ import { adminApi, getAuth, type StoredAuth } from "@/lib/admin-api";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "barbero"] },
   { href: "/admin/agenda", label: "Agenda", icon: CalendarDays, roles: ["admin", "barbero"] },
+  { href: "/admin/mi-desempeno", label: "Mi desempeño", icon: ChartNoAxesColumn, roles: ["barbero"] },
   { href: "/admin/turnos", label: "Turnos", icon: ListChecks, roles: ["admin"] },
   { href: "/admin/barberos", label: "Barberos", icon: Users, roles: ["admin"] },
   { href: "/admin/servicios", label: "Servicios", icon: Scissors, roles: ["admin"] },
@@ -31,6 +35,8 @@ const NAV = [
   { href: "/admin/regalos", label: "Regalos", icon: Gift, roles: ["admin"] },
   { href: "/admin/pagos", label: "Pagos", icon: CreditCard, roles: ["admin"] },
   { href: "/admin/galeria", label: "Galería", icon: Images, roles: ["admin"] },
+  { href: "/admin/seguridad", label: "Seguridad", icon: ShieldAlert, roles: ["admin"] },
+  { href: "/admin/cuenta", label: "Mi cuenta", icon: KeyRound, roles: ["admin", "barbero"] },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

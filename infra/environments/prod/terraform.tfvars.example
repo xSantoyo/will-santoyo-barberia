@@ -6,3 +6,7 @@ github_repository_url = "https://github.com/OWNER/bad-boys-platform"
 github_access_token   = "ghp_..."
 
 jwt_secret = "generar-con: openssl rand -hex 32"
+
+# Correo que recibe las alarmas de seguridad (logins fallidos, bloqueos,
+# webhooks inválidos, ráfagas). SNS envía un correo de confirmación al aplicar.
+security_alert_email = "dueno@badboysbarbershop.com"

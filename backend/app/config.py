@@ -60,8 +60,58 @@ class Settings(BaseSettings):
     deposit_ttl_minutes: int = 30  # tiempo para pagar el anticipo antes de liberar
 
     # --- Rate limiting (endpoints públicos) ---
+    # Escritura pública (reservas, cancelaciones, reseñas): moderado.
     rate_limit_requests: int = 10
     rate_limit_window_seconds: int = 60
+    # Acciones sensibles (login, cambio de contraseña, inicio de pago): estricto.
+    strict_rate_limit_requests: int = 5
+    strict_rate_limit_window_seconds: int = 900  # 15 minutos
+    # Lectura pública (disponibilidad, fila, listados): generoso — el wizard
+    # consulta varias veces sin ser un ataque; esto solo frena scraping burdo.
+    read_rate_limit_requests: int = 120
+    read_rate_limit_window_seconds: int = 60
+    # Consulta por código (tiquete, estado de pago): las páginas hacen polling,
+    # pero sin freno permitirían enumerar códigos de gestión.
+    lookup_rate_limit_requests: int = 30
+    lookup_rate_limit_window_seconds: int = 60
+
+    # --- Anti fuerza bruta en login (bloqueo TEMPORAL con backoff) ---
+    login_max_failures: int = 5           # fallos antes de bloquear
+    login_failure_window_minutes: int = 15  # ventana en que se acumulan fallos
+    login_lockout_minutes: int = 15       # duración base del bloqueo
+    login_lockout_max_minutes: int = 1440  # tope del backoff exponencial (24 h)
+    # El nivel de backoff decae si no hay fallos en este lapso
+    login_lockout_decay_hours: int = 24
+
+    # --- Anti-bots ---
+    # Cloudflare Turnstile: activo solo si hay secret configurado.
+    turnstile_secret_key: str = ""
+    turnstile_verify_url: str = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+    # --- Correos transaccionales (Resend) ---
+    # Opt-in por despliegue, igual que Turnstile: sin API key los correos van a
+    # un "outbox" local (archivos .html) para desarrollo y demos — nunca se
+    # bloquea una reserva por un correo. El código en pantalla sigue siendo el
+    # canal oficial del cliente (ADR-009); el correo es cortesía.
+    resend_api_key: str = ""
+    resend_api_url: str = "https://api.resend.com/emails"
+    # El remitente debe ser de un dominio verificado en Resend. Mientras no
+    # haya dominio propio, onboarding@resend.dev sirve para pruebas.
+    email_from: str = "Will Santoyo <onboarding@resend.dev>"
+    email_outbox_dir: str = "./outbox"  # solo se usa sin API key
+
+    @property
+    def email_enabled(self) -> bool:
+        return bool(self.resend_api_key)
+
+    # --- Detección de ráfagas de reservas (solo registra, no bloquea) ---
+    booking_burst_ip_threshold: int = 6      # reservas por IP en la ventana
+    booking_burst_phone_threshold: int = 4   # reservas por teléfono en la ventana
+    booking_burst_window_minutes: int = 60
+
+    @property
+    def turnstile_enabled(self) -> bool:
+        return bool(self.turnstile_secret_key)
 
     @property
     def cors_origin_list(self) -> list[str]:

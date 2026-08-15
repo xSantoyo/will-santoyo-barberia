@@ -1,0 +1,95 @@
+"""PROPUESTA — NO EJECUTADA. Requiere aprobación explícita del dueño.
+
+Extensión `.proposed` a propósito: Alembic solo descubre archivos `.py`, así que
+este archivo NO corre con `alembic upgrade head`. Para aplicarlo, renómbralo a
+`0010_drop_professional_relation.py` y muévelo a `alembic/versions/`.
+
+QUÉ HACE (destructivo sobre datos existentes)
+---------------------------------------------
+Completa el colapso que la 0009 dejó a medias: elimina físicamente la relación
+con el profesional, que tras el refactor siempre apunta a la misma fila (Will).
+
+  * Traslada el horario y el perfil de `professional` a `tenants`.
+  * `DROP COLUMN appointments.professional_id`  ← pierde la trazabilidad histórica
+  * `DROP COLUMN reviews.professional_id`
+  * `DROP COLUMN admin_users.barber_id`, `admin_users.role`
+  * `DROP TABLE professional`
+  * Reconstruye el EXCLUDE anti doble-reserva sobre `tenant_id`.
+
+POR QUÉ NO CORRE AUTOMÁTICAMENTE
+--------------------------------
+`appointments.professional_id` ancla hoy el constraint `no_double_booking`, la
+garantía a nivel de motor de que dos clientes no ocupan el mismo horario.
+Sustituirlo exige DROP CONSTRAINT + DROP COLUMN sobre una tabla con reservas
+reales. Hasta que corra, la columna sigue viva con un único valor: no es una
+columna fantasma, es el ancla del constraint (REFACTOR_PLAN.md §4).
+
+ANTES DE APLICARLA
+------------------
+1. Backup de la base.
+2. Verificar que exista una sola fila en `professional`.
+3. Decidir qué hacer con las citas históricas de los barberos retirados
+   (reasignar a Will (recomendado) o purgar).
+"""
+from __future__ import annotations
+
+import sqlalchemy as sa
+from alembic import op
+
+revision = "0010"
+down_revision = "0009"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    bind = op.get_bind()
+
+    # 1. El horario del profesional pasa a ser el horario del negocio.
+    op.execute(
+        """
+        UPDATE tenants SET business_hours = professional.schedule
+        FROM professional WHERE professional.tenant_id = tenants.id
+        """
+    )
+
+    # 2. Soltar el EXCLUDE antes de tocar la columna que lo ancla.
+    if bind.dialect.name == "postgresql":
+        op.execute("ALTER TABLE appointments DROP CONSTRAINT IF EXISTS no_double_booking")
+
+    # 3. time_off deja de colgar del profesional y cuelga del negocio.
+    with op.batch_alter_table("time_off") as batch:
+        batch.drop_constraint("uq_time_off", type_="unique")
+        batch.drop_column("professional_id")
+        batch.create_unique_constraint("uq_time_off", ["tenant_id", "date"])
+
+    # 4. Eliminar la relación.
+    op.drop_index("ix_appointments_professional_start", table_name="appointments")
+    with op.batch_alter_table("appointments") as batch:
+        batch.drop_column("professional_id")
+    with op.batch_alter_table("reviews") as batch:
+        batch.drop_column("professional_id")
+    with op.batch_alter_table("admin_users") as batch:
+        batch.drop_column("barber_id")
+        batch.drop_column("role")
+
+    op.drop_table("professional")
+
+    # 5. Reconstruir la garantía anti doble-reserva sobre el negocio.
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            """
+            ALTER TABLE appointments ADD CONSTRAINT no_double_booking
+            EXCLUDE USING gist (
+                tenant_id WITH =,
+                tstzrange(starts_at, ends_at) WITH &&
+            ) WHERE (status IN ('pendiente', 'confirmado', 'en_curso'))
+            """
+        )
+
+
+def downgrade() -> None:
+    raise NotImplementedError(
+        "Irreversible: el DROP de professional_id pierde la atribución histórica. "
+        "Restaurar desde backup."
+    )

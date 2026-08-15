@@ -3,22 +3,33 @@ from __future__ import annotations
 
 from zoneinfo import ZoneInfo
 
-from ..models import Appointment, Barber, Tenant
+from ..models import Appointment, Professional, Tenant
 from ..schemas import (
     AppointmentAdmin,
     AppointmentPublic,
     AppointmentServiceOut,
     PaymentPublic,
+    ProfessionalPublic,
 )
 from ..services import payments as payments_service
 from ..services.appointments import attendance_state
 from ..services.storage import get_storage
 
 
-def barber_photo_url(barber: Barber) -> str | None:
-    if not barber.photo_key:
+def professional_photo_url(professional: Professional) -> str | None:
+    if not professional.photo_key:
         return None
-    return get_storage().public_url(barber.photo_key)
+    return get_storage().public_url(professional.photo_key)
+
+
+def professional_to_public(professional: Professional) -> ProfessionalPublic:
+    return ProfessionalPublic(
+        name=professional.name,
+        headline=professional.headline,
+        instagram=professional.instagram,
+        photo_url=professional_photo_url(professional),
+        schedule=professional.schedule or {},
+    )
 
 
 def appointment_to_public(appointment: Appointment, tenant: Tenant) -> AppointmentPublic:
@@ -32,7 +43,6 @@ def appointment_to_public(appointment: Appointment, tenant: Tenant) -> Appointme
         date_local=local.strftime("%Y-%m-%d"),
         time_local=local.strftime("%H:%M"),
         customer_name=appointment.customer_name,
-        barber_name=appointment.barber.name,
         services=[AppointmentServiceOut.model_validate(s) for s in appointment.services],
         total_cop=appointment.total_cop,
         attendance_pending=attendance["pending"],
@@ -70,8 +80,6 @@ def appointment_to_admin(appointment: Appointment, tenant: Tenant) -> Appointmen
     attendance = attendance_state(appointment)
     return AppointmentAdmin(
         id=appointment.id,
-        barber_id=appointment.barber_id,
-        barber_name=appointment.barber.name,
         customer_name=appointment.customer_name,
         customer_whatsapp=appointment.customer_whatsapp,
         status=appointment.status,

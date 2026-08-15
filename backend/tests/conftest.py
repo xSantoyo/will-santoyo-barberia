@@ -23,6 +23,7 @@ os.environ.update(
         "STORAGE_BACKEND": "local",
         "LOCAL_MEDIA_ROOT": str(_TMP / "media"),
         "RATE_LIMIT_REQUESTS": "10000",  # sin fricción en tests (hay test dedicado)
+        "EMAIL_OUTBOX_DIR": str(_TMP / "outbox"),  # correos de prueba → tmp
         "BOOKING_LEAD_MINUTES": "30",
         # Los tests reparten reservas en semanas distintas para aislarse entre sí:
         "BOOKING_HORIZON_DAYS": "365",
@@ -35,7 +36,7 @@ from fastapi.testclient import TestClient
 from app import seed
 from app.db import Base, SessionLocal, engine
 from app.main import app
-from app.models import Barber, Tenant
+from app.models import Professional, Tenant
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -48,12 +49,22 @@ def database():
 
 @pytest.fixture(autouse=True)
 def _reset_rate_limiters():
-    """El limitador de login (5/min) es compartido: se limpia entre tests."""
-    from app.deps import booking_rate_limiter
-    from app.routers.auth import login_rate_limiter
+    """Los limitadores por IP y el throttle anti fuerza bruta son compartidos:
+    se limpian entre tests para que un test no bloquee al siguiente."""
+    from sqlalchemy import delete
 
-    booking_rate_limiter._hits.clear()
-    login_rate_limiter._hits.clear()
+    from app.deps import RATE_LIMITERS
+    from app.models import LoginThrottle
+
+    for limiter in RATE_LIMITERS:
+        limiter._hits.clear()
+        limiter._last_logged.clear()
+    session = SessionLocal()
+    try:
+        session.execute(delete(LoginThrottle))
+        session.commit()
+    finally:
+        session.close()
     yield
 
 
@@ -76,62 +87,49 @@ def db():
 def tenant(db) -> Tenant:
     from sqlalchemy import select
 
-    return db.scalar(select(Tenant).where(Tenant.slug == "bad-boys"))
+    return db.scalar(select(Tenant).where(Tenant.slug == seed.TENANT_SLUG))
 
 
 @pytest.fixture()
 def admin_headers(client) -> dict:
     response = client.post(
         "/api/v1/auth/login",
-        json={"username": "admin", "password": seed.DEFAULT_ADMIN_PASSWORD},
+        json={
+            "username": seed.DEFAULT_ADMIN_USERNAME,
+            "password": seed.DEFAULT_ADMIN_PASSWORD,
+        },
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-@pytest.fixture()
-def barbero_headers(client) -> dict:
-    response = client.post(
-        "/api/v1/auth/login",
-        json={"username": "barbero1", "password": seed.DEFAULT_ADMIN_PASSWORD},
-    )
-    assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
-
-
-def next_working_date(barber: Barber, *, offset_days: int = 1, weeks_ahead: int = 0) -> date:
-    """Primera fecha >= mañana en que el barbero trabaja (evita descansos)."""
+def next_working_date(
+    professional: Professional, *, offset_days: int = 1, weeks_ahead: int = 0
+) -> date:
+    """Primera fecha >= mañana en que Will trabaja (evita descansos)."""
     from app.services.availability import weekday_key
 
     day = date.today() + timedelta(days=offset_days + 7 * weeks_ahead)
     for _ in range(14):
-        if (barber.schedule or {}).get(weekday_key(day)):
+        if (professional.schedule or {}).get(weekday_key(day)):
             return day
         day += timedelta(days=1)
-    raise AssertionError("El barbero no trabaja ningún día (¿seed roto?)")
+    raise AssertionError("Will no trabaja ningún día (¿seed roto?)")
 
 
-def next_day_off(barber: Barber) -> date:
+def next_day_off(professional: Professional) -> date:
     from app.services.availability import weekday_key
 
     day = date.today() + timedelta(days=1)
     for _ in range(14):
-        if not (barber.schedule or {}).get(weekday_key(day)):
+        if not (professional.schedule or {}).get(weekday_key(day)):
             return day
         day += timedelta(days=1)
-    raise AssertionError("El barbero trabaja todos los días (¿seed roto?)")
+    raise AssertionError("Will trabaja todos los días (¿seed roto?)")
 
 
 @pytest.fixture()
-def barbers(db, tenant) -> list[Barber]:
+def professional(db, tenant) -> Professional:
     from sqlalchemy import select
 
-    # Solo los 3 barberos del seed (sort_order 1-3): otros tests crean barberos
-    # temporales que no deben interferir.
-    return list(
-        db.scalars(
-            select(Barber)
-            .where(Barber.tenant_id == tenant.id, Barber.sort_order.between(1, 3))
-            .order_by(Barber.sort_order)
-        )
-    )
+    return db.scalar(select(Professional).where(Professional.tenant_id == tenant.id))

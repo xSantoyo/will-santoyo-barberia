@@ -1,8 +1,8 @@
-"""Datos semilla: tenant Bad Boys, 3 barberos, servicios, usuarios.
+"""Datos semilla: Will Santoyo, sus servicios y su cuenta de administración.
 
-Idempotente: se puede ejecutar en cada arranque (docker-compose lo hace);
-si el tenant ya existe no duplica nada. Además indexa las fotos reales que el
-dueño coloque en content/bad-boys/{gallery,barbers,cuts} (sección 13 del spec).
+Idempotente: se puede ejecutar en cada arranque (docker-compose lo hace); si el
+negocio ya existe no duplica nada. Además indexa las fotos reales que Will
+coloque en content/will-santoyo/{gallery,profile,cuts}.
 
 Uso: python -m app.seed
 """
@@ -16,13 +16,16 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .db import SessionLocal
-from .models import AdminUser, Barber, MediaAsset, Service, Tenant
+from .models import AdminUser, MediaAsset, Professional, Service, Tenant
 from .security import hash_password
 from .services.storage import KIND_DIRS
 
 logger = logging.getLogger("badboys.seed")
 
-FULL_WEEK = {
+TENANT_SLUG = "will-santoyo"
+
+# Lunes a sábado; domingo de descanso.
+SCHEDULE = {
     "mon": {"start": "09:00", "end": "19:00"},
     "tue": {"start": "09:00", "end": "19:00"},
     "wed": {"start": "09:00", "end": "19:00"},
@@ -32,37 +35,6 @@ FULL_WEEK = {
     "sun": None,
 }
 
-# 3 barberos con horarios y días de descanso DISTINTOS (sección 18 del spec)
-BARBERS = [
-    {
-        "name": "Barbero 1",
-        "specialty": "Fades y diseño freestyle",
-        "instagram": "@badboys.barbero1",
-        "sort_order": 1,
-        "schedule": {**FULL_WEEK, "mon": None},  # descansa lunes
-    },
-    {
-        "name": "Barbero 2",
-        "specialty": "Barba y afeitado tradicional",
-        "instagram": "@badboys.barbero2",
-        "sort_order": 2,
-        "schedule": {**FULL_WEEK, "tue": None},  # descansa martes
-    },
-    {
-        "name": "Barbero 3",
-        "specialty": "Color y estilos clásicos",
-        "instagram": "@badboys.barbero3",
-        "sort_order": 3,
-        "schedule": {
-            **FULL_WEEK,
-            "wed": None,  # descansa miércoles
-            "sat": {"start": "10:00", "end": "20:00"},
-        },
-    },
-]
-
-# Sección 17: solo "Corte clásico" tiene precio confirmado; el resto es ejemplo
-# editable desde el panel de administración.
 SERVICES = [
     {"name": "Corte clásico", "price_cop": 30000, "duration_min": 45, "sort_order": 1},
     {"name": "Corte + barba", "price_cop": 45000, "duration_min": 60, "sort_order": 2},
@@ -73,7 +45,8 @@ SERVICES = [
     {"name": "Color / mechones", "price_cop": 60000, "duration_min": 90, "sort_order": 6},
 ]
 
-DEFAULT_ADMIN_PASSWORD = "BadBoys2026!"  # ⚠️ cambiar en producción
+DEFAULT_ADMIN_USERNAME = "will"
+DEFAULT_ADMIN_PASSWORD = "WillSantoyo2026!"  # ⚠️ cambiar en el primer ingreso
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
 
@@ -108,25 +81,25 @@ def sync_local_media(db: Session, tenant: Tenant) -> int:
 def run() -> None:
     db = SessionLocal()
     try:
-        tenant = db.scalar(select(Tenant).where(Tenant.slug == "bad-boys"))
+        tenant = db.scalar(select(Tenant).where(Tenant.slug == TENANT_SLUG))
         if tenant is not None:
-            logger.info("Seed: el tenant 'bad-boys' ya existe, no se duplica nada.")
+            logger.info("Seed: '%s' ya existe, no se duplica nada.", TENANT_SLUG)
             sync_local_media(db, tenant)
             return
 
         tenant = Tenant(
-            name="Bad Boys Barbershop",
-            slug="bad-boys",
-            whatsapp_number="+573000000000",  # reemplazar por el número real del negocio
+            name="Will Santoyo",
+            slug=TENANT_SLUG,
+            whatsapp_number="+573212014153",
             timezone="America/Bogota",
-            business_hours=FULL_WEEK,
+            business_hours=SCHEDULE,
             brand_config={
-                "tagline": "Elegancia con actitud",
-                "address": "Cra. 00 # 00-00, Barrio Ejemplo, Colombia",
-                "instagram": "https://instagram.com/badboysbarbershop",
-                "facebook": "https://facebook.com/badboysbarbershop",
-                "tiktok": "https://tiktok.com/@badboysbarbershop",
-                "maps_url": "https://maps.google.com/?q=Bad+Boys+Barbershop",
+                "tagline": "Barbero profesional en Bogotá",
+                "address": "Bogotá, Colombia",  # ⚠️ dirección exacta pendiente
+                "instagram": "https://instagram.com/_barber_wil_",
+                "facebook": "https://facebook.com/willsantoyo.0",
+                "tiktok": "https://tiktok.com/@willsantoyo",
+                "maps_url": "https://maps.google.com/?q=Bogota+Colombia",
                 "colors": {
                     "background": "#0B0B0C",
                     "accent": "#C9A24B",
@@ -138,12 +111,15 @@ def run() -> None:
         db.add(tenant)
         db.flush()
 
-        barbers = []
-        for spec in BARBERS:
-            barber = Barber(tenant_id=tenant.id, **spec)
-            db.add(barber)
-            barbers.append(barber)
-        db.flush()
+        db.add(
+            Professional(
+                tenant_id=tenant.id,
+                name="Will",
+                headline="Fades, barba y diseño — a mano, sin afán",
+                instagram="@_barber_wil_",
+                schedule=SCHEDULE,
+            )
+        )
 
         for spec in SERVICES:
             db.add(Service(tenant_id=tenant.id, **spec))
@@ -151,28 +127,16 @@ def run() -> None:
         db.add(
             AdminUser(
                 tenant_id=tenant.id,
-                username="admin",
+                username=DEFAULT_ADMIN_USERNAME,
                 password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
                 role="admin",
             )
         )
-        # Un login por barbero (rol restringido a su propia agenda)
-        for index, barber in enumerate(barbers, start=1):
-            db.add(
-                AdminUser(
-                    tenant_id=tenant.id,
-                    username=f"barbero{index}",
-                    password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
-                    role="barbero",
-                    barber_id=barber.id,
-                )
-            )
 
         db.commit()
         logger.info(
-            "Seed completado: tenant bad-boys, %d barberos, %d servicios, "
-            "usuarios admin/barbero1-3 (clave: %s)",
-            len(BARBERS), len(SERVICES), DEFAULT_ADMIN_PASSWORD,
+            "Seed completado: %s, %d servicios, usuario '%s' (clave: %s)",
+            tenant.name, len(SERVICES), DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD,
         )
         sync_local_media(db, tenant)
     finally:

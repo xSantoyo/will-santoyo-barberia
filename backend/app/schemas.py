@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 # ---------------------------------------------------------------- utilidades
 
 PHONE_RE = re.compile(r"^\+?[0-9]{10,15}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 
 
 def normalize_phone(v: str) -> str:
@@ -19,6 +20,17 @@ def normalize_phone(v: str) -> str:
     if not digits.startswith("+"):
         digits = f"+57{digits}" if len(digits) == 10 else f"+{digits}"
     return digits
+
+
+def normalize_email(v: str | None) -> str | None:
+    """Correo opcional: vacío → None; inválido → error. Regex simple a
+    propósito — la validación definitiva la hace el proveedor al enviar."""
+    if v is None or not v.strip():
+        return None
+    clean = v.strip().lower()
+    if not EMAIL_RE.match(clean) or len(clean) > 200:
+        raise ValueError("Correo electrónico inválido")
+    return clean
 
 
 class ORMModel(BaseModel):
@@ -36,10 +48,12 @@ class TenantPublic(ORMModel):
     business_hours: dict
 
 
-class BarberPublic(ORMModel):
-    id: int
+class ProfessionalPublic(ORMModel):
+    """Will, tal como lo ve el sitio público. Sin identificador: no hay a quién
+    elegir, así que nada que referenciar desde el cliente."""
+
     name: str
-    specialty: str | None
+    headline: str | None
     instagram: str | None = None
     photo_url: str | None = None
     schedule: dict
@@ -53,7 +67,6 @@ class ServicePublic(ORMModel):
 
 
 class AvailabilityQuery(BaseModel):
-    barber_id: int
     date: date
     service_ids: list[int] = Field(min_length=1)
     # Reserva grupal: cuántas personas se cortan seguidas (mismos servicios)
@@ -67,15 +80,25 @@ class DayAvailability(BaseModel):
 
 
 class BookingCreate(BaseModel):
-    barber_id: int
     service_ids: list[int] = Field(min_length=1, max_length=6)
     date: date
     time: str = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")  # HH:MM local
     customer_name: str = Field(min_length=2, max_length=120)
     customer_whatsapp: str
+    # Correo OPCIONAL: copia de cortesía de la confirmación (ronda Resend).
+    # El código en pantalla sigue siendo el canal oficial (ADR-009).
+    customer_email: str | None = Field(default=None, max_length=200)
     # Tanda 4: opcionales de crecimiento — sin dinero en línea
     referral_code: str | None = Field(default=None, max_length=16)
     gift_code: str | None = Field(default=None, max_length=16)
+    # Anti-bots: honeypot (campo oculto) y token de Turnstile (si está activo)
+    website: str | None = None
+    captcha_token: str | None = None
+
+    @field_validator("customer_email")
+    @classmethod
+    def _email(cls, v: str | None) -> str | None:
+        return normalize_email(v)
 
     @field_validator("customer_whatsapp")
     @classmethod
@@ -113,7 +136,6 @@ class AppointmentPublic(ORMModel):
     date_local: str
     time_local: str
     customer_name: str
-    barber_name: str
     services: list[AppointmentServiceOut]
     total_cop: int
     # Confirmación de asistencia (Tanda 2): el tiquete muestra el aviso cuando
@@ -149,6 +171,25 @@ class LoginRequest(BaseModel):
     password: str
     # Opcional: desambigua cuando el mismo username existe en varios tenants
     tenant_slug: str | None = None
+    # Anti-bots: honeypot (un humano nunca lo llena) y token de Turnstile
+    website: str | None = None
+    captcha_token: str | None = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=10, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _strength(cls, v: str) -> str:
+        if v.strip() != v:
+            raise ValueError("La contraseña no puede empezar ni terminar en espacios")
+        has_letter = any(c.isalpha() for c in v)
+        has_digit = any(c.isdigit() for c in v)
+        if not (has_letter and has_digit):
+            raise ValueError("La contraseña debe combinar letras y números")
+        return v
 
 
 class TokenPair(BaseModel):
@@ -157,7 +198,6 @@ class TokenPair(BaseModel):
     token_type: str = "bearer"
     role: str
     username: str
-    barber_id: int | None = None
 
 
 class RefreshRequest(BaseModel):
@@ -166,32 +206,22 @@ class RefreshRequest(BaseModel):
 
 # ---------------------------------------------------------------- admin
 
-class BarberAdmin(ORMModel):
-    id: int
+class ProfessionalAdmin(ORMModel):
     name: str
-    specialty: str | None
+    headline: str | None
     instagram: str | None = None
     photo_key: str | None
     photo_url: str | None = None
     schedule: dict
-    is_active: bool
-    sort_order: int
 
 
-class BarberCreate(BaseModel):
-    name: str = Field(min_length=2, max_length=120)
-    specialty: str | None = None
-    instagram: str | None = Field(default=None, max_length=120)
-    schedule: dict = Field(default_factory=dict)
-    sort_order: int = 0
+class ProfessionalUpdate(BaseModel):
+    """Will editando su propio perfil. No se crea ni se borra: siempre es él."""
 
-
-class BarberUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=120)
-    specialty: str | None = None
+    headline: str | None = Field(default=None, max_length=200)
     instagram: str | None = Field(default=None, max_length=120)
     schedule: dict | None = None
-    is_active: bool | None = None
     sort_order: int | None = None
     photo_key: str | None = None
 
@@ -233,8 +263,6 @@ class ServiceUpdate(BaseModel):
 
 class AppointmentAdmin(ORMModel):
     id: int
-    barber_id: int
-    barber_name: str
     customer_name: str
     customer_whatsapp: str | None
     status: str
@@ -260,7 +288,6 @@ class ManualBookingCreate(BookingCreate):
 
 class WalkInCreate(BaseModel):
     """Walk-in: cliente en el local, sin cita. Toma el próximo hueco de hoy."""
-    barber_id: int
     service_ids: list[int] = Field(min_length=1, max_length=6)
     customer_name: str = Field(min_length=2, max_length=120)
     customer_whatsapp: str | None = None  # opcional: puede no dejar teléfono
@@ -282,7 +309,6 @@ class WalkInCreate(BaseModel):
 
 
 class RescheduleRequest(BaseModel):
-    barber_id: int | None = None
     date: date
     time: str = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
 
@@ -307,6 +333,8 @@ class GiftCheckoutCreate(BaseModel):
     service_id: int
     payer_name: str = Field(min_length=2, max_length=120)
     payer_whatsapp: str | None = None
+    # Opcional: si lo deja, el código del regalo también le llega por correo
+    payer_email: str | None = Field(default=None, max_length=200)
 
     @field_validator("payer_whatsapp")
     @classmethod
@@ -314,6 +342,11 @@ class GiftCheckoutCreate(BaseModel):
         if v is None or not v.strip():
             return None
         return normalize_phone(v)
+
+    @field_validator("payer_email")
+    @classmethod
+    def _email(cls, v: str | None) -> str | None:
+        return normalize_email(v)
 
 
 class SimulatePaymentRequest(BaseModel):
@@ -342,12 +375,14 @@ class GroupMember(BaseModel):
 
 
 class GroupBookingCreate(BaseModel):
-    """Turnos seguidos con el mismo barbero (padre e hijo, parche de amigos)."""
-    barber_id: int
+    """Turnos seguidos, uno detrás del otro (padre e hijo, parche de amigos)."""
     date: date
     time: str = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
     customer_whatsapp: str  # un teléfono responsable del grupo
     customers: list[GroupMember] = Field(min_length=1, max_length=3)
+    # Anti-bots (mismo contrato que BookingCreate)
+    website: str | None = None
+    captcha_token: str | None = None
 
     @field_validator("customer_whatsapp")
     @classmethod
@@ -427,7 +462,6 @@ class ReviewPublic(ORMModel):
     rating: int
     comment: str | None
     customer_label: str  # nombre abreviado: "Juan P."
-    barber_name: str
     date_local: str
 
 
@@ -452,11 +486,11 @@ class MediaAssetOut(ORMModel):
 
 
 class PresignRequest(BaseModel):
-    kind: str = Field(pattern="^(gallery|barber|cut|product)$")
+    kind: str = Field(pattern="^(gallery|professional|cut|product)$")
     filename: str = Field(min_length=1, max_length=200)
     content_type: str = Field(pattern="^image/(jpeg|png|webp|avif)$")
 
 
 class DashboardOut(BaseModel):
     date_local: str
-    barbers: list[dict]  # {barber, current, upcoming, done_count, ...}
+    professionals: list[dict]  # {professional, current, upcoming, done_count, ...}

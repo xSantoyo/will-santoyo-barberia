@@ -1,0 +1,49 @@
+# Auditoría de dependencias recurrente (ronda de seguridad jul-2026).
+#
+# No es un chequeo de una sola vez: corre en cada push/PR y además cada lunes,
+# porque las vulnerabilidades NUEVAS aparecen con el tiempo sobre dependencias
+# que hoy están limpias. Si algo aparece, el workflow falla y GitHub notifica.
+name: Auditoría de seguridad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 11 * * 1" # lunes 6:00 a.m. Bogotá (11:00 UTC)
+  workflow_dispatch: {}
+
+jobs:
+  pip-audit:
+    name: Backend (pip-audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e . && pip install pip-audit
+      # --skip-editable: el propio paquete badboys-backend no está en PyPI
+      - run: pip-audit --skip-editable
+
+  npm-audit:
+    name: Frontend (npm audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # Falla ante vulnerabilidades moderate o peores en dependencias de
+      # producción; las de dev se revisan pero no bloquean (--omit=dev).
+      - run: npm audit --omit=dev --audit-level=moderate

@@ -60,7 +60,8 @@ test("flujo completo: agendar → confirmar → gestionar → cancelar", async (
   });
   await expect(page.getByText(/guarda este código/i)).toBeVisible();
   const code = (await page.getByTestId("manage-code").textContent())!.trim();
-  expect(code).toMatch(/^[A-Z2-9]{6}$/);
+  // 8 caracteres desde la ronda de seguridad (antes 6); alfabeto sin ambiguos
+  expect(code).toMatch(/^[A-Z2-9]{8}$/);
 
   // 7b. Si el negocio exige anticipo: pagar en el simulador (flujo Wompi mock)
   const payButton = page.getByRole("link", { name: /pagar anticipo/i });

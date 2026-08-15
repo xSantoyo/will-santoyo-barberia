@@ -322,6 +322,31 @@ export interface TokenPair {
   barber_id: number | null;
 }
 
+/* --- Ronda de seguridad (jul-2026) --- */
+
+export interface BarberStats {
+  barber: { id: number; name: string };
+  days: number;
+  completed_count: number;
+  cancelled_count: number;
+  no_show_count: number;
+  revenue_cop: number;
+  unique_clients: number;
+  upcoming_today: number;
+  top_services: { name: string; count: number }[];
+  rating: number | null;
+  review_count: number;
+}
+
+export interface SecurityEventRow {
+  id: number;
+  kind: string;
+  username: string | null;
+  ip: string | null;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
 export const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 export const WEEKDAY_LABELS: Record<string, string> = {
   mon: "Lunes",

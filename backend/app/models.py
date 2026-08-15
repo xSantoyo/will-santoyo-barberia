@@ -1,9 +1,13 @@
-"""Modelo de datos multi-tenant.
+"""Modelo de datos.
+
+Un solo profesional atiende: Will. `Professional` es por tanto una tabla de un
+único registro, y la aplicación lo garantiza (ver services/professional.py).
+Sobrevive como tabla propia porque `appointments.professional_id` ancla el
+constraint de exclusión Postgres que hace imposible la doble reserva a nivel de
+motor (migración 0001, ADR-003); ver REFACTOR_PLAN.md §4.
 
 Regla de oro: toda tabla de negocio lleva `tenant_id` y los índices compuestos
-empiezan por `tenant_id`. La prevención de doble-reserva vive en la base de
-datos (constraint de exclusión Postgres, ver migración 0001) además de la
-validación de aplicación.
+empiezan por `tenant_id`.
 """
 from __future__ import annotations
 
@@ -48,46 +52,47 @@ class Tenant(Base):
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
 
-    barbers: Mapped[list[Barber]] = relationship(back_populates="tenant")
+    professional: Mapped[Professional] = relationship(back_populates="tenant", uselist=False)
 
 
-class Barber(Base):
-    __tablename__ = "barbers"
+class Professional(Base):
+    """El profesional que atiende. Un solo registro: Will."""
+
+    __tablename__ = "professional"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
     name: Mapped[str] = mapped_column(String(120))
     photo_key: Mapped[str | None] = mapped_column(String(300))
-    specialty: Mapped[str | None] = mapped_column(String(200))
-    # Handle (@usuario) o URL completa del Instagram del barbero
+    headline: Mapped[str | None] = mapped_column(String(200))
+    # Handle (@usuario) o URL completa de Instagram
     instagram: Mapped[str | None] = mapped_column(String(120))
     # Horario semanal: {"mon": {"start": "09:00", "end": "19:00"}, ..., "sun": null}
     # null / clave ausente = día de descanso recurrente
     schedule: Mapped[dict] = mapped_column(JsonCol, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
 
-    tenant: Mapped[Tenant] = relationship(back_populates="barbers")
-    time_off: Mapped[list[BarberTimeOff]] = relationship(
-        back_populates="barber", cascade="all, delete-orphan"
+    tenant: Mapped[Tenant] = relationship(back_populates="professional")
+    time_off: Mapped[list[TimeOff]] = relationship(
+        back_populates="professional", cascade="all, delete-orphan"
     )
 
 
-class BarberTimeOff(Base):
+class TimeOff(Base):
     """Excepciones puntuales al horario recurrente (vacaciones, citas médicas)."""
 
-    __tablename__ = "barber_time_off"
-    __table_args__ = (UniqueConstraint("barber_id", "date", name="uq_barber_time_off"),)
+    __tablename__ = "time_off"
+    __table_args__ = (UniqueConstraint("professional_id", "date", name="uq_time_off"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
-    barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id"), index=True)
+    professional_id: Mapped[int] = mapped_column(ForeignKey("professional.id"), index=True)
     date: Mapped[date] = mapped_column(Date)
     reason: Mapped[str | None] = mapped_column(String(200))
 
-    barber: Mapped[Barber] = relationship(back_populates="time_off")
+    professional: Mapped[Professional] = relationship(back_populates="time_off")
 
 
 class Service(Base):
@@ -109,34 +114,40 @@ class Appointment(Base):
     __table_args__ = (
         CheckConstraint("ends_at > starts_at", name="ck_appointment_range"),
         Index("ix_appointments_tenant_start", "tenant_id", "starts_at"),
-        Index("ix_appointments_barber_start", "barber_id", "starts_at"),
+        Index("ix_appointments_professional_start", "professional_id", "starts_at"),
         # El constraint EXCLUDE USING gist anti doble-reserva es Postgres-only
         # y se crea en la migración Alembic 0001 (ver ADR-003).
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
-    barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id"), index=True)
+    professional_id: Mapped[int] = mapped_column(ForeignKey("professional.id"), index=True)
     customer_name: Mapped[str] = mapped_column(String(120))
     # Nullable: un walk-in puede no dejar teléfono (la reserva pública sí lo exige)
     customer_whatsapp: Mapped[str | None] = mapped_column(String(20), index=True)
+    # Correo OPCIONAL (ronda Resend, jul-2026): canal secundario de cortesía.
+    # El código en pantalla sigue siendo el canal oficial (ADR-009).
+    customer_email: Mapped[str | None] = mapped_column(String(200))
     starts_at: Mapped[datetime] = mapped_column(TZDateTime)
     ends_at: Mapped[datetime] = mapped_column(TZDateTime)
     status: Mapped[str] = mapped_column(String(20), default="confirmado", index=True)
-    daily_number: Mapped[int] = mapped_column(Integer)  # "turno N° del día" por barbero
+    daily_number: Mapped[int] = mapped_column(Integer)  # "turno N° del día"
     manage_code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
     notes: Mapped[str | None] = mapped_column(Text)
     cancel_reason: Mapped[str | None] = mapped_column(String(300))
     cancelled_at: Mapped[datetime | None] = mapped_column(TZDateTime)
     # Confirmación de asistencia (el cliente confirma desde su tiquete el día antes)
     attendance_confirmed_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+    # Marcas de correos enviados (idempotencia: cada correo sale una sola vez)
+    confirmation_email_sent_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+    reminder_email_sent_at: Mapped[datetime | None] = mapped_column(TZDateTime)
     # Crecimiento (Tanda 4): quién lo refirió y qué regalo aplicó
     referred_by_code: Mapped[str | None] = mapped_column(String(20))
     gift_code_id: Mapped[int | None] = mapped_column(ForeignKey("gift_codes.id"))
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
 
-    barber: Mapped[Barber] = relationship()
+    professional: Mapped[Professional] = relationship()
     services: Mapped[list[AppointmentService]] = relationship(
         back_populates="appointment", cascade="all, delete-orphan"
     )
@@ -175,14 +186,13 @@ class AdminUser(Base):
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
     username: Mapped[str] = mapped_column(String(60))
     password_hash: Mapped[str] = mapped_column(String(200))
-    role: Mapped[str] = mapped_column(String(20), default="admin")  # admin | barbero
-    barber_id: Mapped[int | None] = mapped_column(ForeignKey("barbers.id"))
+    # Única cuenta del negocio: Will. La columna sobrevive con un solo valor
+    # hasta que corra la migración 0010 (ver REFACTOR_PLAN.md §8).
+    role: Mapped[str] = mapped_column(String(20), default="admin")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Incrementar para invalidar todos los refresh tokens emitidos (logout global)
     token_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
-
-    barber: Mapped[Barber | None] = relationship()
 
 
 class MediaAsset(Base):
@@ -191,7 +201,7 @@ class MediaAsset(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
-    kind: Mapped[str] = mapped_column(String(20))  # gallery | barber | cut
+    kind: Mapped[str] = mapped_column(String(20))  # gallery | profile | cut
     s3_key: Mapped[str] = mapped_column(String(300), unique=True)
     title: Mapped[str | None] = mapped_column(String(200))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
@@ -201,8 +211,7 @@ class MediaAsset(Base):
 class ClientNote(Base):
     """Notas de estilo sobre un cliente recurrente (Tanda 3, D2/D7).
 
-    La llave del cliente es su teléfono normalizado. Visibles para todo el
-    equipo que lo atienda (criterio D7); cada nota registra su autor.
+    La llave del cliente es su teléfono normalizado.
     """
 
     __tablename__ = "client_notes"
@@ -233,7 +242,7 @@ class Review(Base):
     appointment_id: Mapped[int] = mapped_column(
         ForeignKey("appointments.id"), unique=True, index=True
     )
-    barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id"), index=True)
+    professional_id: Mapped[int] = mapped_column(ForeignKey("professional.id"), index=True)
     customer_whatsapp: Mapped[str | None] = mapped_column(String(20))
     customer_name: Mapped[str] = mapped_column(String(120))
     rating: Mapped[int] = mapped_column(Integer)
@@ -308,6 +317,8 @@ class Payment(Base):
     gift_code_id: Mapped[int | None] = mapped_column(Integer)  # se llena al aprobar
     payer_name: Mapped[str | None] = mapped_column(String(120))
     payer_whatsapp: Mapped[str | None] = mapped_column(String(20))
+    # Correo del comprador (regalos): ahí llega el código al aprobarse el pago
+    payer_email: Mapped[str | None] = mapped_column(String(200))
     detail: Mapped[dict] = mapped_column(JsonCol, default=dict)  # snapshot del evento
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
@@ -333,6 +344,54 @@ class ClientReferralCode(Base):
     customer_whatsapp: Mapped[str] = mapped_column(String(20))
     code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+
+
+class SecurityEvent(Base):
+    """Eventos de seguridad (ronda de auditoría jul-2026): logins fallidos,
+    bloqueos, honeypots, fallos de firma de webhook, ráfagas de reservas.
+
+    Complementa (no reemplaza) el audit_log de acciones administrativas. Cada
+    evento también se emite como línea JSON al logger `badboys.security` para
+    que CloudWatch pueda alarmar sin consultar la base de datos."""
+
+    __tablename__ = "security_events"
+    __table_args__ = (
+        Index("ix_security_events_kind_created", "kind", "created_at"),
+        Index("ix_security_events_tenant_created", "tenant_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    # login_failed | login_locked | login_success | password_changed |
+    # rate_limited | webhook_bad_signature | webhook_rejected | honeypot |
+    # captcha_failed | booking_burst
+    kind: Mapped[str] = mapped_column(String(40))
+    username: Mapped[str | None] = mapped_column(String(60))
+    ip: Mapped[str | None] = mapped_column(String(45))  # IPv4 o IPv6
+    detail: Mapped[dict] = mapped_column(JsonCol, default=dict)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
+
+
+class LoginThrottle(Base):
+    """Contador de intentos fallidos de login por usuario y por IP.
+
+    Bloqueo TEMPORAL con backoff exponencial (nunca permanente: un bloqueo
+    permanente permitiría a cualquiera dejar fuera al admin real con 5 intentos
+    a propósito). Persistido en DB para sobrevivir reinicios y funcionar con
+    múltiples instancias (Lambda)."""
+
+    __tablename__ = "login_throttles"
+    __table_args__ = (UniqueConstraint("scope", "key", name="uq_login_throttle"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    scope: Mapped[str] = mapped_column(String(10))  # user | ip
+    key: Mapped[str] = mapped_column(String(80))
+    failures: Mapped[int] = mapped_column(Integer, default=0)
+    # Nivel de backoff: cada bloqueo duplica la duración del siguiente
+    lockout_level: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(TZDateTime)
+    last_failure_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+    updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)
 
 
 class AuditLog(Base):

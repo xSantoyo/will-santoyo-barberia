@@ -34,14 +34,13 @@ def _encode(payload: dict[str, Any], expires_delta: timedelta) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def create_access_token(user_id: int, tenant_id: int, role: str, barber_id: int | None) -> str:
+def create_access_token(user_id: int, tenant_id: int, role: str) -> str:
     settings = get_settings()
     return _encode(
         {
             "sub": str(user_id),
             "tenant_id": tenant_id,
             "role": role,
-            "barber_id": barber_id,
             "type": "access",
         },
         timedelta(minutes=settings.access_token_minutes),

@@ -9,28 +9,36 @@ from __future__ import annotations
 from datetime import date
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db, utcnow
-from ..deps import booking_rate_limiter, get_tenant_by_slug
+from ..deps import (
+    booking_rate_limiter,
+    client_ip,
+    get_tenant_by_slug,
+    lookup_rate_limiter,
+    payment_rate_limiter,
+    read_rate_limiter,
+    webhook_rate_limiter,
+)
 from ..models import (
     ACTIVE_STATUSES,
     Appointment,
-    Barber,
-    BarberTimeOff,
+    GiftCode,
     MediaAsset,
+    Payment,
     Product,
     Review,
     Service,
     Tenant,
+    TimeOff,
 )
 from ..schemas import (
     AppointmentFind,
     AppointmentPublic,
     AvailabilityQuery,
-    BarberPublic,
     BookingCreate,
     CancelRequest,
     DayAvailability,
@@ -39,6 +47,7 @@ from ..schemas import (
     MediaAssetOut,
     PortalRequest,
     ProductPublic,
+    ProfessionalPublic,
     RebookRequest,
     ReviewCreate,
     ReviewPublic,
@@ -48,42 +57,52 @@ from ..schemas import (
 )
 from ..services import appointments as booking
 from ..services import clients as clients_service
+from ..services import notifications
 from ..services import payments as payments_service
-from ..models import GiftCode, Payment
+from ..services import security as security_guard
 from ..services.availability import compute_slots
+from ..services.professional import get_professional
 from ..services.storage import get_storage
-from .common import appointment_to_public, barber_photo_url
+from .common import appointment_to_public, professional_to_public
 
 router = APIRouter(prefix="/api/v1/public/{tenant_slug}", tags=["public"])
-
 
 def _handle_booking_error(exc: booking.BookingError) -> HTTPException:
     return HTTPException(exc.status_code, {"code": exc.code, "message": exc.detail})
 
+def _reject_bots(db: Session, tenant: Tenant, request: Request, *,
+                 website: str | None, captcha_token: str | None, form: str) -> None:
+    """Honeypot + Turnstile en formularios públicos de escritura.
 
-@router.get("", response_model=TenantPublic)
+    El honeypot responde con el mismo error genérico que cualquier validación
+    para no revelarle al bot que fue detectado."""
+    ip = client_ip(request)
+    if website:
+        security_guard.log_event(db, kind="honeypot", tenant_id=tenant.id, ip=ip,
+                                 detail={"form": form})
+        raise HTTPException(400, {"code": "invalid",
+                                  "message": "No se pudo procesar la solicitud."})
+    if not security_guard.verify_turnstile(captcha_token, ip):
+        security_guard.log_event(db, kind="captcha_failed", tenant_id=tenant.id, ip=ip,
+                                 detail={"form": form})
+        raise HTTPException(403, {"code": "captcha",
+                                  "message": "Verificación anti-bot fallida. "
+                                             "Recarga la página e intenta de nuevo."})
+
+@router.get("", response_model=TenantPublic, dependencies=[Depends(read_rate_limiter)])
 def tenant_info(tenant: Tenant = Depends(get_tenant_by_slug)):
     return tenant
 
-
-@router.get("/barbers", response_model=list[BarberPublic])
-def list_barbers(
+@router.get("/professional", response_model=ProfessionalPublic,
+            dependencies=[Depends(read_rate_limiter)])
+def professional_profile(
     tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
 ):
-    barbers = db.scalars(
-        select(Barber)
-        .where(Barber.tenant_id == tenant.id, Barber.is_active.is_(True))
-        .order_by(Barber.sort_order, Barber.id)
-    )
-    result = []
-    for barber in barbers:
-        item = BarberPublic.model_validate(barber)
-        item.photo_url = barber_photo_url(barber)
-        result.append(item)
-    return result
+    """Will: su nombre, su titular, su foto y su horario."""
+    return professional_to_public(get_professional(db, tenant))
 
-
-@router.get("/services", response_model=list[ServicePublic])
+@router.get("/services", response_model=list[ServicePublic],
+            dependencies=[Depends(read_rate_limiter)])
 def list_services(
     tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
 ):
@@ -95,10 +114,8 @@ def list_services(
         )
     )
 
-
-@router.get("/barbers/{barber_id}/time-off")
-def barber_time_off(
-    barber_id: int,
+@router.get("/time-off", dependencies=[Depends(read_rate_limiter)])
+def time_off(
     start: date,
     end: date,
     tenant: Tenant = Depends(get_tenant_by_slug),
@@ -106,17 +123,16 @@ def barber_time_off(
 ):
     """Fechas de descanso puntual (excepciones) para pintar el calendario."""
     rows = db.scalars(
-        select(BarberTimeOff).where(
-            BarberTimeOff.tenant_id == tenant.id,
-            BarberTimeOff.barber_id == barber_id,
-            BarberTimeOff.date >= start,
-            BarberTimeOff.date <= end,
+        select(TimeOff).where(
+            TimeOff.tenant_id == tenant.id,
+            TimeOff.date >= start,
+            TimeOff.date <= end,
         )
     )
     return {"dates": [r.date.isoformat() for r in rows]}
 
-
-@router.post("/availability", response_model=DayAvailability)
+@router.post("/availability", response_model=DayAvailability,
+             dependencies=[Depends(read_rate_limiter)])
 def availability(
     query: AvailabilityQuery,
     tenant: Tenant = Depends(get_tenant_by_slug),
@@ -124,15 +140,15 @@ def availability(
 ):
     booking.release_unconfirmed(db, tenant)  # libera huecos vencidos antes de mostrar
     payments_service.expire_stale_deposits(db, tenant)
+    notifications.send_pending_reminders(db, tenant)  # mismo patrón sin cron
+    professional = get_professional(db, tenant)
     try:
-        barber = booking.load_barber(db, tenant, query.barber_id)
         services = booking.load_services(db, tenant, query.service_ids)
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     duration = sum(s.duration_min for s in services) * query.party
-    is_day_off, slots = compute_slots(db, tenant, barber, query.date, duration)
+    is_day_off, slots = compute_slots(db, tenant, professional, query.date, duration)
     return DayAvailability(date=query.date, is_day_off=is_day_off, slots=slots)
-
 
 @router.post(
     "/appointments",
@@ -142,11 +158,14 @@ def availability(
 )
 def create_booking(
     data: BookingCreate,
+    request: Request,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
     # El código de gestión devuelto aquí es el ÚNICO canal de gestión del
     # cliente (ADR-009): el frontend lo muestra de forma prominente.
+    _reject_bots(db, tenant, request, website=data.website,
+                 captcha_token=data.captcha_token, form="booking")
     booking.release_unconfirmed(db, tenant)
     payments_service.expire_stale_deposits(db, tenant)
     deposit = payments_service.deposit_config(tenant)
@@ -159,16 +178,22 @@ def create_booking(
         )
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
+    security_guard.note_public_booking(
+        db, tenant, ip=client_ip(request), phone=appointment.customer_whatsapp
+    )
     if deposit["enabled"]:
         payments_service.create_deposit_payment(db, tenant, appointment)
         db.refresh(appointment)
+    else:
+        # Sin anticipo el turno nace confirmado → copia de cortesía inmediata.
+        # (Con anticipo, el correo sale al aprobarse el pago: ver apply_result.)
+        notifications.send_booking_confirmation(db, tenant, appointment)
     return appointment_to_public(appointment, tenant)
-
 
 def _load_by_code(db: Session, tenant: Tenant, manage_code: str) -> Appointment:
     appointment = db.scalar(
         select(Appointment)
-        .options(selectinload(Appointment.services), selectinload(Appointment.barber))
+        .options(selectinload(Appointment.services), selectinload(Appointment.professional))
         .where(
             Appointment.tenant_id == tenant.id,
             Appointment.manage_code == manage_code.strip().upper(),
@@ -178,15 +203,16 @@ def _load_by_code(db: Session, tenant: Tenant, manage_code: str) -> Appointment:
         raise HTTPException(404, "Turno no encontrado. Verifica el código.")
     return appointment
 
-
-@router.get("/appointments/{manage_code}", response_model=AppointmentPublic)
+@router.get("/appointments/{manage_code}", response_model=AppointmentPublic,
+            dependencies=[Depends(lookup_rate_limiter)])
 def get_appointment(
     manage_code: str,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
+    # El límite por IP en las consultas por código es lo que hace inviable
+    # enumerar códigos de gestión (31^8 combinaciones a 30 intentos/minuto).
     return appointment_to_public(_load_by_code(db, tenant, manage_code), tenant)
-
 
 @router.post(
     "/appointments/find",
@@ -203,7 +229,6 @@ def find_appointment(
     if appointment.customer_whatsapp != data.customer_whatsapp:
         raise HTTPException(404, "Turno no encontrado. Verifica el código y el teléfono.")
     return appointment_to_public(appointment, tenant)
-
 
 @router.post(
     "/appointments/{manage_code}/confirm",
@@ -222,7 +247,6 @@ def confirm_attendance(
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     return appointment_to_public(appointment, tenant)
-
 
 @router.post(
     "/appointments/{manage_code}/cancel",
@@ -243,7 +267,6 @@ def cancel_appointment(
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     return appointment_to_public(appointment, tenant)
-
 
 # ------------------------------------------------------------- pagos
 
@@ -273,7 +296,6 @@ def _payment_status_payload(db: Session, tenant: Tenant, payment: Payment) -> di
         "appointment_status": appointment_status,
     }
 
-
 def _load_payment(db: Session, tenant: Tenant, reference: str) -> Payment:
     payment = db.scalar(
         select(Payment).where(
@@ -284,14 +306,14 @@ def _load_payment(db: Session, tenant: Tenant, reference: str) -> Payment:
         raise HTTPException(404, "Pago no encontrado")
     return payment
 
-
-@router.post("/gifts/checkout", dependencies=[Depends(booking_rate_limiter)])
+@router.post("/gifts/checkout", dependencies=[Depends(payment_rate_limiter)])
 def gift_checkout(
     data: GiftCheckoutCreate,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
-    """Regala un corte: se paga en línea y el código sale al instante."""
+    """Regala un corte: se paga en línea y el código sale al instante.
+    Inicio de transacción de pago → límite estricto (5 / 15 min)."""
     if not payments_service.gift_shop_enabled(tenant):
         raise HTTPException(404, "La tienda de regalos no está habilitada")
     try:
@@ -306,11 +328,11 @@ def gift_checkout(
         description=f"{service.name} de regalo",
         payer_name=data.payer_name,
         payer_whatsapp=data.payer_whatsapp,
+        payer_email=data.payer_email,
     )
     return _payment_status_payload(db, tenant, payment)
 
-
-@router.get("/payments/{reference}")
+@router.get("/payments/{reference}", dependencies=[Depends(lookup_rate_limiter)])
 def payment_status(
     reference: str,
     tenant: Tenant = Depends(get_tenant_by_slug),
@@ -318,7 +340,6 @@ def payment_status(
 ):
     payment = _load_payment(db, tenant, reference)
     return _payment_status_payload(db, tenant, payment)
-
 
 @router.post(
     "/payments/{reference}/simulate",
@@ -346,21 +367,21 @@ def simulate_payment(
     )
     return _payment_status_payload(db, tenant, payment)
 
-
-@router.post("/payments/wompi/webhook")
+@router.post("/payments/wompi/webhook", dependencies=[Depends(webhook_rate_limiter)])
 def wompi_webhook(
     event: dict,
+    request: Request,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
     """Webhook de eventos de Wompi (transaction.updated), verificado por
-    checksum con el events secret."""
+    checksum SHA256 con el events secret. NUNCA se marca un pago como aprobado
+    por lo que diga el navegador del cliente: solo por este canal."""
     try:
-        payments_service.handle_wompi_event(db, tenant, event)
+        payments_service.handle_wompi_event(db, tenant, event, ip=client_ip(request))
     except payments_service.PaymentError as exc:
         raise HTTPException(exc.status_code, exc.detail) from None
     return {"ok": True}
-
 
 # ------------------------------------------------------------- tanda 4
 
@@ -371,17 +392,22 @@ def wompi_webhook(
 )
 def create_group_booking(
     data: GroupBookingCreate,
+    request: Request,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
     """Reserva grupal: turnos seguidos con el mismo barbero, todo o nada."""
+    _reject_bots(db, tenant, request, website=data.website,
+                 captcha_token=data.captcha_token, form="group_booking")
     booking.release_unconfirmed(db, tenant)
     try:
         created = booking.create_group_appointment(db, tenant, data)
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
+    security_guard.note_public_booking(
+        db, tenant, ip=client_ip(request), phone=data.customer_whatsapp
+    )
     return {"appointments": [appointment_to_public(a, tenant) for a in created]}
-
 
 @router.post(
     "/appointments/{manage_code}/rebook",
@@ -403,8 +429,8 @@ def rebook(
         raise _handle_booking_error(exc) from None
     return appointment_to_public(new_appointment, tenant)
 
-
-@router.get("/products", response_model=list[ProductPublic])
+@router.get("/products", response_model=list[ProductPublic],
+            dependencies=[Depends(read_rate_limiter)])
 def list_products(
     tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
 ):
@@ -421,44 +447,25 @@ def list_products(
         result.append(item)
     return result
 
-
-@router.get("/barbers/{barber_id}/portfolio")
-def barber_portfolio(
-    barber_id: int,
+@router.get("/trayectoria", dependencies=[Depends(read_rate_limiter)])
+def trayectoria(
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
-    """Portafolio del barbero (Tanda 4, C5): su mini-sitio para compartir."""
+    """Las cifras que respaldan a Will: calificación, cortes hechos y su trabajo."""
     from sqlalchemy import func
-
-    barber = db.scalar(
-        select(Barber).where(
-            Barber.id == barber_id, Barber.tenant_id == tenant.id, Barber.is_active.is_(True)
-        )
-    )
-    if barber is None:
-        raise HTTPException(404, "Barbero no encontrado")
 
     rating_row = db.execute(
         select(func.avg(Review.rating), func.count(Review.id)).where(
             Review.tenant_id == tenant.id,
-            Review.barber_id == barber.id,
             Review.is_public.is_(True),
         )
     ).one()
     completed = db.scalar(
         select(func.count()).select_from(Appointment).where(
-            Appointment.barber_id == barber.id, Appointment.status == "completado"
+            Appointment.tenant_id == tenant.id, Appointment.status == "completado"
         )
     ) or 0
-    reviews = db.scalars(
-        select(Review)
-        .options(selectinload(Review.appointment).selectinload(Appointment.barber))
-        .where(Review.tenant_id == tenant.id, Review.barber_id == barber.id,
-               Review.is_public.is_(True))
-        .order_by(Review.id.desc())
-        .limit(8)
-    )
     storage = get_storage()
     cuts = db.scalars(
         select(MediaAsset)
@@ -466,19 +473,12 @@ def barber_portfolio(
         .order_by(MediaAsset.sort_order, MediaAsset.id.desc())
         .limit(12)
     )
-    item = BarberPublic.model_validate(barber)
-    item.photo_url = barber_photo_url(barber)
     return {
-        "barber": item,
-        "stats": {
-            "rating": round(float(rating_row[0]), 1) if rating_row[0] else None,
-            "review_count": rating_row[1],
-            "completed_count": completed,
-        },
-        "reviews": [_review_to_public(r, tenant) for r in reviews],
+        "rating": round(float(rating_row[0]), 1) if rating_row[0] else None,
+        "review_count": rating_row[1],
+        "completed_count": completed,
         "cuts": [storage.public_url(c.s3_key) for c in cuts],
     }
-
 
 # ------------------------------------------------------------- tanda 3
 
@@ -486,17 +486,14 @@ def _review_label(name: str) -> str:
     parts = name.split()
     return parts[0] + (f" {parts[1][0]}." if len(parts) > 1 else "")
 
-
 def _review_to_public(review: Review, tenant: Tenant) -> ReviewPublic:
     tz = ZoneInfo(tenant.timezone)
     return ReviewPublic(
         rating=review.rating,
         comment=review.comment,
         customer_label=_review_label(review.customer_name),
-        barber_name=review.appointment.barber.name,
         date_local=review.created_at.astimezone(tz).strftime("%Y-%m-%d"),
     )
-
 
 @router.post("/portal", dependencies=[Depends(booking_rate_limiter)])
 def client_portal(
@@ -514,7 +511,7 @@ def client_portal(
         select(Appointment)
         .options(
             selectinload(Appointment.services),
-            selectinload(Appointment.barber),
+            selectinload(Appointment.professional),
             selectinload(Appointment.review),
         )
         .where(
@@ -531,7 +528,6 @@ def client_portal(
             "date_local": a.starts_at.astimezone(tz).strftime("%Y-%m-%d"),
             "time_local": a.starts_at.astimezone(tz).strftime("%H:%M"),
             "status": a.status,
-            "barber_name": a.barber.name,
             "services": [s.name for s in a.services],
             "total_cop": a.total_cop,
             "can_review": a.status == "completado" and a.review is None,
@@ -548,7 +544,6 @@ def client_portal(
             db, tenant, data.customer_whatsapp
         ),
     }
-
 
 @router.post(
     "/appointments/{manage_code}/review",
@@ -577,7 +572,7 @@ def leave_review(
     review = Review(
         tenant_id=tenant.id,
         appointment_id=appointment.id,
-        barber_id=appointment.barber_id,
+        professional_id=appointment.professional_id,
         customer_whatsapp=appointment.customer_whatsapp,
         customer_name=appointment.customer_name,
         rating=data.rating,
@@ -588,57 +583,44 @@ def leave_review(
     db.refresh(review)
     return _review_to_public(review, tenant)
 
-
-@router.get("/reviews")
+@router.get("/reviews", dependencies=[Depends(read_rate_limiter)])
 def list_reviews(
-    barber_id: int | None = None,
     limit: int = 12,
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
-    """Reseñas públicas recientes + promedios (general y por barbero)."""
+    """Reseñas públicas recientes y el promedio general."""
     from sqlalchemy import func
 
-    stats_rows = db.execute(
-        select(Review.barber_id, func.avg(Review.rating), func.count(Review.id))
+    average, total = db.execute(
+        select(func.avg(Review.rating), func.count(Review.id))
         .where(Review.tenant_id == tenant.id, Review.is_public.is_(True))
-        .group_by(Review.barber_id)
-    ).all()
-    per_barber = {
-        str(row[0]): {"average": round(float(row[1]), 1), "count": row[2]}
-        for row in stats_rows
-    }
-    total = sum(row[2] for row in stats_rows)
-    overall = (
-        round(sum(float(row[1]) * row[2] for row in stats_rows) / total, 1) if total else None
-    )
+    ).one()
 
-    query = (
+    reviews = db.scalars(
         select(Review)
-        .options(selectinload(Review.appointment).selectinload(Appointment.barber))
         .where(Review.tenant_id == tenant.id, Review.is_public.is_(True))
+        .order_by(Review.id.desc())
+        .limit(min(limit, 30))
     )
-    if barber_id:
-        query = query.where(Review.barber_id == barber_id)
-    reviews = db.scalars(query.order_by(Review.id.desc()).limit(min(limit, 30)))
     return {
-        "overall": {"average": overall, "count": total},
-        "per_barber": per_barber,
+        "overall": {
+            "average": round(float(average), 1) if average else None,
+            "count": total,
+        },
         "items": [_review_to_public(r, tenant) for r in reviews],
     }
-
 
 # ---------------------------------------------------------------- La Fila
 
 def _weekday_key(day: date) -> str:
     return ("mon", "tue", "wed", "thu", "fri", "sat", "sun")[day.weekday()]
 
-
-@router.get("/queue")
+@router.get("/queue", dependencies=[Depends(read_rate_limiter)])
 def today_queue(
     tenant: Tenant = Depends(get_tenant_by_slug), db: Session = Depends(get_db)
 ):
-    """La Fila en vivo: estado de los turnos de HOY por barbero.
+    """La Fila en vivo: estado de los turnos de HOY.
 
     Pensado para el tablero público (/hoy) y la pantalla del local.
     Privacidad: solo números de turno, horas y estados — nunca nombres
@@ -649,17 +631,14 @@ def today_queue(
 
     booking.release_unconfirmed(db, tenant)
     payments_service.expire_stale_deposits(db, tenant)
+    notifications.send_pending_reminders(db, tenant)
 
     tz = ZoneInfo(tenant.timezone)
     now = utcnow()
     today = now.astimezone(tz).date()
     day_start, day_end = local_day_bounds(tenant, today)
+    professional = get_professional(db, tenant)
 
-    barbers = db.scalars(
-        select(Barber)
-        .where(Barber.tenant_id == tenant.id, Barber.is_active.is_(True))
-        .order_by(Barber.sort_order, Barber.id)
-    )
     appointments = list(
         db.scalars(
             select(Appointment)
@@ -672,49 +651,41 @@ def today_queue(
         )
     )
 
-    lanes = []
-    for barber in barbers:
-        own = [a for a in appointments if a.barber_id == barber.id]
-        current = next((a for a in own if a.status == "en_curso"), None)
-        waiting = [
-            a for a in own
-            if a.status in ("pendiente", "confirmado") and a.ends_at > now
-        ]
-        done = [a for a in own if a.status == "completado"]
-        is_off = (barber.schedule or {}).get(_weekday_key(today)) is None or is_time_off(
-            db, barber.id, today
-        )
-        lanes.append(
-            {
-                "barber": {"id": barber.id, "name": barber.name},
-                "is_day_off": is_off,
-                "current": (
-                    {
-                        "number": current.daily_number,
-                        "time_local": current.starts_at.astimezone(tz).strftime("%H:%M"),
-                    }
-                    if current
-                    else None
-                ),
-                "waiting": [
-                    {
-                        "number": a.daily_number,
-                        "time_local": a.starts_at.astimezone(tz).strftime("%H:%M"),
-                    }
-                    for a in waiting
-                ],
-                "served_count": len(done),
-                "last_served_number": max((a.daily_number for a in done), default=None),
-            }
-        )
+    current = next((a for a in appointments if a.status == "en_curso"), None)
+    waiting = [
+        a for a in appointments
+        if a.status in ("pendiente", "confirmado") and a.ends_at > now
+    ]
+    done = [a for a in appointments if a.status == "completado"]
+    is_off = (professional.schedule or {}).get(_weekday_key(today)) is None or is_time_off(
+        db, professional.id, today
+    )
+
     return {
         "date_local": today.isoformat(),
         "now_local": now.astimezone(tz).strftime("%H:%M"),
-        "lanes": lanes,
+        "is_day_off": is_off,
+        "current": (
+            {
+                "number": current.daily_number,
+                "time_local": current.starts_at.astimezone(tz).strftime("%H:%M"),
+            }
+            if current
+            else None
+        ),
+        "waiting": [
+            {
+                "number": a.daily_number,
+                "time_local": a.starts_at.astimezone(tz).strftime("%H:%M"),
+            }
+            for a in waiting
+        ],
+        "served_count": len(done),
+        "last_served_number": max((a.daily_number for a in done), default=None),
     }
 
-
-@router.get("/appointments/{manage_code}/queue")
+@router.get("/appointments/{manage_code}/queue",
+            dependencies=[Depends(lookup_rate_limiter)])
 def appointment_queue_position(
     manage_code: str,
     tenant: Tenant = Depends(get_tenant_by_slug),
@@ -729,7 +700,7 @@ def appointment_queue_position(
 
     ahead = db.scalars(
         select(Appointment).where(
-            Appointment.barber_id == appointment.barber_id,
+
             Appointment.status.in_(ACTIVE_STATUSES),
             Appointment.starts_at < appointment.starts_at,
             Appointment.starts_at
@@ -745,14 +716,13 @@ def appointment_queue_position(
         "is_today": is_today,
         "status": appointment.status,
         "number": appointment.daily_number,
-        "barber_name": appointment.barber.name,
         "time_local": appointment.starts_at.astimezone(tz).strftime("%H:%M"),
         "ahead_count": len(ahead_list) if appointment.status in ACTIVE_STATUSES else 0,
         "now_serving": now_serving,
     }
 
-
-@router.get("/media", response_model=list[MediaAssetOut])
+@router.get("/media", response_model=list[MediaAssetOut],
+            dependencies=[Depends(read_rate_limiter)])
 def list_media(
     kind: str | None = None,
     tenant: Tenant = Depends(get_tenant_by_slug),

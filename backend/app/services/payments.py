@@ -95,7 +95,7 @@ def create_deposit_payment(db: Session, tenant: Tenant, appointment: Appointment
 
 def create_gift_payment(
     db: Session, tenant: Tenant, *, amount_cop: int, description: str,
-    payer_name: str, payer_whatsapp: str | None,
+    payer_name: str, payer_whatsapp: str | None, payer_email: str | None = None,
 ) -> Payment:
     settings = get_settings()
     payment = Payment(
@@ -106,6 +106,7 @@ def create_gift_payment(
         provider="mock" if settings.wompi_mode == "mock" else "wompi",
         payer_name=payer_name,
         payer_whatsapp=payer_whatsapp,
+        payer_email=payer_email,
         detail={"gift_description": description},
     )
     db.add(payment)
@@ -133,7 +134,7 @@ def checkout_url(payment: Payment) -> str:
             "ref": payment.reference,
             "amount": payment.amount_cop,
             "titulo": (
-                "Anticipo de reserva" if payment.kind == "deposit" else "Regalo Bad Boys"
+                "Anticipo de reserva" if payment.kind == "deposit" else "Regalo"
             ),
         })
         return f"{settings.public_base_url}/pago/simulado?{params}"
@@ -171,16 +172,29 @@ def apply_result(
     if raw:
         payment.detail = {**(payment.detail or {}), "last_event": raw}
 
+    confirmed_appointment = None
+    issued_gift = None
     if status == "aprobado":
         if payment.kind == "deposit" and payment.appointment_id:
             appointment = db.get(Appointment, payment.appointment_id)
             if appointment and appointment.status == "pendiente":
                 appointment.status = "confirmado"  # el anticipo asegura la silla
+                confirmed_appointment = appointment
         elif payment.kind == "gift" and payment.gift_code_id is None:
-            gift = _issue_gift(db, payment)
-            payment.gift_code_id = gift.id
+            issued_gift = _issue_gift(db, payment)
+            payment.gift_code_id = issued_gift.id
     db.commit()
     db.refresh(payment)
+
+    # Correos de cortesía DESPUÉS del commit: un fallo de envío nunca revierte
+    # el pago (notifications atrapa todo internamente).
+    from . import notifications
+
+    tenant = db.get(Tenant, payment.tenant_id)
+    if confirmed_appointment is not None and tenant is not None:
+        notifications.send_booking_confirmation(db, tenant, confirmed_appointment)
+    if issued_gift is not None and tenant is not None:
+        notifications.send_gift_email(db, tenant, payment, issued_gift)
     return payment
 
 
@@ -198,7 +212,7 @@ def _issue_gift(db: Session, payment: Payment) -> GiftCode:
     gift = GiftCode(
         tenant_id=payment.tenant_id,
         code=code,
-        description=payment.detail.get("gift_description", "Regalo Bad Boys"),
+        description=payment.detail.get("gift_description", "Regalo"),
         created_by=f"pago en línea ({payment.payer_name or 'cliente'})",
         expires_at=utcnow() + timedelta(days=180),
     )
@@ -240,14 +254,29 @@ def expire_stale_deposits(db: Session, tenant: Tenant) -> int:
 
 # ---------------------------------------------------------------- webhook Wompi
 
+# Propiedades que Wompi SIEMPRE firma en eventos de transacción. Exigirlas
+# impide que un evento con lista de propiedades recortada (p. ej. vacía)
+# produzca un checksum trivial de forjar.
+REQUIRED_SIGNED_PROPERTIES = {
+    "transaction.id",
+    "transaction.status",
+    "transaction.amount_in_cents",
+}
+
+
 def verify_event_checksum(event: dict) -> bool:
     """Checksum de eventos Wompi: SHA256(concat(propiedades firmadas) +
-    timestamp + events_secret)."""
+    timestamp + events_secret). Comparación en tiempo constante."""
+    import hmac
+
     settings = get_settings()
     signature = event.get("signature") or {}
     properties: list[str] = signature.get("properties") or []
     provided = (signature.get("checksum") or "").lower()
     data = event.get("data") or {}
+
+    if not REQUIRED_SIGNED_PROPERTIES.issubset(set(properties)):
+        return False
 
     concatenated = ""
     for prop in properties:
@@ -259,12 +288,27 @@ def verify_event_checksum(event: dict) -> bool:
         concatenated += str(node)
     raw = f"{concatenated}{event.get('timestamp', '')}{settings.wompi_events_secret}"
     expected = hashlib.sha256(raw.encode()).hexdigest()
-    return bool(provided) and provided == expected
+    return bool(provided) and hmac.compare_digest(provided, expected)
 
 
-def handle_wompi_event(db: Session, tenant: Tenant, event: dict) -> Payment | None:
+def handle_wompi_event(db: Session, tenant: Tenant, event: dict,
+                       ip: str | None = None) -> Payment | None:
+    from . import security as guard
+
+    settings = get_settings()
+    # En modo simulador no existe secret de eventos: con secret vacío el
+    # checksum sería calculable por cualquiera. El webhook solo opera cuando
+    # Wompi real (sandbox/producción) está configurado.
+    if settings.wompi_mode == "mock" or not settings.wompi_events_secret:
+        guard.log_event(db, kind="webhook_rejected", tenant_id=tenant.id, ip=ip,
+                        detail={"reason": "wompi_no_configurado",
+                                "mode": settings.wompi_mode})
+        raise PaymentError("Webhook no disponible en este modo", 403, "webhook_disabled")
+
     if not verify_event_checksum(event):
+        guard.log_event(db, kind="webhook_bad_signature", tenant_id=tenant.id, ip=ip)
         raise PaymentError("Checksum del evento inválido", 401, "bad_checksum")
+
     transaction = ((event.get("data") or {}).get("transaction")) or {}
     reference = transaction.get("reference")
     payment = db.scalar(
@@ -274,6 +318,21 @@ def handle_wompi_event(db: Session, tenant: Tenant, event: dict) -> Payment | No
     )
     if payment is None:
         return None  # referencia ajena: se ignora (200 para no reintentar)
+
+    # El monto y la moneda del evento deben coincidir con lo que se cobró:
+    # una transacción real de $1 no puede aprobar un anticipo de $20.000.
+    if transaction.get("amount_in_cents") != payment.amount_cents or (
+        transaction.get("currency") or payment.currency
+    ) != payment.currency:
+        guard.log_event(
+            db, kind="webhook_bad_signature", tenant_id=tenant.id, ip=ip,
+            detail={"reason": "monto_no_coincide", "reference": reference,
+                    "expected_cents": payment.amount_cents,
+                    "received_cents": transaction.get("amount_in_cents")},
+        )
+        raise PaymentError("El monto del evento no coincide con el pago", 400,
+                           "amount_mismatch")
+
     status = WOMPI_STATUS_MAP.get(transaction.get("status", ""), "error")
     return apply_result(
         db,

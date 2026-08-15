@@ -7,6 +7,7 @@
 import type {
   AppointmentAdmin,
   BarberAdmin,
+  BarberStats,
   ClientNote,
   ClientProfile,
   DashboardData,
@@ -15,6 +16,7 @@ import type {
   PaymentAdminRow,
   PaymentSettingsAdmin,
   ProductAdmin,
+  SecurityEventRow,
   ServiceAdmin,
   TimeOff,
   TokenPair,
@@ -105,14 +107,31 @@ async function request<T>(path: string, init?: RequestInit, retry = true): Promi
 }
 
 export const adminApi = {
-  login: async (username: string, password: string): Promise<StoredAuth> => {
+  login: async (
+    username: string,
+    password: string,
+    extra?: { website?: string; captcha_token?: string | null },
+  ): Promise<StoredAuth> => {
     const response = await fetch(`${base()}/api/v1/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, tenant_slug: "bad-boys" }),
+      body: JSON.stringify({ username, password, tenant_slug: "bad-boys", ...extra }),
     });
     if (!response.ok) {
-      throw new AdminApiError(response.status, "Usuario o contraseña incorrectos");
+      if (response.status === 429) {
+        throw new AdminApiError(
+          429,
+          "Demasiados intentos. Espera unos minutos e intenta de nuevo.",
+        );
+      }
+      let message = "Usuario o contraseña incorrectos";
+      try {
+        const body = await response.json();
+        if (response.status !== 401 && typeof body.detail === "string") message = body.detail;
+      } catch {
+        /* sin cuerpo JSON */
+      }
+      throw new AdminApiError(response.status, message);
     }
     const pair = (await response.json()) as TokenPair;
     const auth: StoredAuth = {
@@ -126,6 +145,21 @@ export const adminApi = {
     return auth;
   },
   logout: () => setAuth(null),
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    const pair = await request<TokenPair>("/api/v1/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+    const auth = getAuth();
+    if (auth) {
+      // El cambio revoca los refresh tokens viejos: se guarda el par nuevo
+      setAuth({ ...auth, access_token: pair.access_token, refresh_token: pair.refresh_token });
+    }
+  },
 
   dashboard: () => request<DashboardData>("/api/v1/admin/dashboard"),
   agenda: (start: string, end: string, barberId?: number) =>
@@ -234,6 +268,16 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
   payments: () => request<PaymentAdminRow[]>("/api/v1/admin/payments"),
+
+  barberStats: (days: number, barberId?: number) =>
+    request<BarberStats>(
+      `/api/v1/admin/barber-stats?days=${days}${barberId ? `&barber_id=${barberId}` : ""}`,
+    ),
+
+  securityEvents: (kind?: string) =>
+    request<SecurityEventRow[]>(
+      `/api/v1/admin/security-events?limit=200${kind ? `&kind=${kind}` : ""}`,
+    ),
 
   giftCodes: () => request<GiftCodeAdmin[]>("/api/v1/admin/gift-codes"),
   createGiftCode: (description: string, expiresDays?: number) =>

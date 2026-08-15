@@ -87,6 +87,15 @@ module "frontend" {
   api_url             = module.api.api_endpoint
 }
 
+# Alarmas de seguridad: logins fallidos, bloqueos, firmas de webhook inválidas,
+# honeypots y ráfagas de reservas → correo vía SNS (ver modules/monitoring).
+module "monitoring" {
+  source         = "../../modules/monitoring"
+  name_prefix    = local.name_prefix
+  log_group_name = module.api.log_group_name
+  alert_email    = var.security_alert_email
+}
+
 output "api_endpoint" { value = module.api.api_endpoint }
 output "frontend_url" { value = module.frontend.default_domain }
 output "cloudfront_domain" { value = module.storage.cloudfront_domain }

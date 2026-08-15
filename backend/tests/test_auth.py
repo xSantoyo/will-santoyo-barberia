@@ -7,7 +7,7 @@ from app import seed
 def test_login_ok(client):
     response = client.post(
         "/api/v1/auth/login",
-        json={"username": "admin", "password": seed.DEFAULT_ADMIN_PASSWORD},
+        json={"username": seed.DEFAULT_ADMIN_USERNAME, "password": seed.DEFAULT_ADMIN_PASSWORD},
     )
     assert response.status_code == 200
     data = response.json()
@@ -18,15 +18,15 @@ def test_login_ok(client):
 def test_login_with_tenant_slug(client):
     response = client.post(
         "/api/v1/auth/login",
-        json={"username": "admin", "password": seed.DEFAULT_ADMIN_PASSWORD,
-              "tenant_slug": "bad-boys"},
+        json={"username": seed.DEFAULT_ADMIN_USERNAME, "password": seed.DEFAULT_ADMIN_PASSWORD,
+              "tenant_slug": "will-santoyo"},
     )
     assert response.status_code == 200
 
 
 def test_login_wrong_password(client):
     response = client.post(
-        "/api/v1/auth/login", json={"username": "admin", "password": "incorrecta"}
+        "/api/v1/auth/login", json={"username": seed.DEFAULT_ADMIN_USERNAME, "password": "incorrecta"}
     )
     assert response.status_code == 401
 
@@ -48,7 +48,7 @@ def test_protected_route_requires_token(client):
 def test_refresh_flow(client):
     login = client.post(
         "/api/v1/auth/login",
-        json={"username": "admin", "password": seed.DEFAULT_ADMIN_PASSWORD},
+        json={"username": seed.DEFAULT_ADMIN_USERNAME, "password": seed.DEFAULT_ADMIN_PASSWORD},
     ).json()
     response = client.post(
         "/api/v1/auth/refresh", json={"refresh_token": login["refresh_token"]}
@@ -63,6 +63,3 @@ def test_refresh_flow(client):
     assert response.status_code == 401
 
 
-def test_barbero_role_cannot_manage_services(client, barbero_headers):
-    assert client.get("/api/v1/admin/services", headers=barbero_headers).status_code == 403
-    assert client.get("/api/v1/admin/barbers", headers=barbero_headers).status_code == 403

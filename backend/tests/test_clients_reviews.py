@@ -9,16 +9,16 @@ import pytest
 from app.db import SessionLocal
 from app.models import Appointment
 
-BASE = "/api/v1/public/bad-boys"
+BASE = "/api/v1/public/will-santoyo"
 ADMIN = "/api/v1/admin"
 PHONE = "+573159990001"  # exclusivo de esta suite
 
 
-def _make(db, tenant, barber, *, days_ago, status, name="Cliente Memoria"):
+def _make(db, tenant, professional, *, days_ago, status, name="Cliente Memoria"):
     starts = datetime.now(timezone.utc) - timedelta(days=days_ago)
     appointment = Appointment(
         tenant_id=tenant.id,
-        barber_id=barber.id,
+        professional_id=professional.id,
         customer_name=name,
         customer_whatsapp=PHONE,
         starts_at=starts,
@@ -32,15 +32,15 @@ def _make(db, tenant, barber, *, days_ago, status, name="Cliente Memoria"):
 
 
 @pytest.fixture()
-def client_history(tenant, barbers):
+def client_history(tenant, professional):
     db = SessionLocal()
     rows = [
-        _make(db, tenant, barbers[0], days_ago=60, status="completado"),
-        _make(db, tenant, barbers[0], days_ago=30, status="completado"),
-        _make(db, tenant, barbers[1], days_ago=15, status="completado",
+        _make(db, tenant, professional, days_ago=60, status="completado"),
+        _make(db, tenant, professional, days_ago=30, status="completado"),
+        _make(db, tenant, professional, days_ago=15, status="completado",
               name="Cliente Memoria Pérez"),
-        _make(db, tenant, barbers[0], days_ago=10, status="cancelado"),
-        _make(db, tenant, barbers[0], days_ago=-30, status="confirmado"),  # futuro
+        _make(db, tenant, professional, days_ago=10, status="cancelado"),
+        _make(db, tenant, professional, days_ago=-30, status="confirmado"),  # futuro
     ]
     db.commit()
     codes = [r.manage_code for r in rows]
@@ -79,7 +79,7 @@ def test_portal_history_and_loyalty(client, client_history):
     assert all(a["can_review"] for a in done)
 
 
-def test_verified_reviews_flow(client, client_history, barbers):
+def test_verified_reviews_flow(client, client_history, professional):
     completed_code, future_code = client_history[0], client_history[4]
 
     # Solo citas completadas pueden reseñar
@@ -96,7 +96,6 @@ def test_verified_reviews_flow(client, client_history, barbers):
     review = created.json()
     assert review["rating"] == 5
     assert review["customer_label"] == "Cliente M."  # nombre abreviado: privacidad
-    assert review["barber_name"] == barbers[0].name
 
     # Una reseña por cita
     duplicate = client.post(
@@ -109,10 +108,10 @@ def test_verified_reviews_flow(client, client_history, barbers):
         f"{BASE}/appointments/{client_history[1]}/review", json={"rating": 6}
     ).status_code == 422
 
-    # Listado público con promedios por barbero
+    # Listado público con el promedio general
     listing = client.get(f"{BASE}/reviews").json()
     assert listing["overall"]["count"] >= 1
-    assert str(barbers[0].id) in listing["per_barber"]
+    assert listing["overall"]["average"] is not None
     assert any("impecable" in (item["comment"] or "") for item in listing["items"])
 
     # El tiquete refleja la reseña dejada
@@ -129,9 +128,8 @@ def test_verified_reviews_flow(client, client_history, barbers):
     assert portal["loyalty"]["progress"] == 4  # 3 cortes + 1 reseña
 
 
-def test_style_notes_and_profile(client, admin_headers, barbero_headers, client_history,
-                                 barbers):
-    # El admin deja una nota de estilo
+def test_style_notes_and_profile(client, admin_headers, client_history, professional):
+    # Will deja una nota de estilo
     created = client.post(
         f"{ADMIN}/clients/{PHONE}/notes",
         json={"note": "Máquina 2 a los lados, tijera arriba. No le gusta la navaja."},
@@ -140,27 +138,22 @@ def test_style_notes_and_profile(client, admin_headers, barbero_headers, client_
     assert created.status_code == 201
     admin_note_id = created.json()["id"]
 
-    # El barbero ve el perfil completo (D7) con stats y la nota
-    profile = client.get(f"{ADMIN}/clients/{PHONE}", headers=barbero_headers).json()
+    # El perfil trae stats, notas y fidelidad
+    profile = client.get(f"{ADMIN}/clients/{PHONE}", headers=admin_headers).json()
     assert profile["stats"]["completed_count"] == 3
-    assert profile["stats"]["favorite_barber"] == barbers[0].name
     assert profile["stats"]["no_show_count"] == 0
     assert any("Máquina 2" in n["note"] for n in profile["notes"])
     assert profile["loyalty"]["completed_count"] == 3
     assert len(profile["recent"]) == 5
 
-    # El barbero agrega su propia nota, pero no puede borrar la del admin
     own = client.post(
         f"{ADMIN}/clients/{PHONE}/notes",
         json={"note": "Prefiere cita temprano."},
-        headers=barbero_headers,
+        headers=admin_headers,
     )
     assert own.status_code == 201
     assert client.delete(
-        f"{ADMIN}/client-notes/{admin_note_id}", headers=barbero_headers
-    ).status_code == 403
-    assert client.delete(
-        f"{ADMIN}/client-notes/{own.json()['id']}", headers=barbero_headers
+        f"{ADMIN}/client-notes/{own.json()['id']}", headers=admin_headers
     ).status_code == 204
     assert client.delete(
         f"{ADMIN}/client-notes/{admin_note_id}", headers=admin_headers

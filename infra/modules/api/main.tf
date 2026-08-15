@@ -142,3 +142,4 @@ resource "aws_cloudwatch_metric_alarm" "api_errors" {
 output "api_endpoint" { value = aws_apigatewayv2_stage.default.invoke_url }
 output "lambda_function_name" { value = aws_lambda_function.api.function_name }
 output "lambda_security_group_id" { value = aws_security_group.lambda.id }
+output "log_group_name" { value = aws_cloudwatch_log_group.lambda.name }

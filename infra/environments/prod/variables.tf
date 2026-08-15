@@ -25,3 +25,8 @@ variable "jwt_secret" {
   type      = string
   sensitive = true
 }
+
+variable "security_alert_email" {
+  type        = string
+  description = "Correo que recibe las alarmas de seguridad (SNS pide confirmar la suscripción)"
+}

@@ -22,6 +22,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { ApiError, mediaUrl, publicApi } from "@/lib/api";
+import { HoneypotField, Turnstile, turnstileEnabled } from "@/components/security/BotShield";
 import { RazorReveal } from "@/components/public/Razor";
 import AddToCalendar from "@/components/public/AddToCalendar";
 import {
@@ -87,6 +88,9 @@ export default function Wizard() {
   const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
+  // Anti-bots: honeypot (nunca visible) + token de Turnstile (si está activo)
+  const [website, setWebsite] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<AppointmentPublic | null>(null);
 
   useEffect(() => {
@@ -192,6 +196,10 @@ export default function Wizard() {
 
   async function submit() {
     if (!barber || !date || !time) return;
+    if (turnstileEnabled() && !captchaToken) {
+      setError("Completa la verificación anti-bot para confirmar.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -209,6 +217,8 @@ export default function Wizard() {
               service_ids: selectedServices,
             })),
           ],
+          website,
+          captcha_token: captchaToken,
         });
         setGroupExtras(group.appointments.slice(1));
         setConfirmed(group.appointments[0]);
@@ -223,6 +233,8 @@ export default function Wizard() {
         customer_whatsapp: phone.trim(),
         gift_code: giftCode.trim() || null,
         referral_code: referralCode.trim() || null,
+        website,
+        captcha_token: captchaToken,
       });
       setConfirmed(appointment);
     } catch (err) {
@@ -600,6 +612,10 @@ export default function Wizard() {
                   />
                 </div>
               </dl>
+              <HoneypotField value={website} onChange={setWebsite} />
+              <div className="mt-5">
+                <Turnstile onToken={setCaptchaToken} />
+              </div>
             </div>
           )}
         </motion.div>

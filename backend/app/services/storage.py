@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..config import get_settings
 
-KIND_DIRS = {"gallery": "gallery", "barber": "barbers", "cut": "cuts", "product": "products"}
+KIND_DIRS = {"gallery": "gallery", "profile": "profile", "cut": "cuts", "product": "products"}
 ALLOWED_CONTENT_TYPES = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -21,6 +21,22 @@ ALLOWED_CONTENT_TYPES = {
     "image/avif": ".avif",
 }
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def sniff_image_content_type(content: bytes) -> str | None:
+    """Detecta el tipo real de imagen por magic bytes (el Content-Type del
+    request lo declara el cliente y no es confiable). Devuelve None si el
+    contenido no es ninguno de los formatos permitidos."""
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    # ISO-BMFF: los AVIF llevan la caja ftyp con brand avif/avis
+    if content[4:8] == b"ftyp" and content[8:12] in (b"avif", b"avis"):
+        return "image/avif"
+    return None
 
 
 def make_key(tenant_slug: str, kind: str, content_type: str) -> str:

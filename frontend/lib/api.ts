@@ -103,6 +103,8 @@ export const publicApi = {
     customer_whatsapp: string;
     referral_code?: string | null;
     gift_code?: string | null;
+    website?: string;
+    captcha_token?: string | null;
   }) =>
     request<AppointmentPublic>(`${PUBLIC}/appointments`, {
       method: "POST",
@@ -114,6 +116,8 @@ export const publicApi = {
     time: string;
     customer_whatsapp: string;
     customers: { name: string; service_ids: number[] }[];
+    website?: string;
+    captcha_token?: string | null;
   }) =>
     request<{ appointments: AppointmentPublic[] }>(`${PUBLIC}/appointments/group`, {
       method: "POST",

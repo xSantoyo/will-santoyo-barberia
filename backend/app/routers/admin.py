@@ -1,10 +1,7 @@
-"""Panel de administración. Roles:
-- admin: acceso total al tenant.
-- barbero: solo lectura/gestión de su propia agenda del día.
-"""
+"""Panel de administración de Will: su agenda, sus clientes y su desempeño."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import (
@@ -25,8 +22,6 @@ from ..models import (
     AdminUser,
     Appointment,
     AuditLog,
-    Barber,
-    BarberTimeOff,
     ClientNote,
     GiftCode,
     MediaAsset,
@@ -34,24 +29,24 @@ from ..models import (
     Product,
     Service,
     Tenant,
+    TimeOff,
 )
 from ..schemas import (
     AppointmentAdmin,
-    BarberAdmin,
-    BarberCreate,
-    BarberUpdate,
     CancelRequest,
     ClientNoteCreate,
     ClientNoteOut,
     GiftCodeCreate,
     GiftCodeOut,
+    ManualBookingCreate,
+    MediaAssetOut,
     PaymentSettings,
+    PresignRequest,
     ProductAdmin,
     ProductCreate,
     ProductUpdate,
-    ManualBookingCreate,
-    MediaAssetOut,
-    PresignRequest,
+    ProfessionalAdmin,
+    ProfessionalUpdate,
     RescheduleRequest,
     ServiceAdmin,
     ServiceCreate,
@@ -60,14 +55,21 @@ from ..schemas import (
     TimeOffCreate,
     TimeOffOut,
     WalkInCreate,
+    normalize_phone,
 )
-from ..schemas import normalize_phone
 from ..services import appointments as booking
 from ..services import audit
 from ..services import clients as clients_service
 from ..services import payments as payments_service
-from ..services.storage import ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES, get_storage, make_key
-from .common import appointment_to_admin, barber_photo_url
+from ..services.professional import get_professional
+from ..services.storage import (
+    ALLOWED_CONTENT_TYPES,
+    MAX_UPLOAD_BYTES,
+    get_storage,
+    make_key,
+    sniff_image_content_type,
+)
+from .common import appointment_to_admin, professional_photo_url
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -78,7 +80,7 @@ def _handle_booking_error(exc: booking.BookingError) -> HTTPException:
 
 def _appointment_query():
     return select(Appointment).options(
-        selectinload(Appointment.services), selectinload(Appointment.barber)
+        selectinload(Appointment.services), selectinload(Appointment.professional)
     )
 
 
@@ -101,22 +103,19 @@ def dashboard(
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
-    """Turnos de HOY por barbero: turno en curso, próximos, completados."""
+    """Los turnos de HOY: el que está en la silla, los que siguen, los cerrados."""
+    from ..services import notifications
+
     booking.release_unconfirmed(db, tenant)  # el dashboard siempre al día
     payments_service.expire_stale_deposits(db, tenant)
+    notifications.send_pending_reminders(db, tenant)
     tz = ZoneInfo(tenant.timezone)
     now = utcnow()
     today = now.astimezone(tz).date()
     day_start, day_end = booking.local_day_bounds(tenant, today)
+    professional = get_professional(db, tenant)
 
-    barbers_query = select(Barber).where(
-        Barber.tenant_id == tenant.id, Barber.is_active.is_(True)
-    )
-    if user.role == "barbero":
-        barbers_query = barbers_query.where(Barber.id == user.barber_id)
-    barbers = list(db.scalars(barbers_query.order_by(Barber.sort_order, Barber.id)))
-
-    appointments = list(
+    today_appointments = list(
         db.scalars(
             _appointment_query()
             .where(
@@ -128,34 +127,32 @@ def dashboard(
         )
     )
 
-    result = []
-    for barber in barbers:
-        own = [a for a in appointments if a.barber_id == barber.id]
-        current = next(
-            (
-                a for a in own
-                if a.status == "en_curso"
-                or (a.status == "confirmado" and a.starts_at <= now < a.ends_at)
-            ),
-            None,
-        )
-        upcoming = [a for a in own if a.status in ACTIVE_STATUSES and a.starts_at > now]
-        is_day_off = (barber.schedule or {}).get(
-            ("mon", "tue", "wed", "thu", "fri", "sat", "sun")[today.weekday()]
-        ) is None
-        result.append(
-            {
-                "barber": {"id": barber.id, "name": barber.name,
-                           "photo_url": barber_photo_url(barber)},
-                "is_day_off": is_day_off,
-                "current": appointment_to_admin(current, tenant) if current else None,
-                "upcoming": [appointment_to_admin(a, tenant) for a in upcoming],
-                "all_today": [appointment_to_admin(a, tenant) for a in own],
-                "done_count": sum(1 for a in own if a.status == "completado"),
-                "cancelled_count": sum(1 for a in own if a.status in ("cancelado", "no_show")),
-            }
-        )
-    return {"date_local": today.isoformat(), "barbers": result}
+    current = next(
+        (
+            a for a in today_appointments
+            if a.status == "en_curso"
+            or (a.status == "confirmado" and a.starts_at <= now < a.ends_at)
+        ),
+        None,
+    )
+    upcoming = [
+        a for a in today_appointments if a.status in ACTIVE_STATUSES and a.starts_at > now
+    ]
+    is_day_off = (professional.schedule or {}).get(
+        ("mon", "tue", "wed", "thu", "fri", "sat", "sun")[today.weekday()]
+    ) is None
+
+    return {
+        "date_local": today.isoformat(),
+        "is_day_off": is_day_off,
+        "current": appointment_to_admin(current, tenant) if current else None,
+        "upcoming": [appointment_to_admin(a, tenant) for a in upcoming],
+        "all_today": [appointment_to_admin(a, tenant) for a in today_appointments],
+        "done_count": sum(1 for a in today_appointments if a.status == "completado"),
+        "cancelled_count": sum(
+            1 for a in today_appointments if a.status in ("cancelado", "no_show")
+        ),
+    }
 
 
 # ------------------------------------------------------------------ agenda
@@ -164,55 +161,42 @@ def dashboard(
 def agenda(
     start: date,
     end: date,
-    barber_id: int | None = None,
-    user: AdminUser = Depends(get_current_user),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
-    """Vista calendario por rango, incluyendo días de descanso del barbero."""
-    if user.role == "barbero":
-        barber_id = user.barber_id  # un barbero solo ve su propia agenda
+    """Vista calendario por rango, incluyendo los días de descanso."""
     if (end - start).days > 62:
         raise HTTPException(400, "Rango máximo: 62 días")
 
     range_start, _ = booking.local_day_bounds(tenant, start)
     _, range_end = booking.local_day_bounds(tenant, end)
 
-    query = (
-        _appointment_query()
-        .where(
-            Appointment.tenant_id == tenant.id,
-            Appointment.starts_at >= range_start,
-            Appointment.starts_at < range_end,
+    appointments = [
+        appointment_to_admin(a, tenant)
+        for a in db.scalars(
+            _appointment_query()
+            .where(
+                Appointment.tenant_id == tenant.id,
+                Appointment.starts_at >= range_start,
+                Appointment.starts_at < range_end,
+            )
+            .order_by(Appointment.starts_at)
         )
-        .order_by(Appointment.starts_at)
-    )
-    if barber_id:
-        query = query.where(Appointment.barber_id == barber_id)
-    appointments = [appointment_to_admin(a, tenant) for a in db.scalars(query)]
+    ]
 
-    barbers_query = select(Barber).where(Barber.tenant_id == tenant.id, Barber.is_active.is_(True))
-    if barber_id:
-        barbers_query = barbers_query.where(Barber.id == barber_id)
-    barbers = list(db.scalars(barbers_query))
-
-    time_off_query = select(BarberTimeOff).where(
-        BarberTimeOff.tenant_id == tenant.id,
-        BarberTimeOff.date >= start,
-        BarberTimeOff.date <= end,
+    time_off = db.scalars(
+        select(TimeOff).where(
+            TimeOff.tenant_id == tenant.id,
+            TimeOff.date >= start,
+            TimeOff.date <= end,
+        )
     )
-    if barber_id:
-        time_off_query = time_off_query.where(BarberTimeOff.barber_id == barber_id)
 
     return {
         "appointments": appointments,
-        "barbers": [
-            {"id": b.id, "name": b.name, "schedule": b.schedule} for b in barbers
-        ],
+        "schedule": get_professional(db, tenant).schedule,
         "time_off": [
-            {"id": t.id, "barber_id": t.barber_id, "date": t.date.isoformat(),
-             "reason": t.reason}
-            for t in db.scalars(time_off_query)
+            {"id": t.id, "date": t.date.isoformat(), "reason": t.reason} for t in time_off
         ],
     }
 
@@ -222,24 +206,18 @@ def agenda(
 @router.get("/appointments", response_model=list[AppointmentAdmin])
 def list_appointments(
     status: str | None = None,
-    barber_id: int | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     q: str | None = None,
     limit: int = 100,
     offset: int = 0,
-    user: AdminUser = Depends(get_current_user),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
     """Historial con filtros (completados, cancelados, no-show...)."""
-    if user.role == "barbero":
-        barber_id = user.barber_id
     query = _appointment_query().where(Appointment.tenant_id == tenant.id)
     if status:
         query = query.where(Appointment.status == status)
-    if barber_id:
-        query = query.where(Appointment.barber_id == barber_id)
     if date_from:
         query = query.where(Appointment.starts_at >= booking.local_day_bounds(tenant, date_from)[0])
     if date_to:
@@ -283,15 +261,11 @@ def create_walk_in(
     db: Session = Depends(get_db),
 ):
     """Walk-in (Tanda 2): cliente en el local sin cita — toma el próximo hueco
-    de HOY y entra a La Fila. El barbero también puede registrarlo (su propia
-    silla)."""
-    if user.role == "barbero" and user.barber_id != data.barber_id:
-        raise HTTPException(403, "Solo puedes registrar walk-ins en tu propia silla")
+    de HOY y entra a La Fila."""
     try:
         appointment = booking.create_walk_in(
             db,
             tenant,
-            barber_id=data.barber_id,
             service_ids=data.service_ids,
             customer_name=data.customer_name,
             customer_whatsapp=data.customer_whatsapp,
@@ -299,7 +273,7 @@ def create_walk_in(
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     audit.record(db, user, "appointment.walk_in", "appointment", appointment.id,
-                 {"customer": data.customer_name, "barber_id": data.barber_id})
+                 {"customer": data.customer_name})
     db.commit()
     return appointment_to_admin(appointment, tenant)
 
@@ -313,17 +287,15 @@ def reschedule(
     db: Session = Depends(get_db),
 ):
     appointment = _get_appointment(db, tenant, appointment_id)
-    old = {"date": appointment.starts_at.isoformat(), "barber_id": appointment.barber_id}
+    old = {"date": appointment.starts_at.isoformat()}
     try:
         appointment = booking.reschedule_appointment(
-            db, tenant, appointment,
-            new_barber_id=data.barber_id, new_date=data.date, new_time=data.time,
+            db, tenant, appointment, new_date=data.date, new_time=data.time,
         )
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None
     audit.record(db, user, "appointment.reschedule", "appointment", appointment.id,
-                 {"from": old, "to": {"date": str(data.date), "time": data.time,
-                                      "barber_id": appointment.barber_id}})
+                 {"from": old, "to": {"date": str(data.date), "time": data.time}})
     db.commit()
     return appointment_to_admin(appointment, tenant)
 
@@ -356,11 +328,8 @@ def update_status(
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
-    """Cambio de estado (en_curso, completado, no_show...). Un barbero solo
-    puede operar sobre sus propios turnos."""
+    """Cambio de estado (en_curso, completado, no_show...)."""
     appointment = _get_appointment(db, tenant, appointment_id)
-    if user.role == "barbero" and appointment.barber_id != user.barber_id:
-        raise HTTPException(403, "Solo puedes gestionar tus propios turnos")
     try:
         appointment = booking.transition_status(db, appointment, data.status)
     except booking.BookingError as exc:
@@ -382,7 +351,6 @@ def _normalized_phone_or_400(phone: str) -> str:
 @router.get("/clients/{phone}")
 def client_profile(
     phone: str,
-    _: AdminUser = Depends(get_current_user),  # el barbero también lo ve (D7)
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
@@ -455,107 +423,77 @@ def delete_client_note(
     db.commit()
 
 
-# ------------------------------------------------------------------ barberos
+# ------------------------------------------------------------------ perfil
 
-@router.get("/barbers", response_model=list[BarberAdmin])
-def list_barbers(
+@router.get("/profile", response_model=ProfessionalAdmin)
+def get_profile(
     _: AdminUser = Depends(require_admin),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
-    result = []
-    for barber in db.scalars(
-        select(Barber).where(Barber.tenant_id == tenant.id).order_by(Barber.sort_order, Barber.id)
-    ):
-        item = BarberAdmin.model_validate(barber)
-        item.photo_url = barber_photo_url(barber)
-        result.append(item)
-    return result
-
-
-@router.post("/barbers", response_model=BarberAdmin, status_code=201)
-def create_barber(
-    data: BarberCreate,
-    user: AdminUser = Depends(require_admin),
-    tenant: Tenant = Depends(get_user_tenant),
-    db: Session = Depends(get_db),
-):
-    barber = Barber(tenant_id=tenant.id, **data.model_dump())
-    db.add(barber)
-    db.flush()
-    audit.record(db, user, "barber.create", "barber", barber.id, {"name": barber.name})
-    db.commit()
-    db.refresh(barber)
-    return BarberAdmin.model_validate(barber)
-
-
-@router.patch("/barbers/{barber_id}", response_model=BarberAdmin)
-def update_barber(
-    barber_id: int,
-    data: BarberUpdate,
-    user: AdminUser = Depends(require_admin),
-    tenant: Tenant = Depends(get_user_tenant),
-    db: Session = Depends(get_db),
-):
-    barber = db.scalar(
-        select(Barber).where(Barber.id == barber_id, Barber.tenant_id == tenant.id)
-    )
-    if barber is None:
-        raise HTTPException(404, "Barbero no encontrado")
-    changes = data.model_dump(exclude_unset=True)
-    for field, value in changes.items():
-        setattr(barber, field, value)
-    audit.record(db, user, "barber.update", "barber", barber.id, changes)
-    db.commit()
-    db.refresh(barber)
-    item = BarberAdmin.model_validate(barber)
-    item.photo_url = barber_photo_url(barber)
+    professional = get_professional(db, tenant)
+    item = ProfessionalAdmin.model_validate(professional)
+    item.photo_url = professional_photo_url(professional)
     return item
 
 
-@router.get("/barbers/{barber_id}/time-off", response_model=list[TimeOffOut])
+@router.patch("/profile", response_model=ProfessionalAdmin)
+def update_profile(
+    data: ProfessionalUpdate,
+    user: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    professional = get_professional(db, tenant)
+    changes = data.model_dump(exclude_unset=True)
+    for field, value in changes.items():
+        setattr(professional, field, value)
+    audit.record(db, user, "profile.update", "professional", professional.id, changes)
+    db.commit()
+    db.refresh(professional)
+    item = ProfessionalAdmin.model_validate(professional)
+    item.photo_url = professional_photo_url(professional)
+    return item
+
+
+@router.get("/time-off", response_model=list[TimeOffOut])
 def list_time_off(
-    barber_id: int,
     _: AdminUser = Depends(require_admin),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
     return list(
         db.scalars(
-            select(BarberTimeOff)
-            .where(BarberTimeOff.tenant_id == tenant.id, BarberTimeOff.barber_id == barber_id)
-            .order_by(BarberTimeOff.date)
+            select(TimeOff).where(TimeOff.tenant_id == tenant.id).order_by(TimeOff.date)
         )
     )
 
 
-@router.post("/barbers/{barber_id}/time-off", response_model=TimeOffOut, status_code=201)
+@router.post("/time-off", response_model=TimeOffOut, status_code=201)
 def create_time_off(
-    barber_id: int,
     data: TimeOffCreate,
     user: AdminUser = Depends(require_admin),
     tenant: Tenant = Depends(get_user_tenant),
     db: Session = Depends(get_db),
 ):
-    barber = db.scalar(
-        select(Barber).where(Barber.id == barber_id, Barber.tenant_id == tenant.id)
-    )
-    if barber is None:
-        raise HTTPException(404, "Barbero no encontrado")
+    professional = get_professional(db, tenant)
     existing = db.scalar(
-        select(BarberTimeOff).where(
-            BarberTimeOff.barber_id == barber_id, BarberTimeOff.date == data.date
+        select(TimeOff).where(
+            TimeOff.tenant_id == tenant.id, TimeOff.date == data.date
         )
     )
     if existing:
         raise HTTPException(409, "Ya existe un descanso registrado para esa fecha")
-    time_off = BarberTimeOff(
-        tenant_id=tenant.id, barber_id=barber_id, date=data.date, reason=data.reason
+    time_off = TimeOff(
+        tenant_id=tenant.id,
+        professional_id=professional.id,
+        date=data.date,
+        reason=data.reason,
     )
     db.add(time_off)
     db.flush()
-    audit.record(db, user, "barber.time_off.create", "barber_time_off", time_off.id,
-                 {"barber_id": barber_id, "date": str(data.date)})
+    audit.record(db, user, "time_off.create", "time_off", time_off.id,
+                 {"date": str(data.date)})
     db.commit()
     db.refresh(time_off)
     return time_off
@@ -569,14 +507,14 @@ def delete_time_off(
     db: Session = Depends(get_db),
 ):
     time_off = db.scalar(
-        select(BarberTimeOff).where(
-            BarberTimeOff.id == time_off_id, BarberTimeOff.tenant_id == tenant.id
+        select(TimeOff).where(
+            TimeOff.id == time_off_id, TimeOff.tenant_id == tenant.id
         )
     )
     if time_off is None:
         raise HTTPException(404, "Registro no encontrado")
-    audit.record(db, user, "barber.time_off.delete", "barber_time_off", time_off_id,
-                 {"barber_id": time_off.barber_id, "date": str(time_off.date)})
+    audit.record(db, user, "time_off.delete", "time_off", time_off_id,
+                 {"professional_id": time_off.professional_id, "date": str(time_off.date)})
     db.delete(time_off)
     db.commit()
 
@@ -870,14 +808,18 @@ async def upload_direct(
     storage = get_storage()
     if storage.upload_mode != "direct":
         raise HTTPException(400, "En producción usa /media/presign (subida directa a S3)")
-    if kind not in ("gallery", "barber", "cut", "product"):
+    if kind not in ("gallery", "professional", "cut", "product"):
         raise HTTPException(400, "kind inválido")
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(415, "Formato no soportado (jpeg/png/webp/avif)")
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "Imagen demasiado grande (máx. 10 MB)")
-    key = make_key(tenant.slug, kind, file.content_type)
+    # El Content-Type declarado no es confiable: se valida el contenido real
+    sniffed = sniff_image_content_type(content)
+    if sniffed is None:
+        raise HTTPException(415, "El archivo no es una imagen válida (jpeg/png/webp/avif)")
+    key = make_key(tenant.slug, kind, sniffed)
     storage.save(key, content)
     asset = MediaAsset(tenant_id=tenant.id, kind=kind, s3_key=key,
                        title=file.filename)
@@ -900,7 +842,7 @@ def confirm_upload(
 ):
     """Tras subir a S3 con la URL pre-firmada, registra el asset en DB."""
     key, kind = data.get("key", ""), data.get("kind", "")
-    if kind not in ("gallery", "barber", "cut", "product") or not key.startswith(f"tenants/{tenant.slug}/"):
+    if kind not in ("gallery", "professional", "cut", "product") or not key.startswith(f"tenants/{tenant.slug}/"):
         raise HTTPException(400, "key o kind inválidos")
     storage = get_storage()
     if storage.upload_mode == "presigned" and not storage.exists(key):
@@ -937,7 +879,103 @@ def delete_media(
     db.commit()
 
 
+# ------------------------------------------------------------------ desempeño
+
+@router.get("/stats")
+def stats(
+    days: int = 30,
+    _: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Mi desempeño: turnos, ingresos, reseñas y top de servicios del periodo."""
+    from sqlalchemy import func
+
+    from ..models import Review
+
+    professional = get_professional(db, tenant)
+    days = min(max(days, 1), 365)
+    tz = ZoneInfo(tenant.timezone)
+    now = utcnow()
+    today = now.astimezone(tz).date()
+    range_start, _ = booking.local_day_bounds(tenant, today - timedelta(days=days - 1))
+    _, today_end = booking.local_day_bounds(tenant, today)
+
+    rows = list(
+        db.scalars(
+            _appointment_query().where(
+                Appointment.tenant_id == tenant.id,
+                Appointment.professional_id == professional.id,
+                Appointment.starts_at >= range_start,
+                Appointment.starts_at < today_end,
+            )
+        )
+    )
+    completed = [a for a in rows if a.status == "completado"]
+    revenue = sum(a.total_cop for a in completed)
+
+    # Top servicios del periodo (por nombre pactado en el snapshot)
+    service_counts: dict[str, int] = {}
+    for appointment in completed:
+        for service in appointment.services:
+            service_counts[service.name] = service_counts.get(service.name, 0) + 1
+    top_services = sorted(service_counts.items(), key=lambda kv: -kv[1])[:5]
+
+    rating_row = db.execute(
+        select(func.avg(Review.rating), func.count(Review.id)).where(
+            Review.tenant_id == tenant.id,
+            Review.professional_id == professional.id,
+            Review.is_public.is_(True),
+        )
+    ).one()
+
+    unique_clients = len({a.customer_whatsapp for a in completed if a.customer_whatsapp})
+    upcoming_today = sum(
+        1 for a in rows
+        if a.status in ACTIVE_STATUSES and a.starts_at > now and a.starts_at < today_end
+    )
+    return {
+        "days": days,
+        "completed_count": len(completed),
+        "cancelled_count": sum(1 for a in rows if a.status == "cancelado"),
+        "no_show_count": sum(1 for a in rows if a.status == "no_show"),
+        "revenue_cop": revenue,
+        "unique_clients": unique_clients,
+        "upcoming_today": upcoming_today,
+        "top_services": [{"name": name, "count": count} for name, count in top_services],
+        "rating": round(float(rating_row[0]), 1) if rating_row[0] else None,
+        "review_count": rating_row[1],
+    }
+
+
 # ------------------------------------------------------------------ auditoría
+
+@router.get("/security-events")
+def list_security_events(
+    kind: str | None = None,
+    limit: int = 100,
+    _: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Eventos de seguridad del tenant (+ globales sin tenant: bloqueos de
+    login y rate limits, que ocurren antes de conocer el tenant)."""
+    from ..models import SecurityEvent
+
+    query = select(SecurityEvent).where(
+        (SecurityEvent.tenant_id == tenant.id) | (SecurityEvent.tenant_id.is_(None))
+    )
+    if kind:
+        query = query.where(SecurityEvent.kind == kind)
+    rows = db.scalars(query.order_by(SecurityEvent.id.desc()).limit(min(limit, 200)))
+    return [
+        {
+            "id": r.id, "kind": r.kind, "username": r.username, "ip": r.ip,
+            "detail": r.detail, "created_at": r.created_at.isoformat(),
+        }
+        for r in rows
+    ]
+
 
 @router.get("/audit-log")
 def list_audit(

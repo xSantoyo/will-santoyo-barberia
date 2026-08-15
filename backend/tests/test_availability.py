@@ -5,18 +5,17 @@ from datetime import timedelta
 
 from .conftest import next_working_date
 
-PUBLIC = "/api/v1/public/bad-boys"
+PUBLIC = "/api/v1/public/will-santoyo"
 ADMIN = "/api/v1/admin"
 
 
-def test_time_off_blocks_and_restores(client, admin_headers, barbers):
+def test_time_off_blocks_and_restores(client, admin_headers, professional):
     """Excepción puntual: bloquear un día laborable del barbero."""
-    barber = barbers[0]
-    day = next_working_date(barber, weeks_ahead=11)
+    day = next_working_date(professional, weeks_ahead=11)
     services = client.get(f"{PUBLIC}/services").json()
 
     created = client.post(
-        f"{ADMIN}/barbers/{barber.id}/time-off",
+        f"{ADMIN}/time-off",
         json={"date": day.isoformat(), "reason": "Cita médica"},
         headers=admin_headers,
     )
@@ -25,7 +24,7 @@ def test_time_off_blocks_and_restores(client, admin_headers, barbers):
 
     # Duplicado rechazado
     duplicate = client.post(
-        f"{ADMIN}/barbers/{barber.id}/time-off",
+        f"{ADMIN}/time-off",
         json={"date": day.isoformat()},
         headers=admin_headers,
     )
@@ -34,7 +33,7 @@ def test_time_off_blocks_and_restores(client, admin_headers, barbers):
     # Disponibilidad: día bloqueado
     availability = client.post(
         f"{PUBLIC}/availability",
-        json={"barber_id": barber.id, "date": day.isoformat(),
+        json={"date": day.isoformat(),
               "service_ids": [services[0]["id"]]},
     ).json()
     assert availability["is_day_off"] is True
@@ -43,7 +42,7 @@ def test_time_off_blocks_and_restores(client, admin_headers, barbers):
     response = client.post(
         f"{PUBLIC}/appointments",
         json={
-            "barber_id": barber.id, "service_ids": [services[0]["id"]],
+            "service_ids": [services[0]["id"]],
             "date": day.isoformat(), "time": "10:00",
             "customer_name": "Cliente", "customer_whatsapp": "3081111111",
         },
@@ -52,7 +51,7 @@ def test_time_off_blocks_and_restores(client, admin_headers, barbers):
 
     # Visible en el endpoint público de excepciones (para el calendario)
     window = client.get(
-        f"{PUBLIC}/barbers/{barber.id}/time-off",
+        f"{PUBLIC}/time-off",
         params={"start": day.isoformat(),
                 "end": (day + timedelta(days=1)).isoformat()},
     ).json()
@@ -63,24 +62,23 @@ def test_time_off_blocks_and_restores(client, admin_headers, barbers):
     assert deleted.status_code == 204
     availability = client.post(
         f"{PUBLIC}/availability",
-        json={"barber_id": barber.id, "date": day.isoformat(),
+        json={"date": day.isoformat(),
               "service_ids": [services[0]["id"]]},
     ).json()
     assert availability["is_day_off"] is False
     assert len(availability["slots"]) > 0
 
 
-def test_slots_respect_barber_schedule(client, barbers):
+def test_slots_respect_schedule(client, professional):
     """Los slots caen dentro de la jornada y en pasos de 15 minutos."""
-    barber = barbers[0]
-    day = next_working_date(barber, weeks_ahead=12)
+    day = next_working_date(professional, weeks_ahead=12)
     services = client.get(f"{PUBLIC}/services").json()
-    sched = (barber.schedule or {})[
+    sched = (professional.schedule or {})[
         ("mon", "tue", "wed", "thu", "fri", "sat", "sun")[day.weekday()]
     ]
     availability = client.post(
         f"{PUBLIC}/availability",
-        json={"barber_id": barber.id, "date": day.isoformat(),
+        json={"date": day.isoformat(),
               "service_ids": [services[0]["id"]]},
     ).json()
     slots = availability["slots"]
@@ -91,21 +89,20 @@ def test_slots_respect_barber_schedule(client, barbers):
         assert int(slot.split(":")[1]) % 15 == 0
 
 
-def test_manage_code_returned_prominently(client, barbers):
+def test_manage_code_returned_prominently(client, professional):
     """ADR-009: sin WhatsApp, el código de gestión que devuelve la API es el
     único canal del cliente para gestionar su turno — debe venir siempre."""
-    barber = barbers[2]
-    day = next_working_date(barber, weeks_ahead=13)
+    day = next_working_date(professional, weeks_ahead=13)
     services = client.get(f"{PUBLIC}/services").json()
     booked = client.post(
         f"{PUBLIC}/appointments",
         json={
-            "barber_id": barber.id, "service_ids": [services[0]["id"]],
+            "service_ids": [services[0]["id"]],
             "date": day.isoformat(), "time": "09:00",
             "customer_name": "Cliente Código", "customer_whatsapp": "3082222222",
         },
     ).json()
-    assert len(booked["manage_code"]) == 6
+    assert len(booked["manage_code"]) == 8
     # Con ese código (y solo con él) se consulta y cancela sin autenticación
     fetched = client.get(f"{PUBLIC}/appointments/{booked['manage_code']}")
     assert fetched.status_code == 200

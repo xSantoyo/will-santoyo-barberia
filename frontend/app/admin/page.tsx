@@ -18,11 +18,12 @@ import {
   UserX,
 } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
+import { publicApi } from "@/lib/api";
 import {
   formatCOP,
   type AppointmentAdmin,
   type DashboardData,
-  type ServiceAdmin,
+  type ServicePublic,
 } from "@/lib/types";
 import {
   Modal,
@@ -349,7 +350,7 @@ function WalkInModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [services, setServices] = useState<ServiceAdmin[]>([]);
+  const [services, setServices] = useState<ServicePublic[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -359,8 +360,9 @@ function WalkInModal({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    adminApi.services().then((loaded) => {
-      const active = loaded.filter((s) => s.is_active);
+    // Endpoint público (solo servicios activos): el rol barbero no tiene
+    // acceso al listado administrativo de servicios y también registra walk-ins
+    publicApi.services().then((active) => {
       setServices(active);
       if (active.length > 0) setServiceIds([active[0].id]); // corte clásico listo
     });
