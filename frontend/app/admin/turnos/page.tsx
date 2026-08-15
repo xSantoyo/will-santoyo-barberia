@@ -9,7 +9,6 @@ import {
   formatCOP,
   STATUS_LABELS,
   type AppointmentAdmin,
-  type BarberAdmin,
   type ServiceAdmin,
 } from "@/lib/types";
 import {
@@ -29,10 +28,9 @@ const NEXT_STATUS: Record<string, string[]> = {
 
 export default function TurnosPage() {
   const [appointments, setAppointments] = useState<AppointmentAdmin[]>([]);
-  const [barbers, setBarbers] = useState<BarberAdmin[]>([]);
   const [services, setServices] = useState<ServiceAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: "", barber_id: "", q: "", date_from: "", date_to: "" });
+  const [filters, setFilters] = useState({ status: "", q: "", date_from: "", date_to: "" });
   const [createOpen, setCreateOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<AppointmentAdmin | null>(null);
 
@@ -50,7 +48,6 @@ export default function TurnosPage() {
 
   useEffect(() => {
     load();
-    adminApi.barbers().then(setBarbers);
     adminApi.services().then(setServices);
   }, [load]);
 
@@ -99,18 +96,6 @@ export default function TurnosPage() {
             </option>
           ))}
         </select>
-        <select
-          value={filters.barber_id}
-          onChange={(e) => setFilters((f) => ({ ...f, barber_id: e.target.value }))}
-          className={inputClass}
-        >
-          <option value="">Todos los barberos</option>
-          {barbers.map((barber) => (
-            <option key={barber.id} value={barber.id}>
-              {barber.name}
-            </option>
-          ))}
-        </select>
         <div className="flex gap-2">
           <input
             type="date"
@@ -140,7 +125,6 @@ export default function TurnosPage() {
                 <th className="px-4 py-3">Hora</th>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Barbero</th>
                 <th className="px-4 py-3">Servicios</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Estado</th>
@@ -159,7 +143,6 @@ export default function TurnosPage() {
                     <p className="text-bone">{appointment.customer_name}</p>
                     <p className="text-xs text-bone-2">{appointment.customer_whatsapp}</p>
                   </td>
-                  <td className="px-4 py-3 text-bone-2">{appointment.barber_name}</td>
                   <td className="max-w-44 truncate px-4 py-3 text-bone-2">
                     {appointment.services.map((s) => s.name).join(", ")}
                   </td>
@@ -220,7 +203,6 @@ export default function TurnosPage() {
 
       {createOpen && (
         <ManualBookingModal
-          barbers={barbers.filter((b) => b.is_active)}
           services={services.filter((s) => s.is_active)}
           onClose={() => setCreateOpen(false)}
           onCreated={() => {
@@ -233,7 +215,6 @@ export default function TurnosPage() {
       {rescheduling && (
         <RescheduleModal
           appointment={rescheduling}
-          barbers={barbers.filter((b) => b.is_active)}
           onClose={() => setRescheduling(null)}
           onDone={() => {
             setRescheduling(null);
@@ -246,18 +227,15 @@ export default function TurnosPage() {
 }
 
 function ManualBookingModal({
-  barbers,
   services,
   onClose,
   onCreated,
 }: {
-  barbers: BarberAdmin[];
   services: ServiceAdmin[];
   onClose: () => void;
   onCreated: () => void;
 }) {
   const [form, setForm] = useState({
-    barber_id: barbers[0]?.id ?? 0,
     service_ids: [] as number[],
     date: "",
     time: "",
@@ -291,20 +269,6 @@ function ManualBookingModal({
           <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">{error}</div>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <label className="col-span-2 block text-sm text-bone-2">
-            Barbero
-            <select
-              value={form.barber_id}
-              onChange={(e) => setForm((f) => ({ ...f, barber_id: Number(e.target.value) }))}
-              className={`${inputClass} mt-1`}
-            >
-              {barbers.map((barber) => (
-                <option key={barber.id} value={barber.id}>
-                  {barber.name}
-                </option>
-              ))}
-            </select>
-          </label>
           <fieldset className="col-span-2">
             <legend className="mb-1 text-sm text-bone-2">Servicios</legend>
             <div className="grid grid-cols-2 gap-2">
@@ -397,17 +361,14 @@ function ManualBookingModal({
 
 function RescheduleModal({
   appointment,
-  barbers,
   onClose,
   onDone,
 }: {
   appointment: AppointmentAdmin;
-  barbers: BarberAdmin[];
   onClose: () => void;
   onDone: () => void;
 }) {
   const [form, setForm] = useState({
-    barber_id: appointment.barber_id,
     date: appointment.date_local,
     time: appointment.time_local,
   });
@@ -436,20 +397,6 @@ function RescheduleModal({
         {error && (
           <div className="rounded-sm border border-wine bg-wine/15 px-3 py-2 text-sm">{error}</div>
         )}
-        <label className="block text-sm text-bone-2">
-          Barbero
-          <select
-            value={form.barber_id}
-            onChange={(e) => setForm((f) => ({ ...f, barber_id: Number(e.target.value) }))}
-            className={`${inputClass} mt-1`}
-          >
-            {barbers.map((barber) => (
-              <option key={barber.id} value={barber.id}>
-                {barber.name}
-              </option>
-            ))}
-          </select>
-        </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block text-sm text-bone-2">
             Nueva fecha

@@ -1,4 +1,4 @@
-/** Secciones del home: Sobre nosotros, Servicios, Barberos, Galería, Ubicación.
+/** Secciones del home de Will: quién es, servicios, trayectoria, galería, ubicación.
  *
  * Dirección de arte (feedback R1): negro dominante, texturas urbanas sutiles
  * (concreto, pinstripe, retícula) y palabras-marca gigantes de contorno — todo
@@ -11,13 +11,14 @@ import {
   formatCOP,
   WEEKDAY_KEYS,
   WEEKDAY_LABELS,
-  type BarberPublic,
+  type Trayectoria as TrayectoriaType,
   type MediaAsset,
   type ProductPublic,
   type ReviewsResponse,
   type ServicePublic,
   type TenantPublic,
 } from "@/lib/types";
+import { DIRECCION_COMPLETA, MAPS_URL, NEGOCIO, whatsappUrl } from "@/lib/negocio";
 import Reveal, { StaggerGroup, StaggerItem } from "./Reveal";
 import { RazorDivider } from "./Razor";
 
@@ -55,16 +56,16 @@ export function About({ tenant }: { tenant: TenantPublic }) {
       <Watermark word="ESTILO" />
       <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
         <div className="grid gap-12 md:grid-cols-2">
-          <SectionTitle kicker="Sobre nosotros" title="Barrio, oficio y estilo" />
+          <SectionTitle kicker="Quién te atiende" title="Soy Will, y corto yo" />
           <Reveal delay={0.15}>
             <p className="text-lg leading-relaxed text-bone-2">
-              En <span className="text-bone">{tenant.name}</span> el corte es un ritual:
-              precisión de estudio, actitud de barrio. Tres sillas, cero afán y un
-              estándar que se nota en cada línea. Llegas con una idea, sales con una
-              declaración.
+              Para mí el corte es un ritual: precisión de estudio, actitud de barrio.
+              Una silla, cero afán y un estándar que se nota en cada línea. Aquí no te
+              atiende «alguien del equipo» — te atiendo yo, siempre. Llegas con una
+              idea, sales con una declaración.
             </p>
             <ul className="mt-8 space-y-3 text-bone-2">
-              {["Turnos en línea, sin filas ni esperas", "Productos y técnica de primera", "Tu código de gestión en pantalla: consulta o cancela cuando quieras"].map(
+              {["Turno reservado en línea: sin filas ni llamadas", "Fades, barba y diseño — técnica y producto de primera", "Tu código de gestión en pantalla: consulta o cancela cuando quieras"].map(
                 (item) => (
                   <li key={item} className="flex items-center gap-3">
                     <Scissors size={16} className="shrink-0 text-gold" />
@@ -114,7 +115,7 @@ export function Services({ services }: { services: ServicePublic[] }) {
               href="/agendar"
               className="display inline-block rounded-sm bg-gold px-8 py-4 text-lg text-ink transition-all hover:scale-[1.03] hover:shadow-[0_0_32px_rgba(201,162,75,0.25)] active:scale-95"
             >
-              Reservar ahora
+              Reservar con Will
             </Link>
             <Link
               href="/regalos"
@@ -139,83 +140,26 @@ function Stars({ average, count }: { average: number; count: number }) {
   );
 }
 
-export function Barbers({
-  barbers,
-  ratings,
-}: {
-  barbers: BarberPublic[];
-  ratings?: Record<string, { average: number; count: number }>;
-}) {
+/** La trayectoria de Will en cifras: lo que respalda la reserva. */
+export function Trayectoria({ data }: { data: TrayectoriaType | null }) {
+  if (!data || (data.completed_count === 0 && data.review_count === 0)) return null;
+  const cifras = [
+    { valor: String(data.completed_count), etiqueta: "cortes hechos" },
+    ...(data.rating !== null
+      ? [{ valor: data.rating.toFixed(1), etiqueta: `de ${data.review_count} reseñas` }]
+      : []),
+    { valor: "1", etiqueta: "silla, sin filas" },
+  ];
   return (
-    <section id="barberos" className="relative overflow-hidden">
-      <Watermark word="EQUIPO" />
-      <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
-        <SectionTitle kicker="El equipo" title="Nuestros barberos" />
-        <StaggerGroup className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {barbers.map((barber) => (
-            <StaggerItem key={barber.id}>
-              <div className="clip-corner group overflow-hidden border border-ink-3 bg-ink-2 transition-all duration-300 hover:-translate-y-1.5 hover:border-gold/50 hover:shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
-                <div className="grain relative aspect-[4/5] overflow-hidden bg-ink-3">
-                  {barber.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={mediaUrl(barber.photo_url) ?? ""}
-                      alt={barber.name}
-                      className="h-full w-full object-cover grayscale transition duration-500 group-hover:scale-105 group-hover:grayscale-0"
-                    />
-                  ) : (
-                    <div className="texture-pinstripe flex h-full items-center justify-center">
-                      <span className="display text-outline text-[9rem]">
-                        {barber.name.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink to-transparent" />
-                  {/* Detalle dorado de esquina */}
-                  <span className="absolute left-0 top-0 h-10 w-px bg-gold/60" />
-                  <span className="absolute left-0 top-0 h-px w-10 bg-gold/60" />
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="display text-2xl text-bone">{barber.name}</h3>
-                    {barber.instagram && (
-                      <a
-                        href={instagramUrl(barber.instagram)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Instagram de ${barber.name}`}
-                        title={barber.instagram}
-                        className="-m-2 p-2 text-bone-2 transition-all hover:scale-110 hover:text-gold"
-                      >
-                        <Instagram size={20} />
-                      </a>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-bone-2">{barber.specialty}</p>
-                  <div className="mt-1.5 flex min-h-5 items-center justify-between gap-2">
-                    {ratings?.[String(barber.id)] ? (
-                      <Stars
-                        average={ratings[String(barber.id)].average}
-                        count={ratings[String(barber.id)].count}
-                      />
-                    ) : (
-                      <span />
-                    )}
-                    <Link
-                      href={`/barbero/${barber.id}`}
-                      className="data text-[10px] uppercase tracking-wider text-bone-2 transition-colors hover:text-gold"
-                    >
-                      Portafolio →
-                    </Link>
-                  </div>
-                  <Link
-                    href={`/agendar?barbero=${barber.id}`}
-                    className="display mt-4 block rounded-sm border border-gold px-4 py-3.5 text-center text-gold transition-all duration-300 hover:bg-gold hover:text-ink active:scale-[0.98]"
-                  >
-                    Agendar con {barber.name.split(" ")[0]}
-                  </Link>
-                </div>
-              </div>
+    <section className="relative overflow-hidden border-y border-ink-3">
+      <div className="relative mx-auto max-w-6xl px-5 py-16">
+        <StaggerGroup className="grid gap-8 text-center sm:grid-cols-3">
+          {cifras.map((cifra) => (
+            <StaggerItem key={cifra.etiqueta}>
+              <p className="display text-5xl text-gold sm:text-6xl">{cifra.valor}</p>
+              <p className="data mt-2 text-[11px] uppercase tracking-[0.25em] text-bone-2">
+                {cifra.etiqueta}
+              </p>
             </StaggerItem>
           ))}
         </StaggerGroup>
@@ -233,11 +177,11 @@ export function Gallery({ items }: { items: MediaAsset[] }) {
       <Watermark word="GALERÍA" />
       <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
         <RazorDivider className="mb-10 !px-0" />
-        <SectionTitle kicker="Galería" title="Nuestro trabajo" />
+        <SectionTitle kicker="Galería" title="Mi trabajo" />
         {items.length === 0 ? (
           <Reveal delay={0.1}>
             <p className="mt-8 max-w-lg text-bone-2">
-              Muy pronto: fotos del local y de nuestros cortes. Síguenos en redes para
+              Muy pronto: fotos del local y de mis cortes. Sígueme en redes para
               ver el trabajo del día a día.
             </p>
             <div className="barber-stripe mt-10 w-28" />
@@ -298,7 +242,7 @@ export function Reviews({ data }: { data: ReviewsResponse | null }) {
                   </blockquote>
                 )}
                 <figcaption className="data mt-4 text-[11px] uppercase tracking-wider text-bone-2">
-                  {review.customer_label} · con {review.barber_name} · {review.date_local}
+                  {review.customer_label} · {review.date_local}
                 </figcaption>
               </figure>
             </StaggerItem>
@@ -377,37 +321,41 @@ export function Location({ tenant }: { tenant: TenantPublic }) {
     <section id="ubicacion" className="texture-grid relative overflow-hidden">
       <Watermark word="VISÍTANOS" />
       <div className="relative mx-auto max-w-6xl px-5 py-24 sm:py-28">
-        <SectionTitle kicker="Visítanos" title="Ubicación y horarios" />
+        <SectionTitle kicker="Dónde estoy" title="Ubicación y horarios" />
         <div className="mt-12 grid gap-10 md:grid-cols-2">
           <Reveal>
             <div className="space-y-5 text-bone-2">
               <p className="flex items-start gap-3">
                 <MapPin className="mt-1 shrink-0 text-gold" size={18} />
-                <span>{(brand.address as string) ?? "Dirección por confirmar"}</span>
+                <span>
+                  {NEGOCIO.calle}
+                  <br />
+                  {NEGOCIO.ciudad}, {NEGOCIO.region}
+                </span>
               </p>
-              {tenant.whatsapp_number && (
-                <p className="flex items-center gap-3">
-                  <svg viewBox="0 0 24 24" width="18" height="18" className="shrink-0 fill-gold">
-                    <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.2-3.4-.7-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.8 1.4 1.8 2.2 1.2 1.1 2.3 1.4 2.6 1.6.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2.1 1c.3.2.5.3.6.4 0 .2 0 .8-.1 1.5Z" />
-                  </svg>
-                  <a
-                    href={`https://wa.me/${tenant.whatsapp_number.replace("+", "")}`}
-                    className="transition-colors hover:text-gold"
-                  >
-                    {tenant.whatsapp_number}
-                  </a>
-                </p>
-              )}
-              {brand.maps_url ? (
+              {/* Deep link con el mensaje ya escrito: el cliente solo pulsa enviar */}
+              <p className="flex items-center gap-3">
+                <svg viewBox="0 0 24 24" width="18" height="18" className="shrink-0 fill-gold">
+                  <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.2-3.4-.7-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.8 1.4 1.8 2.2 1.2 1.1 2.3 1.4 2.6 1.6.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2.1 1c.3.2.5.3.6.4 0 .2 0 .8-.1 1.5Z" />
+                </svg>
                 <a
-                  href={brand.maps_url as string}
+                  href={whatsappUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="display inline-block rounded-sm border border-gold px-6 py-3.5 text-gold transition-all hover:bg-gold hover:text-ink active:scale-[0.98]"
+                  className="min-h-11 leading-[2.75rem] transition-colors duration-150 hover:text-gold"
                 >
-                  Abrir en Google Maps
+                  {NEGOCIO.telefono}{" "}
+                  <span className="data text-xs text-bone-2/70">— escríbeme</span>
                 </a>
-              ) : null}
+              </p>
+              <a
+                href={MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="display inline-block rounded-sm border border-gold px-6 py-3.5 text-gold transition-[background-color,color,transform] duration-150 ease-[var(--ease-out-strong)] hover:bg-gold hover:text-ink active:scale-[0.98]"
+              >
+                Abrir en Google Maps
+              </a>
             </div>
           </Reveal>
           <Reveal delay={0.15}>

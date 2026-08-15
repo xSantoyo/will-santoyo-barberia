@@ -189,7 +189,7 @@ export default function PortalPage() {
                     <StatusBadge status={appointment.status} />
                   </div>
                   <p className="mt-1 truncate text-xs text-bone-2">
-                    {appointment.barber_name} · {appointment.services.join(", ")} ·{" "}
+                    {appointment.services.join(", ")} ·{" "}
                     <span className="data">{formatCOP(appointment.total_cop)}</span>
                   </p>
                   <div className="mt-2 flex items-center gap-4">

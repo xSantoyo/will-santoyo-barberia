@@ -15,7 +15,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Armchair, CalendarPlus, Loader2, MoonStar } from "lucide-react";
 import { publicApi } from "@/lib/api";
-import type { QueueBoard, QueueLane } from "@/lib/types";
+import { track } from "@/lib/analytics";
+import type { QueueBoard } from "@/lib/types";
 import FlipNumber from "@/components/public/FlipNumber";
 import { RazorDivider } from "@/components/public/Razor";
 
@@ -36,6 +37,7 @@ export default function BoardPage() {
   }, []);
 
   useEffect(() => {
+    track("fila_vista"); // una vez por visita, no por refresco
     load();
     const timer = setInterval(load, REFRESH_SECONDS * 1000);
     return () => clearInterval(timer);
@@ -57,7 +59,7 @@ export default function BoardPage() {
               href="/"
               className="data text-xs uppercase tracking-[0.3em] text-bone-2 transition-colors hover:text-gold"
             >
-              ← Bad Boys Barbershop
+              ← Will Santoyo
             </Link>
             <h1 className="display mt-3 text-5xl text-bone sm:text-6xl">
               La fila <span className="text-gold">en vivo</span>
@@ -90,10 +92,8 @@ export default function BoardPage() {
         )}
 
         {board && (
-          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {board.lanes.map((lane, i) => (
-              <Lane key={lane.barber.id} lane={lane} index={i} />
-            ))}
+          <div className="mx-auto mt-8 max-w-lg">
+            <Lane board={board} />
           </div>
         )}
 
@@ -113,23 +113,23 @@ export default function BoardPage() {
   );
 }
 
-function Lane({ lane, index }: { lane: QueueLane; index: number }) {
+function Lane({ board }: { board: QueueBoard }) {
   // El descanso solo manda si de verdad no hay actividad: un turno creado por
   // el admin en día de descanso igual debe verse en el tablero.
   const showDayOff =
-    lane.is_day_off && lane.current === null && lane.waiting.length === 0;
+    board.is_day_off && board.current === null && board.waiting.length === 0;
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="plate clip-corner relative p-5"
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="display text-2xl text-bone">{lane.barber.name}</h2>
-        {lane.served_count > 0 && (
+        <h2 className="display text-2xl text-bone">La silla de Will</h2>
+        {board.served_count > 0 && (
           <span className="data text-[11px] uppercase tracking-wider text-bone-2">
-            {lane.served_count} atendido{lane.served_count === 1 ? "" : "s"}
+            {board.served_count} atendido{board.served_count === 1 ? "" : "s"}
           </span>
         )}
       </header>
@@ -145,19 +145,19 @@ function Lane({ lane, index }: { lane: QueueLane; index: number }) {
           {/* El sillón */}
           <div className="texture-pinstripe mt-5 rounded-sm border border-ink-3 bg-ink/60 px-4 py-4 text-center">
             <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
-              {lane.current ? "En el sillón" : "Silla libre"}
+              {board.current ? "En el sillón" : "Silla libre"}
             </p>
-            {lane.current ? (
+            {board.current ? (
               <p className="stamped mt-1 text-6xl text-bone">
                 <span className="text-gold">#</span>
-                <FlipNumber value={String(lane.current.number)} />
+                <FlipNumber value={String(board.current.number)} />
               </p>
             ) : (
               <p className="mt-2 flex items-center justify-center gap-2 text-bone-2">
                 <Armchair size={26} className="text-gold/70" />
-                {lane.waiting.length > 0 ? (
+                {board.waiting.length > 0 ? (
                   <span className="data text-sm">
-                    sigue el <span className="text-gold">#{lane.waiting[0].number}</span>
+                    sigue el <span className="text-gold">#{board.waiting[0].number}</span>
                   </span>
                 ) : (
                   <span className="data text-sm">sin turnos en espera</span>
@@ -170,11 +170,11 @@ function Lane({ lane, index }: { lane: QueueLane; index: number }) {
           <p className="data mt-4 text-[11px] uppercase tracking-[0.3em] text-bone-2">
             Siguen
           </p>
-          {lane.waiting.length === 0 ? (
+          {board.waiting.length === 0 ? (
             <p className="data mt-2 text-sm text-bone-2/60">— fila despejada —</p>
           ) : (
             <ul className="mt-2 flex flex-wrap gap-2">
-              {lane.waiting.slice(0, 6).map((entry) => (
+              {board.waiting.slice(0, 6).map((entry) => (
                 <li
                   key={entry.number}
                   className="data rounded-sm border border-ink-3 bg-ink px-2.5 py-1.5 text-sm text-bone"
@@ -183,9 +183,9 @@ function Lane({ lane, index }: { lane: QueueLane; index: number }) {
                   <span className="ml-2 text-bone-2">{entry.time_local}</span>
                 </li>
               ))}
-              {lane.waiting.length > 6 && (
+              {board.waiting.length > 6 && (
                 <li className="data px-1 py-1.5 text-sm text-bone-2">
-                  +{lane.waiting.length - 6} más
+                  +{board.waiting.length - 6} más
                 </li>
               )}
             </ul>

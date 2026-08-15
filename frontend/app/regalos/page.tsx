@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Gift, Loader2 } from "lucide-react";
 import { publicApi } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { formatCOP, type ServicePublic } from "@/lib/types";
 
 export default function GiftShopPage() {
@@ -13,6 +14,7 @@ export default function GiftShopPage() {
   const [selected, setSelected] = useState<ServicePublic | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState(""); // opcional: el código llega al correo
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,8 +35,13 @@ export default function GiftShopPage() {
         service_id: selected.id,
         payer_name: name.trim(),
         payer_whatsapp: phone.trim() || null,
+        payer_email: email.trim() || null,
       });
       if (payment.checkout_url) {
+        track("regalo_checkout", {
+          servicio_id: selected.id,
+          con_correo: Boolean(email.trim()),
+        });
         window.location.href = payment.checkout_url;
         return;
       }
@@ -130,6 +137,21 @@ export default function GiftShopPage() {
               inputMode="tel"
               className="focus-gold min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base text-bone placeholder:text-bone-2/50"
             />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm text-bone-2">Tu correo (opcional)</span>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@correo.com"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              className="focus-gold min-h-13 w-full rounded-sm border border-ink-3 bg-ink-2 px-4 py-3.5 text-base text-bone placeholder:text-bone-2/50"
+            />
+            <span className="mt-1.5 block text-xs text-bone-2/70">
+              Al aprobarse el pago, el código del regalo también te llega ahí.
+            </span>
           </label>
 
           <button

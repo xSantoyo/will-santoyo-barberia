@@ -6,8 +6,8 @@
  */
 import type {
   AppointmentAdmin,
-  BarberAdmin,
-  BarberStats,
+  ProfessionalAdmin,
+  PerformanceStats,
   ClientNote,
   ClientProfile,
   DashboardData,
@@ -27,9 +27,8 @@ const STORAGE_KEY = "badboys.auth";
 export interface StoredAuth {
   access_token: string;
   refresh_token: string;
-  role: "admin" | "barbero";
+  role: "admin";
   username: string;
-  barber_id: number | null;
 }
 
 export function getAuth(): StoredAuth | null {
@@ -139,7 +138,6 @@ export const adminApi = {
       refresh_token: pair.refresh_token,
       role: pair.role,
       username: pair.username,
-      barber_id: pair.barber_id,
     };
     setAuth(auth);
     return auth;
@@ -162,14 +160,12 @@ export const adminApi = {
   },
 
   dashboard: () => request<DashboardData>("/api/v1/admin/dashboard"),
-  agenda: (start: string, end: string, barberId?: number) =>
+  agenda: (start: string, end: string) =>
     request<{
       appointments: AppointmentAdmin[];
-      barbers: { id: number; name: string; schedule: Record<string, { start: string; end: string } | null> }[];
-      time_off: { id: number; barber_id: number; date: string; reason: string | null }[];
-    }>(
-      `/api/v1/admin/agenda?start=${start}&end=${end}${barberId ? `&barber_id=${barberId}` : ""}`,
-    ),
+      schedule: Record<string, { start: string; end: string } | null>;
+      time_off: { id: number; date: string; reason: string | null }[];
+    }>(`/api/v1/admin/agenda?start=${start}&end=${end}`),
 
   appointments: (params: Record<string, string>) =>
     request<AppointmentAdmin[]>(
@@ -181,7 +177,6 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
   walkIn: (payload: {
-    barber_id: number;
     service_ids: number[];
     customer_name: string;
     customer_whatsapp?: string | null;
@@ -190,7 +185,7 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  reschedule: (id: number, payload: { barber_id?: number; date: string; time: string }) =>
+  reschedule: (id: number, payload: { date: string; time: string }) =>
     request<AppointmentAdmin>(`/api/v1/admin/appointments/${id}/reschedule`, {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -216,20 +211,15 @@ export const adminApi = {
   deleteClientNote: (noteId: number) =>
     request<void>(`/api/v1/admin/client-notes/${noteId}`, { method: "DELETE" }),
 
-  barbers: () => request<BarberAdmin[]>("/api/v1/admin/barbers"),
-  createBarber: (payload: object) =>
-    request<BarberAdmin>("/api/v1/admin/barbers", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  updateBarber: (id: number, payload: object) =>
-    request<BarberAdmin>(`/api/v1/admin/barbers/${id}`, {
+  profile: () => request<ProfessionalAdmin>("/api/v1/admin/profile"),
+  updateProfile: (payload: object) =>
+    request<ProfessionalAdmin>("/api/v1/admin/profile", {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  timeOff: (barberId: number) => request<TimeOff[]>(`/api/v1/admin/barbers/${barberId}/time-off`),
-  addTimeOff: (barberId: number, date: string, reason?: string) =>
-    request<TimeOff>(`/api/v1/admin/barbers/${barberId}/time-off`, {
+  timeOff: () => request<TimeOff[]>("/api/v1/admin/time-off"),
+  addTimeOff: (date: string, reason?: string) =>
+    request<TimeOff>("/api/v1/admin/time-off", {
       method: "POST",
       body: JSON.stringify({ date, reason: reason ?? null }),
     }),
@@ -269,10 +259,8 @@ export const adminApi = {
     }),
   payments: () => request<PaymentAdminRow[]>("/api/v1/admin/payments"),
 
-  barberStats: (days: number, barberId?: number) =>
-    request<BarberStats>(
-      `/api/v1/admin/barber-stats?days=${days}${barberId ? `&barber_id=${barberId}` : ""}`,
-    ),
+  stats: (days: number) =>
+    request<PerformanceStats>(`/api/v1/admin/stats?days=${days}`),
 
   securityEvents: (kind?: string) =>
     request<SecurityEventRow[]>(

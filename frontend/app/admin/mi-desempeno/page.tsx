@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
-import { formatCOP, type BarberStats } from "@/lib/types";
+import { formatCOP, type PerformanceStats } from "@/lib/types";
 import { PageTitle } from "@/components/admin/shared";
 
 const RANGES = [
@@ -27,13 +27,13 @@ const RANGES = [
 
 export default function MyPerformancePage() {
   const [days, setDays] = useState(30);
-  const [stats, setStats] = useState<BarberStats | null>(null);
+  const [stats, setStats] = useState<PerformanceStats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setStats(null);
     adminApi
-      .barberStats(days)
+      .stats(days)
       .then(setStats)
       .catch((err) => setError(err.message));
   }, [days]);
@@ -44,7 +44,7 @@ export default function MyPerformancePage() {
     <>
       <PageTitle
         title="Mi desempeño"
-        subtitle={stats ? stats.barber.name : undefined}
+        subtitle="Will Santoyo"
         action={
           <div className="flex gap-1 rounded-sm border border-ink-3 p-1">
             {RANGES.map((range) => (

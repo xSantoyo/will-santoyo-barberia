@@ -21,18 +21,15 @@ export default function LiveStrip() {
 
   if (!board) return null;
 
-  const open = board.lanes.filter(
-    (lane) => !lane.is_day_off || lane.current !== null || lane.waiting.length > 0,
-  );
-  if (open.length === 0) return null; // barbería cerrada hoy: la franja no aplica
+  const working =
+    !board.is_day_off || board.current !== null || board.waiting.length > 0;
+  if (!working) return null; // Will descansa hoy: la franja no aplica
 
-  const freeChairs = open.filter((lane) => lane.current === null).length;
-  const shortest = [...open].sort((a, b) => a.waiting.length - b.waiting.length)[0];
-
+  const waiting = board.waiting.length;
   const headline =
-    freeChairs > 0
-      ? `${freeChairs} silla${freeChairs === 1 ? "" : "s"} libre${freeChairs === 1 ? "" : "s"}`
-      : `fila más corta: ${shortest.barber.name} (${shortest.waiting.length} esperando)`;
+    board.current === null
+      ? "silla libre"
+      : `${waiting} esperando · atendiendo el #${board.current.number}`;
 
   return (
     <motion.div

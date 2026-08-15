@@ -14,6 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import { publicApi } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import FlipNumber from "@/components/public/FlipNumber";
 import AddToCalendar from "@/components/public/AddToCalendar";
 import {
@@ -127,7 +128,7 @@ export default function ManageAppointmentPage({
           href="/"
           className="inline-flex items-center gap-2 text-sm text-bone-2 transition-colors hover:text-gold"
         >
-          <ArrowLeft size={16} /> Bad Boys Barbershop
+          <ArrowLeft size={16} /> Will Santoyo
         </Link>
 
         {/* Confirmación de asistencia: si no confirma, el turno se libera */}
@@ -187,7 +188,7 @@ export default function ManageAppointmentPage({
                   )}
                 </p>
                 <p className="data mt-1 text-xs uppercase tracking-widest text-bone-2">
-                  {ticket.now_serving !== null ? "en el sillón" : "aún no empieza tu barbero"}
+                  {ticket.now_serving !== null ? "en el sillón" : "aún no empieza tu turno"}
                 </p>
                 <p className="mt-3 text-sm text-bone">
                   Faltan{" "}
@@ -223,7 +224,6 @@ export default function ManageAppointmentPage({
 
           <dl className="mt-6 space-y-3 border-t border-ink-3 pt-5 text-sm">
             <Row label="Cliente" value={appointment.customer_name} />
-            <Row label="Barbero" value={appointment.barber_name} />
             <Row label="Fecha" value={appointment.date_local} />
             <Row label="Hora" value={appointment.time_local} />
             <Row
@@ -249,13 +249,13 @@ export default function ManageAppointmentPage({
           <div className="mt-4">
             <AddToCalendar
               event={{
-                title: `Bad Boys Barbershop — turno #${appointment.daily_number}`,
+                title: `Will Santoyo — turno #${appointment.daily_number}`,
                 dateLocal: appointment.date_local,
                 timeLocal: appointment.time_local,
                 durationMin:
                   appointment.services.reduce((sum, s) => sum + s.duration_min, 0) || 45,
-                description: `Con ${appointment.barber_name}. Código de gestión: ${appointment.manage_code}.`,
-                location: "Bad Boys Barbershop",
+                description: `Con Will. Código de gestión: ${appointment.manage_code}.`,
+                location: "Will Santoyo — Calle 35 Sur & Cra 15B, Soacha",
               }}
             />
           </div>
@@ -357,7 +357,7 @@ export default function ManageAppointmentPage({
 
         {/* Repetir turno: la recurrencia honesta, un toque y listo */}
         {appointment.status === "completado" && (
-          <RebookWidget code={code} barberName={appointment.barber_name} />
+          <RebookWidget code={code} />
         )}
 
         {/* Reseña verificada: solo citas completadas, una por cita */}
@@ -396,7 +396,7 @@ export default function ManageAppointmentPage({
   );
 }
 
-function RebookWidget({ code, barberName }: { code: string; barberName: string }) {
+function RebookWidget({ code }: { code: string }) {
   const [busy, setBusy] = useState<number | null>(null);
   const [done, setDone] = useState<{ code: string; date: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -423,7 +423,7 @@ function RebookWidget({ code, barberName }: { code: string; barberName: string }
       <div className="clip-corner mt-6 border border-gold/40 bg-gold/[0.06] p-5 text-center">
         <p className="display text-2xl text-gold">¡Silla apartada!</p>
         <p className="mt-1 text-sm text-bone">
-          Mismo corte con {barberName} el <span className="data">{done.date}</span>.
+          Mismo corte con Will el <span className="data">{done.date}</span>.
         </p>
         <Link
           href={`/turno/${done.code}`}
@@ -438,7 +438,7 @@ function RebookWidget({ code, barberName }: { code: string; barberName: string }
   return (
     <div className="clip-corner mt-6 border border-ink-3 bg-ink-2 p-5 text-center">
       <p className="data text-[11px] uppercase tracking-[0.3em] text-gold">
-        ¿Repetimos? Misma hora, mismo barbero
+        ¿Repetimos? Misma hora, mismo corte
       </p>
       <div className="mt-3 flex justify-center gap-2">
         {[2, 3, 4].map((weeks) => (
@@ -480,6 +480,7 @@ function ReviewWidget({
     setError(null);
     try {
       await publicApi.leaveReview(code, rating, comment.trim() || undefined);
+      track("resena_enviada", { estrellas: rating, con_comentario: Boolean(comment.trim()) });
       onDone(rating);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos guardar tu reseña.");

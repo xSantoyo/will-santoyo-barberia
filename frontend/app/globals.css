@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Identidad Bad Boys: negro profundo, dorado premium, blanco hueso, rojo vino
+   Identidad Will Santoyo: negro profundo, dorado, blanco hueso, rojo vino
    ========================================================================== */
 @theme {
+  /* Curvas de movimiento. Las built-in de CSS son demasiado débiles: no tienen
+     el punch que hace que una animación se sienta intencional. Nunca ease-in en
+     UI — arranca lento justo en el instante que el usuario más mira. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   --color-ink: #0b0b0c;
   --color-ink-2: #131316;
   --color-ink-3: #1c1c21;

@@ -1,6 +1,6 @@
 "use client";
 
-/** Dashboard: turnos de HOY por barbero, turno en curso, próximos.
+/** Dashboard de Will: los turnos de HOY, el que está en la silla y los que siguen.
  * Sin canal de notificación externo (ADR-009): el indicador de "turnos nuevos
  * sin revisar" compara created_at contra la última revisión (localStorage). */
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -42,7 +42,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
-  const [walkInFor, setWalkInFor] = useState<{ id: number; name: string } | null>(null);
+  const [walkInOpen, setWalkInOpen] = useState(false);
   const [profilePhone, setProfilePhone] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -62,16 +62,16 @@ export default function DashboardPage() {
   const newAppointments = useMemo(() => {
     if (!data) return [];
     const threshold = lastSeen ? new Date(lastSeen) : null;
-    return data.barbers
-      .flatMap((block) => block.all_today)
-      .filter((a) => (threshold ? new Date(a.created_at) > threshold : true));
+    return data.all_today.filter((a) =>
+      threshold ? new Date(a.created_at) > threshold : true,
+    );
   }, [data, lastSeen]);
 
   // Resumen ejecutivo del día: todo sale del payload que ya tenemos.
   // El dinero es solo REGISTRO (efectivo/datáfono en el local, sin cobro en línea).
   const summary = useMemo(() => {
     if (!data) return null;
-    const all = data.barbers.flatMap((block) => block.all_today);
+    const all = data.all_today;
     const now = new Date();
     const nowHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     const done = all.filter((a) => a.status === "completado");
@@ -201,26 +201,22 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-3 lg:grid-cols-2">
-        {data.barbers.map((block) => (
-          <section
-            key={block.barber.id}
-            className="rounded-sm border border-ink-3 bg-ink-2 p-5"
-          >
+      <div className="mx-auto max-w-2xl">
+          <section className="rounded-sm border border-ink-3 bg-ink-2 p-5">
             <header className="mb-4 flex items-center justify-between gap-2">
-              <h2 className="display text-2xl text-bone">{block.barber.name}</h2>
+              <h2 className="display text-2xl text-bone">Hoy en la silla</h2>
               <div className="flex items-center gap-2">
-                {block.is_day_off ? (
+                {data.is_day_off ? (
                   <span className="data rounded-full border border-wine/50 px-3 py-0.5 text-[11px] uppercase tracking-wider text-wine">
                     Descansa hoy
                   </span>
                 ) : (
                   <>
                     <span className="data text-xs text-bone-2">
-                      {block.done_count} atendidos
+                      {data.done_count} atendidos
                     </span>
                     <button
-                      onClick={() => setWalkInFor(block.barber)}
+                      onClick={() => setWalkInOpen(true)}
                       title="Cliente sin cita: toma el próximo hueco de hoy"
                       className="data flex items-center gap-1.5 rounded-sm border border-gold/40 px-2.5 py-1 text-[11px] uppercase tracking-wider text-gold transition-colors hover:bg-gold hover:text-ink"
                     >
@@ -232,29 +228,29 @@ export default function DashboardPage() {
             </header>
 
             {/* Turno en curso */}
-            {block.current ? (
+            {data.current ? (
               <div className="mb-4 rounded-sm border border-gold/50 bg-gold/10 p-4">
                 <p className="mb-1 text-[11px] uppercase tracking-widest text-gold">
-                  En el sillón · #{block.current.daily_number}
+                  En el sillón · #{data.current.daily_number}
                 </p>
-                <p className="text-bone">{block.current.customer_name}</p>
+                <p className="text-bone">{data.current.customer_name}</p>
                 <p className="text-xs text-bone-2">
-                  {block.current.time_local}–{block.current.end_time_local} ·{" "}
-                  {block.current.services.map((s) => s.name).join(", ")}
+                  {data.current.time_local}–{data.current.end_time_local} ·{" "}
+                  {data.current.services.map((s) => s.name).join(", ")}
                 </p>
                 <div className="mt-3 flex gap-2">
-                  {block.current.status === "confirmado" && (
+                  {data.current.status === "confirmado" && (
                     <button
-                      disabled={busy === block.current.id}
-                      onClick={() => setStatus(block.current!, "en_curso")}
+                      disabled={busy === data.current.id}
+                      onClick={() => setStatus(data.current!, "en_curso")}
                       className="rounded-sm bg-gold px-3 py-1.5 text-xs text-ink"
                     >
                       Iniciar
                     </button>
                   )}
                   <button
-                    disabled={busy === block.current.id}
-                    onClick={() => setStatus(block.current!, "completado")}
+                    disabled={busy === data.current.id}
+                    onClick={() => setStatus(data.current!, "completado")}
                     className="rounded-sm border border-gold/50 px-3 py-1.5 text-xs text-gold"
                   >
                     Completar
@@ -262,7 +258,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              !block.is_day_off && (
+              !data.is_day_off && (
                 <p className="mb-4 rounded-sm border border-dashed border-ink-3 p-4 text-center text-xs text-bone-2">
                   Sillón libre
                 </p>
@@ -271,10 +267,10 @@ export default function DashboardPage() {
 
             {/* Próximos */}
             <p className="mb-2 text-[11px] uppercase tracking-widest text-bone-2">
-              Próximos ({block.upcoming.length})
+              Próximos ({data.upcoming.length})
             </p>
             <ul className="space-y-2">
-              {block.upcoming.slice(0, 5).map((appointment) => (
+              {data.upcoming.slice(0, 5).map((appointment) => (
                 <li
                   key={appointment.id}
                   className="flex items-center justify-between gap-3 rounded-sm bg-ink px-3 py-2.5"
@@ -317,22 +313,17 @@ export default function DashboardPage() {
                   <StatusBadge status={appointment.status} />
                 </li>
               ))}
-              {block.upcoming.length === 0 && (
+              {data.upcoming.length === 0 && (
                 <li className="py-2 text-center text-xs text-bone-2/60">
                   Sin más turnos hoy
                 </li>
               )}
             </ul>
           </section>
-        ))}
       </div>
 
-      {walkInFor && (
-        <WalkInModal
-          barber={walkInFor}
-          onClose={() => setWalkInFor(null)}
-          onCreated={load}
-        />
+      {walkInOpen && (
+        <WalkInModal onClose={() => setWalkInOpen(false)} onCreated={load} />
       )}
       {profilePhone && (
         <ClientProfileModal phone={profilePhone} onClose={() => setProfilePhone(null)} />
@@ -342,11 +333,9 @@ export default function DashboardPage() {
 }
 
 function WalkInModal({
-  barber,
   onClose,
   onCreated,
 }: {
-  barber: { id: number; name: string };
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -360,7 +349,7 @@ function WalkInModal({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Endpoint público (solo servicios activos): el rol barbero no tiene
+    // Endpoint público (solo servicios activos): el panel no expone
     // acceso al listado administrativo de servicios y también registra walk-ins
     publicApi.services().then((active) => {
       setServices(active);
@@ -374,7 +363,6 @@ function WalkInModal({
     setError(null);
     try {
       const appointment = await adminApi.walkIn({
-        barber_id: barber.id,
         service_ids: serviceIds,
         customer_name: name.trim(),
         customer_whatsapp: phone.trim() || null,
@@ -400,7 +388,7 @@ function WalkInModal({
   }
 
   return (
-    <Modal title={`Walk-in · ${barber.name}`} onClose={onClose}>
+    <Modal title="Walk-in · sin cita" onClose={onClose}>
       {result ? (
         /* La placa del walk-in: número, hora y código para dictar al cliente */
         <div className="text-center">

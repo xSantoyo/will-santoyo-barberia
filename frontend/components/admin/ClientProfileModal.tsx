@@ -1,7 +1,7 @@
 "use client";
 
 /** Perfil del cliente por teléfono (Tanda 3, D2/D7): historial de estilo,
- * fidelidad y notas del equipo — visible para admin y barberos. */
+ * fidelidad y notas de estilo. */
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, NotebookPen, Scissors, Star, Trash2 } from "lucide-react";
 import { adminApi, getAuth } from "@/lib/admin-api";
@@ -104,11 +104,6 @@ export default function ClientProfileModal({
                 }}
               />
             </div>
-            {profile.stats.favorite_barber && (
-              <p className="data mt-2 text-[11px] text-bone-2">
-                Silla de confianza: {profile.stats.favorite_barber}
-              </p>
-            )}
           </div>
 
           {/* Notas de estilo */}
@@ -171,7 +166,6 @@ export default function ClientProfileModal({
                 >
                   <span className="truncate text-bone-2">
                     <span className="data mr-1.5 text-gold">{appointment.date_local}</span>
-                    {appointment.barber_name} ·{" "}
                     {appointment.services.map((s) => s.name).join(", ")} ·{" "}
                     <span className="data">{formatCOP(appointment.total_cop)}</span>
                   </span>

@@ -81,9 +81,10 @@ test("wizard de agendamiento paso a paso + confirmación con código", async ({ 
   expect(picked).toBe(true);
   await page.getByRole("button", { name: /continuar/i }).click();
 
-  // Paso 4: datos
+  // Paso 4: datos (con correo opcional — ronda Resend)
   await page.getByPlaceholder("Nombre y apellido").fill("Cliente Captura");
   await page.getByPlaceholder("300 123 4567").fill("3009876543");
+  await page.getByPlaceholder("tu@correo.com").fill("cliente@ejemplo.com");
   await shot(page, "07-wizard-4-datos");
   await page.getByRole("button", { name: /continuar/i }).click();
 
@@ -312,6 +313,9 @@ test("pagos: anticipo en simulador, retorno y regalos", async ({ page }) => {
   expect(picked).toBe(true);
   await page.getByPlaceholder("Nombre y apellido").fill("Cliente Pago");
   await page.getByPlaceholder("300 123 4567").fill("3182220001");
+  // Correo opcional (ronda Resend): con anticipo activo la confirmación
+  // por correo sale AL PAGAR — se captura más abajo desde el outbox local.
+  await page.getByPlaceholder("tu@correo.com").fill("cliente@ejemplo.com");
   await page.getByRole("button", { name: /continuar/i }).click();
   await page.getByRole("button", { name: /confirmar turno/i }).click();
   await expect(page.getByText(/turno (confirmado|apartado)/i)).toBeVisible({
@@ -332,10 +336,34 @@ test("pagos: anticipo en simulador, retorno y regalos", async ({ page }) => {
   await expect(page.getByText(/pago aprobado/i)).toBeVisible({ timeout: 15_000 });
   await shot(page, "44-pago-retorno-aprobado");
 
+  // Ronda Resend: al aprobarse el anticipo, la confirmación quedó en el
+  // outbox local del backend (sin API key) — se captura el HTML del correo
+  // tal cual lo vería el cliente.
+  const { readdirSync } = await import("node:fs");
+  const { resolve } = await import("node:path");
+  const outbox = resolve("../backend/outbox");
+  try {
+    const latest = readdirSync(outbox)
+      .filter((f) => f.includes("-confirmacion-") && f.endsWith(".html"))
+      .sort()
+      .at(-1);
+    if (latest) {
+      await page.setViewportSize({ width: 640, height: 1000 });
+      await page.goto(`file://${resolve(outbox, latest)}`);
+      await page.waitForTimeout(400);
+      await shot(page, "52-correo-confirmacion", true);
+      await page.goBack();
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
+  } catch {
+    /* outbox vacío (backend con RESEND_API_KEY real): nada que capturar */
+  }
+
   // Regalos: comprar un corte de regalo y ver el código revelado
   await page.goto("/regalos");
   await expect(page.getByRole("heading", { name: /regala un/i })).toBeVisible();
   await page.getByPlaceholder("Nombre y apellido").fill("María Regaladora");
+  await page.getByPlaceholder("tu@correo.com").fill("maria@ejemplo.com");
   await shot(page, "45-regalos-tienda", true);
   await page.getByRole("button", { name: /pagar .* y recibir el código/i }).click();
   await expect(page.getByText(/simulador · modo pruebas/i)).toBeVisible({

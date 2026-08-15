@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Check, CircleX, Loader2 } from "lucide-react";
 import { publicApi } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { formatCOP, type PaymentStatusResponse } from "@/lib/types";
 import { RazorReveal } from "@/components/public/Razor";
 
@@ -15,7 +16,6 @@ function Return() {
   const params = useSearchParams();
   const reference = params.get("ref") ?? "";
   const [payment, setPayment] = useState<PaymentStatusResponse | null>(null);
-  const [polls, setPolls] = useState(0);
 
   const load = useCallback(() => {
     publicApi
@@ -27,19 +27,19 @@ function Return() {
   useEffect(() => {
     load();
     // Con Wompi real el webhook puede tardar unos segundos: reintenta corto
-    const timer = setInterval(() => {
-      setPolls((p) => p + 1);
-      load();
-    }, 3000);
+    const timer = setInterval(load, 3000);
     return () => clearInterval(timer);
   }, [load]);
 
+  // Funnel: registra el resultado final del pago una sola vez (sin montos ni
+  // referencias — solo tipo y estado)
+  const [tracked, setTracked] = useState(false);
   useEffect(() => {
-    if (payment?.status === "aprobado" || polls > 10) {
-      // detener el polling implícitamente: el intervalo sigue pero sin daño;
-      // el estado aprobado ya no cambia
+    if (!tracked && payment && payment.status !== "pendiente") {
+      track("pago_resultado", { tipo: payment.kind, estado: payment.status });
+      setTracked(true);
     }
-  }, [payment, polls]);
+  }, [payment, tracked]);
 
   if (!payment) {
     return (

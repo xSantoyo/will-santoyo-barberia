@@ -19,27 +19,28 @@ export default function EmbedWidget() {
     return () => clearInterval(timer);
   }, []);
 
-  const open = board?.lanes.filter(
-    (lane) => !lane.is_day_off || lane.current !== null || lane.waiting.length > 0,
-  );
-  const freeChairs = open?.filter((lane) => lane.current === null).length ?? 0;
+  // El descanso solo manda si de verdad no hay actividad ese día.
+  const working =
+    board !== null &&
+    (!board.is_day_off || board.current !== null || board.waiting.length > 0);
+  const chairFree = working && board.current === null;
 
   return (
     <div className="grain texture-pinstripe flex h-svh flex-col justify-between overflow-hidden border border-gold/30 bg-ink p-4">
       <div>
         <p className="display text-2xl text-bone">
-          BAD<span className="text-gold"> BOYS</span>
+          WILL<span className="text-gold"> SANTOYO</span>
         </p>
         <div className="barber-stripe mt-2 w-16" />
       </div>
       <p className="data text-sm text-bone-2">
         {board === null
-          ? "Barbería · Colombia"
-          : open && open.length > 0
-            ? freeChairs > 0
-              ? `⦿ ${freeChairs} silla${freeChairs === 1 ? "" : "s"} libre${freeChairs === 1 ? "" : "s"} ahora`
-              : "⦿ La fila avanza — mira tu lugar en vivo"
-            : "Hoy descansamos — agenda para esta semana"}
+          ? "Barbería · Soacha"
+          : !working
+            ? "Hoy descanso — agenda para esta semana"
+            : chairFree
+              ? "⦿ Silla libre ahora"
+              : "⦿ La fila avanza — mira tu lugar en vivo"}
       </p>
       <a
         href="/agendar"

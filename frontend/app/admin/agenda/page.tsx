@@ -1,6 +1,6 @@
 "use client";
 
-/** Agenda semanal por barbero, incluyendo días de descanso (recurrentes y puntuales). */
+/** Agenda semanal de Will, incluyendo descansos (recurrentes y puntuales). */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
@@ -9,8 +9,8 @@ import { PageTitle, StatusBadge, buttonGhost } from "@/components/admin/shared";
 
 interface AgendaData {
   appointments: AppointmentAdmin[];
-  barbers: { id: number; name: string; schedule: Record<string, { start: string; end: string } | null> }[];
-  time_off: { id: number; barber_id: number; date: string; reason: string | null }[];
+  schedule: Record<string, { start: string; end: string } | null>;
+  time_off: { id: number; date: string; reason: string | null }[];
 }
 
 function toISO(date: Date): string {
@@ -26,7 +26,6 @@ function startOfWeek(date: Date): Date {
 
 export default function AgendaPage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const [barberFilter, setBarberFilter] = useState<number | undefined>();
   const [data, setData] = useState<AgendaData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,10 +42,10 @@ export default function AgendaPage() {
   const load = useCallback(() => {
     setLoading(true);
     adminApi
-      .agenda(toISO(days[0]), toISO(days[6]), barberFilter)
+      .agenda(toISO(days[0]), toISO(days[6]))
       .then(setData)
       .finally(() => setLoading(false));
-  }, [days, barberFilter]);
+  }, [days]);
 
   useEffect(load, [load]);
 
@@ -56,21 +55,9 @@ export default function AgendaPage() {
     <>
       <PageTitle
         title="Agenda"
-        subtitle="Vista semanal por barbero, con días de descanso"
+        subtitle="Tu semana, con los días de descanso marcados"
         action={
           <div className="flex items-center gap-2">
-            <select
-              value={barberFilter ?? ""}
-              onChange={(e) => setBarberFilter(e.target.value ? Number(e.target.value) : undefined)}
-              className="rounded-sm border border-ink-3 bg-ink-2 px-3 py-2 text-sm text-bone"
-            >
-              <option value="">Todos los barberos</option>
-              {data?.barbers.map((barber) => (
-                <option key={barber.id} value={barber.id}>
-                  {barber.name}
-                </option>
-              ))}
-            </select>
             <button
               onClick={() => {
                 const prev = new Date(weekStart);
@@ -106,19 +93,17 @@ export default function AgendaPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {data.barbers.map((barber) => (
-            <section key={barber.id}>
-              <h2 className="display mb-3 text-2xl text-bone">{barber.name}</h2>
+            <section>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
                 {days.map((day) => {
                   const iso = toISO(day);
                   const weekdayKey = WEEKDAY_KEYS[(day.getDay() + 6) % 7];
-                  const restsWeekly = !barber.schedule?.[weekdayKey];
+                  const restsWeekly = !data.schedule?.[weekdayKey];
                   const timeOff = data.time_off.find(
-                    (t) => t.barber_id === barber.id && t.date === iso,
+                    (t) => t.date === iso,
                   );
                   const appointments = data.appointments
-                    .filter((a) => a.barber_id === barber.id && a.date_local === iso)
+                    .filter((a) => a.date_local === iso)
                     .sort((a, b) => a.time_local.localeCompare(b.time_local));
                   const isRest = restsWeekly || Boolean(timeOff);
 
@@ -167,7 +152,6 @@ export default function AgendaPage() {
                 })}
               </div>
             </section>
-          ))}
         </div>
       )}
     </>
