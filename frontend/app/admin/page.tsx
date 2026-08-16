@@ -204,7 +204,7 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-2xl">
           <section className="rounded-sm border border-edge bg-coal p-5">
             <header className="mb-4 flex items-center justify-between gap-2">
-              <h2 className="display text-2xl text-chalk">Hoy en la silla</h2>
+              <h2 className="display text-2xl text-chalk">En la silla</h2>
               <div className="flex items-center gap-2">
                 {data.is_day_off ? (
                   <span className="data rounded-full border border-brick/50 px-3 py-0.5 text-[11px] uppercase tracking-wider text-brick">
@@ -218,7 +218,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => setWalkInOpen(true)}
                       title="Cliente sin cita: toma el próximo hueco de hoy"
-                      className="data flex items-center gap-1.5 rounded-sm border border-copper/40 px-2.5 py-1 text-[11px] uppercase tracking-wider text-copper transition-colors hover:bg-copper hover:text-on-copper"
+                      className="data flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm border border-copper/40 px-3 text-[11px] uppercase tracking-wider text-copper transition-[background-color,color,transform] duration-150 ease-[var(--ease-out)] hover:bg-copper hover:text-on-copper active:scale-[0.97] lg:min-h-0 lg:py-1"
                     >
                       <Footprints size={12} /> Walk-in
                     </button>

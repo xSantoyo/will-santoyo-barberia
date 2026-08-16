@@ -117,7 +117,54 @@ export default function TurnosPage() {
           <Loader2 className="animate-spin" size={28} />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-edge">
+        <>
+        {/* MÓVIL: tarjetas. Una tabla de 8 columnas en 375 px obliga a
+            scroll horizontal y no se lee nada — cada turno pasa a ser una
+            ficha con sus datos etiquetados. */}
+        <ul className="space-y-3 lg:hidden">
+          {appointments.map((appointment) => (
+            <li key={appointment.id} className="surface p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="flex items-baseline gap-2">
+                    <span className="data text-lg font-semibold text-copper">
+                      {appointment.time_local}
+                    </span>
+                    <span className="data text-xs text-smoke">
+                      #{appointment.daily_number} · {appointment.date_local}
+                    </span>
+                  </p>
+                  <p className="mt-1 truncate text-chalk">{appointment.customer_name}</p>
+                  {appointment.customer_whatsapp && (
+                    <a
+                      href={`tel:${appointment.customer_whatsapp}`}
+                      className="data text-xs text-smoke underline-offset-2 hover:text-copper"
+                    >
+                      {appointment.customer_whatsapp}
+                    </a>
+                  )}
+                </div>
+                <StatusBadge status={appointment.status} />
+              </div>
+              <p className="mt-2 text-sm text-smoke">
+                {appointment.services.map((s) => s.name).join(", ")}
+                {" · "}
+                <span className="data text-chalk">{formatCOP(appointment.total_cop)}</span>
+              </p>
+              <div className="mt-3 border-t border-edge pt-3">
+                <AccionesTurno appointment={appointment} act={act} onReschedule={setRescheduling} />
+              </div>
+            </li>
+          ))}
+          {appointments.length === 0 && (
+            <li className="surface p-8 text-center text-smoke">
+              Sin turnos con esos filtros.
+            </li>
+          )}
+        </ul>
+
+        {/* DESKTOP: la tabla, que ahí sí cabe entera */}
+        <div className="hidden overflow-x-auto rounded-sm border border-edge lg:block">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-edge bg-coal text-left text-xs uppercase tracking-wider text-smoke">
@@ -151,41 +198,7 @@ export default function TurnosPage() {
                     <StatusBadge status={appointment.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {(NEXT_STATUS[appointment.status] ?? []).map((status) => (
-                        <button
-                          key={status}
-                          onClick={() =>
-                            status === "cancelado"
-                              ? act(() => adminApi.cancelAppointment(appointment.id))
-                              : act(() => adminApi.setStatus(appointment.id, status))
-                          }
-                          className="rounded-sm border border-edge px-2 py-1 text-[11px] text-smoke transition-colors hover:border-copper/50 hover:text-copper"
-                        >
-                          {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
-                        </button>
-                      ))}
-                      {(appointment.status === "confirmado" ||
-                        appointment.status === "pendiente") && (
-                        <>
-                          <button
-                            onClick={() => setRescheduling(appointment)}
-                            className="rounded-sm border border-edge px-2 py-1 text-[11px] text-smoke transition-colors hover:border-copper/50 hover:text-copper"
-                          >
-                            Reprogramar
-                          </button>
-                          <button
-                            onClick={() => {
-                              const reason = prompt("Motivo de cancelación (opcional):") ?? undefined;
-                              act(() => adminApi.cancelAppointment(appointment.id, reason));
-                            }}
-                            className="rounded-sm border border-brick/40 px-2 py-1 text-[11px] text-brick transition-colors hover:bg-brick/15"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <AccionesTurno appointment={appointment} act={act} onReschedule={setRescheduling} />
                   </td>
                 </tr>
               ))}
@@ -199,6 +212,7 @@ export default function TurnosPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {createOpen && (
@@ -426,5 +440,55 @@ function RescheduleModal({
         </button>
       </form>
     </Modal>
+  );
+}
+
+
+/** Acciones de un turno. Compartido por la tabla (desktop) y la tarjeta
+ * (móvil): una sola definición de qué se puede hacer con cada estado. */
+function AccionesTurno({
+  appointment,
+  act,
+  onReschedule,
+}: {
+  appointment: AppointmentAdmin;
+  act: (fn: () => Promise<unknown>) => void;
+  onReschedule: (a: AppointmentAdmin) => void;
+}) {
+  const boton =
+    "min-h-11 rounded-sm border border-edge px-3 text-xs text-smoke transition-[border-color,color,transform] duration-150 ease-[var(--ease-out)] hover:border-copper/50 hover:text-copper active:scale-[0.97] lg:min-h-0 lg:py-1";
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {(NEXT_STATUS[appointment.status] ?? []).map((status) => (
+        <button
+          key={status}
+          onClick={() =>
+            status === "cancelado"
+              ? act(() => adminApi.cancelAppointment(appointment.id))
+              : act(() => adminApi.setStatus(appointment.id, status))
+          }
+          className={boton}
+        >
+          {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
+        </button>
+      ))}
+      {(appointment.status === "confirmado" || appointment.status === "pendiente") && (
+        <>
+          <button onClick={() => onReschedule(appointment)} className={boton}>
+            Reprogramar
+          </button>
+          <button
+            onClick={() => {
+              const reason = prompt("Motivo de cancelación (opcional):") ?? undefined;
+              act(() => adminApi.cancelAppointment(appointment.id, reason));
+            }}
+            className="min-h-11 rounded-sm border border-brick/40 px-3 text-xs text-brick transition-[background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-brick/15 active:scale-[0.97] lg:min-h-0 lg:py-1"
+          >
+            Cancelar
+          </button>
+        </>
+      )}
+    </div>
   );
 }

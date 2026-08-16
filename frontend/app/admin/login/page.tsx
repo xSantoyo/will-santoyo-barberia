@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
       </span>
       <div className="animate-fade-up relative w-full max-w-sm">
         <p className="display text-center text-4xl text-chalk">
-          BAD<span className="text-copper"> BOYS</span>
+          Will<span className="text-copper"> Santoyo</span>
         </p>
         <p className="mt-2 text-center text-sm text-smoke">Panel de administración</p>
         <div className="barber-stripe mx-auto mt-4 w-24" />
