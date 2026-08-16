@@ -239,7 +239,7 @@ def create_manual(
     """Reserva manual (telefónica/presencial): sin antelación mínima."""
     try:
         appointment = booking.create_appointment(
-            db, tenant, data, enforce_lead=False, notes=data.notes
+            db, tenant, data, enforce_lead=False, allow_break=True, notes=data.notes
         )
     except booking.BookingError as exc:
         raise _handle_booking_error(exc) from None

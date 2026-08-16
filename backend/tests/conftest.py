@@ -24,7 +24,7 @@ os.environ.update(
         "LOCAL_MEDIA_ROOT": str(_TMP / "media"),
         "RATE_LIMIT_REQUESTS": "10000",  # sin fricción en tests (hay test dedicado)
         "EMAIL_OUTBOX_DIR": str(_TMP / "outbox"),  # correos de prueba → tmp
-        "BOOKING_LEAD_MINUTES": "30",
+        "BOOKING_LEAD_MINUTES": "15",
         # Los tests reparten reservas en semanas distintas para aislarse entre sí:
         "BOOKING_HORIZON_DAYS": "365",
     }

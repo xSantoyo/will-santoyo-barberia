@@ -106,3 +106,63 @@ def test_manage_code_returned_prominently(client, professional):
     # Con ese código (y solo con él) se consulta y cancela sin autenticación
     fetched = client.get(f"{PUBLIC}/appointments/{booked['manage_code']}")
     assert fetched.status_code == 200
+
+
+def test_public_slots_are_hourly_and_skip_lunch(client, professional):
+    """Jornada 08:00–20:00 en bloques de 1 h, sin el almuerzo (13:00–14:00)."""
+    day = next_working_date(professional, weeks_ahead=40)
+    services = client.get(f"{PUBLIC}/services").json()
+    slots = client.post(
+        f"{PUBLIC}/availability",
+        json={"date": day.isoformat(), "service_ids": [services[0]["id"]]},
+    ).json()["slots"]
+
+    # Todos en punto: ninguna media ni cuarto de hora como inicio
+    assert all(s.endswith(":00") for s in slots), slots
+    assert "13:00" not in slots, "el almuerzo no se ofrece al público"
+    assert {"08:00", "12:00", "14:00", "19:00"} <= set(slots)
+    # 19:00 es el último: 19:00–20:00 cierra la jornada
+    assert "20:00" not in slots
+
+
+def test_lunch_break_blocked_for_public_but_open_to_admin(
+    client, admin_headers, professional
+):
+    """La pausa no solo se oculta del listado: el backend la rechaza.
+
+    Si solo se filtrara al listar, bastaría con pegar el POST a las 13:00.
+    Will sí puede meter un turno ahí desde el panel.
+    """
+    day = next_working_date(professional, weeks_ahead=41)
+    services = client.get(f"{PUBLIC}/services").json()
+    payload = {
+        "service_ids": [services[0]["id"]],
+        "date": day.isoformat(),
+        "time": "13:00",
+        "customer_name": "Cliente Almuerzo",
+        "customer_whatsapp": "3007778899",
+    }
+
+    publico = client.post(f"{PUBLIC}/appointments", json=payload)
+    assert publico.status_code == 409
+    assert publico.json()["detail"]["code"] == "lunch_break"
+
+    # El mismo horario, desde el panel, sí entra
+    manual = client.post(f"{ADMIN}/appointments", json=payload, headers=admin_headers)
+    assert manual.status_code == 201, manual.text
+    assert manual.json()["time_local"] == "13:00"
+
+
+def test_booking_lead_default_matches_cancel_window():
+    """Se puede tomar un hueco hasta 15 min antes, igual que la cancelación.
+
+    Se comprueba el DEFAULT declarado en Settings, no el valor efectivo:
+    conftest fija BOOKING_LEAD_MINUTES por entorno para que los tests puedan
+    agendar a horas concretas, así que el efectivo aquí no es el de producción.
+    Lo que importa es que el default del despliegue real sea 15 y coincida con
+    la ventana de cancelación — son la misma promesa al cliente.
+    """
+    from app.config import Settings
+
+    assert Settings.model_fields["booking_lead_minutes"].default == 15
+    assert Settings.model_fields["cancel_window_minutes"].default == 15

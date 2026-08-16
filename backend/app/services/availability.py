@@ -71,8 +71,13 @@ def compute_slots(
     duration_min: int,
     *,
     enforce_lead: bool = True,
+    include_break: bool = False,
 ) -> tuple[bool, list[str]]:
-    """Devuelve (es_dia_de_descanso, ["HH:MM", ...]) en hora local del tenant."""
+    """Devuelve (es_dia_de_descanso, ["HH:MM", ...]) en hora local del tenant.
+
+    `include_break=True` incluye la pausa de almuerzo: solo lo usa el panel,
+    donde Will puede agendar a mano dentro de su propia hora libre.
+    """
     settings = get_settings()
     tz = ZoneInfo(tenant.timezone)
 
@@ -87,6 +92,12 @@ def compute_slots(
 
     busy = active_appointments_for_day(db, professional.id, work_start, work_end)
 
+    # Pausa de almuerzo: se descuenta de la oferta pública
+    break_start = break_end = None
+    if not include_break:
+        break_start = datetime.combine(day, parse_hhmm(settings.public_break_start), tzinfo=tz)
+        break_end = datetime.combine(day, parse_hhmm(settings.public_break_end), tzinfo=tz)
+
     min_start = None
     if enforce_lead:
         min_start = utcnow() + timedelta(minutes=settings.booking_lead_minutes)
@@ -94,8 +105,17 @@ def compute_slots(
     slots: list[str] = []
     cursor = work_start
     while cursor + duration <= work_end:
-        if (min_start is None or cursor >= min_start) and not any(
-            cursor < a.ends_at and cursor + duration > a.starts_at for a in busy
+        en_almuerzo = (
+            break_start is not None
+            and cursor < break_end
+            and cursor + duration > break_start
+        )
+        if (
+            (min_start is None or cursor >= min_start)
+            and not en_almuerzo
+            and not any(
+                cursor < a.ends_at and cursor + duration > a.starts_at for a in busy
+            )
         ):
             slots.append(cursor.strftime("%H:%M"))
         cursor += step

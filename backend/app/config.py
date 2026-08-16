@@ -47,7 +47,13 @@ class Settings(BaseSettings):
     slot_step_minutes: int = 60         # granularidad de la grilla de horarios
     # Hasta cuántos minutos antes del inicio puede cancelar el cliente.
     cancel_window_minutes: int = 15
-    booking_lead_minutes: int = 30      # antelación mínima para reservar
+    # Pausa de almuerzo: NO se ofrece al público, pero Will sí puede meter
+    # un turno ahí a mano desde el panel.
+    public_break_start: str = "13:00"
+    public_break_end: str = "14:00"
+    # Antelación mínima para reservar. Igual que la ventana de cancelación:
+    # si queda un hueco a las 20:00, se puede tomar hasta las 19:45.
+    booking_lead_minutes: int = 15
     booking_horizon_days: int = 30      # hasta cuántos días adelante se puede reservar
     no_show_grace_minutes: int = 15     # tolerancia antes de alertar no-show
     # Confirmación de asistencia: aplica a reservas hechas con >= opens_hours de

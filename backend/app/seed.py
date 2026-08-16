@@ -26,12 +26,15 @@ TENANT_SLUG = "will-santoyo"
 
 # Lunes a sábado; domingo de descanso.
 SCHEDULE = {
-    "mon": {"start": "09:00", "end": "19:00"},
-    "tue": {"start": "09:00", "end": "19:00"},
-    "wed": {"start": "09:00", "end": "19:00"},
-    "thu": {"start": "09:00", "end": "19:00"},
-    "fri": {"start": "09:00", "end": "20:00"},
-    "sat": {"start": "08:00", "end": "18:00"},
+    # Jornada 08:00–20:00 en bloques de 1 h. La pausa de almuerzo (13:00–14:00)
+    # no se resta aquí: se descuenta de la oferta pública en availability.py,
+    # porque Will sí puede agendar ahí a mano desde el panel.
+    "mon": {"start": "08:00", "end": "20:00"},
+    "tue": {"start": "08:00", "end": "20:00"},
+    "wed": {"start": "08:00", "end": "20:00"},
+    "thu": {"start": "08:00", "end": "20:00"},
+    "fri": {"start": "08:00", "end": "20:00"},
+    "sat": {"start": "08:00", "end": "20:00"},
     "sun": None,
 }
 

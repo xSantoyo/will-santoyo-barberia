@@ -165,11 +165,13 @@ def test_group_booking_back_to_back(client, professional):
     assert [a["time_local"] for a in created] == ["09:00", "10:00"]
     assert created[1]["daily_number"] == created[0]["daily_number"] + 1
 
-    # Un grupo grande en tramos libres (11:00, 12:00, 13:00) sí entra completo
+    # Un grupo grande en tramos libres (15:00, 16:00, 17:00) sí entra completo.
+    # Se elige la tarde a propósito: 11–13 cruzaría la pausa de almuerzo
+    # (13:00–14:00), que el público no puede reservar.
     trio = client.post(
         f"{BASE}/appointments/group",
         json={
-            "date": day.isoformat(), "time": "11:00",
+            "date": day.isoformat(), "time": "15:00",
             "customer_whatsapp": "3163330002",
             "customers": [
                 {"name": "Parche Uno", "service_ids": [corte["id"]]},
@@ -180,7 +182,7 @@ def test_group_booking_back_to_back(client, professional):
     )
     assert trio.status_code == 201
     assert [a["time_local"] for a in trio.json()["appointments"]] == [
-        "11:00", "12:00", "13:00",
+        "15:00", "16:00", "17:00",
     ]
     clash = client.post(
         f"{BASE}/appointments/group",

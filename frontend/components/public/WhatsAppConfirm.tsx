@@ -30,12 +30,20 @@ export function mensajeConfirmacion({
   codigo: string;
 }): string {
   const lista = servicios.length > 0 ? servicios.join(", ") : "Corte";
+  // SIN EMOJI, a propósito. El mensaje llevaba 📋 📅 🎫 y en el teléfono del
+  // dueño llegaban como "?". El código estaba bien —archivo UTF-8 sin BOM,
+  // codepoints U+1F4CB/U+1F4C5/U+1F3AB correctos, encodeURIComponent con
+  // round-trip exacto—, así que la corrupción ocurre después de salir de aquí:
+  // en el traspaso del deep link al cliente de WhatsApp, que depende del SO,
+  // la versión de la app y el navegador que abre el enlace. Como no es
+  // verificable desde este entorno y el emoji no aporta información, se retira:
+  // un mensaje que siempre llega bien vale más que uno bonito que a veces no.
   return [
-    `¡Hola Will! Soy ${nombre} y acabo de reservar por la página.`,
+    `Hola Will! Soy ${nombre} y acabo de reservar por la página.`,
     "",
-    `📋 ${lista}`,
-    `📅 ${fecha} a las ${hora}`,
-    `🎫 Código: ${codigo}`,
+    `Servicio: ${lista}`,
+    `Fecha: ${fecha} a las ${hora}`,
+    `Código: ${codigo}`,
     "",
     "¿Me confirmas que quedó bien?",
   ].join("\n");

@@ -110,8 +110,14 @@ def _validate_slot(
     duration_min: int,
     *,
     enforce_lead: bool,
+    allow_break: bool = False,
 ) -> tuple[datetime, datetime]:
-    """Valida reglas de calendario y devuelve (starts_at, ends_at) aware."""
+    """Valida reglas de calendario y devuelve (starts_at, ends_at) aware.
+
+    `allow_break=True` deja agendar dentro de la pausa de almuerzo: solo lo
+    usa el panel. Al público se le rechaza aquí, no solo se le oculta el hueco
+    en el listado — si no, bastaría con pegar el POST a las 13:00.
+    """
     settings = get_settings()
     tz = ZoneInfo(tenant.timezone)
     starts_at = datetime.combine(day, parse_hhmm(time_str), tzinfo=tz)
@@ -144,6 +150,18 @@ def _validate_slot(
             f"({sched['start']}–{sched['end']}).",
             409, "outside_schedule",
         )
+
+    if not allow_break:
+        break_start = datetime.combine(
+            day, parse_hhmm(settings.public_break_start), tzinfo=tz
+        )
+        break_end = datetime.combine(day, parse_hhmm(settings.public_break_end), tzinfo=tz)
+        if starts_at < break_end and ends_at > break_start:
+            raise BookingError(
+                f"Entre {settings.public_break_start} y {settings.public_break_end} "
+                "Will para a almorzar. Elige otro horario.",
+                409, "lunch_break",
+            )
 
     minutes = starts_at.astimezone(tz).minute
     if minutes % settings.slot_step_minutes != 0:
@@ -206,6 +224,7 @@ def create_appointment(
     data: BookingCreate,
     *,
     enforce_lead: bool = True,
+    allow_break: bool = False,
     status: str = "confirmado",
     notes: str | None = None,
 ) -> Appointment:
@@ -214,7 +233,8 @@ def create_appointment(
     duration_min = get_settings().appointment_minutes
 
     starts_at, ends_at = _validate_slot(
-        tenant, professional, db, data.date, data.time, duration_min, enforce_lead=enforce_lead
+        tenant, professional, db, data.date, data.time, duration_min,
+        enforce_lead=enforce_lead, allow_break=allow_break,
     )
 
     if _overlap_exists(db, professional.id, starts_at, ends_at):
@@ -345,7 +365,8 @@ def reschedule_appointment(
     professional = get_professional(db, tenant)
     duration_min = get_settings().appointment_minutes
     starts_at, ends_at = _validate_slot(
-        tenant, professional, db, new_date, new_time, duration_min, enforce_lead=False
+        tenant, professional, db, new_date, new_time, duration_min,
+        enforce_lead=False, allow_break=True,
     )
     if _overlap_exists(db, professional.id, starts_at, ends_at, exclude_id=appointment.id):
         raise BookingError("El nuevo horario se solapa con otro turno.", 409, "overlap")
@@ -487,7 +508,8 @@ def create_walk_in(
     now = utcnow()
     today = now.astimezone(tz).date()
     is_day_off, slots = compute_slots(
-        db, tenant, professional, today, duration_min, enforce_lead=False
+        db, tenant, professional, today, duration_min,
+        enforce_lead=False, include_break=True,
     )
     if is_day_off:
         raise BookingError(f"{professional.name} no trabaja hoy.", 409, "day_off")
@@ -505,7 +527,8 @@ def create_walk_in(
         )
 
     starts_at, ends_at = _validate_slot(
-        tenant, professional, db, today, next_slot, duration_min, enforce_lead=False
+        tenant, professional, db, today, next_slot, duration_min,
+        enforce_lead=False, allow_break=True,
     )
     if _overlap_exists(db, professional.id, starts_at, ends_at):
         raise BookingError("El hueco acaba de ocuparse, intenta de nuevo.", 409, "overlap")
