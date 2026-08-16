@@ -56,3 +56,7 @@ pg-data/
 
 # --- Correos de desarrollo (outbox local del backend) ---
 backend/outbox/
+
+# Skills instaladas por npx skills (viven en el perfil de usuario, no en el repo)
+.agents/
+.claude/
