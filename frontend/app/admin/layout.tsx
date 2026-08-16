@@ -20,6 +20,7 @@ import {
   Package,
   Scissors,
   ShieldAlert,
+  Star,
 } from "lucide-react";
 import { adminApi, getAuth, type StoredAuth } from "@/lib/admin-api";
 
@@ -32,6 +33,7 @@ const NAV = [
   { href: "/admin/productos", label: "Vitrina", icon: Package },
   { href: "/admin/regalos", label: "Regalos", icon: Gift },
   { href: "/admin/galeria", label: "Galería", icon: Images },
+  { href: "/admin/resenas", label: "Reseñas", icon: Star },
   { href: "/admin/seguridad", label: "Seguridad", icon: ShieldAlert },
   { href: "/admin/cuenta", label: "Mi cuenta", icon: KeyRound },
 ];

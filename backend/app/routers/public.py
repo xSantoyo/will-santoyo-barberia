@@ -424,7 +424,11 @@ def leave_review(
     tenant: Tenant = Depends(get_tenant_by_slug),
     db: Session = Depends(get_db),
 ):
-    """Reseña verificada: solo de una cita real completada, una por cita."""
+    """Reseña verificada: solo de una cita real completada, una por cita.
+
+    Queda PENDIENTE de aprobación: no aparece en el sitio hasta que Will le
+    da el visto bueno desde el panel.
+    """
     appointment = _load_by_code(db, tenant, manage_code)
     if appointment.status != "completado":
         raise HTTPException(
@@ -444,6 +448,7 @@ def leave_review(
         customer_name=appointment.customer_name,
         rating=data.rating,
         comment=(data.comment or "").strip() or None,
+        is_public=False,  # pendiente hasta que Will la apruebe
     )
     db.add(review)
     db.commit()

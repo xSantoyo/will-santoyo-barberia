@@ -220,6 +220,12 @@ class ProfessionalUpdate(BaseModel):
     photo_key: str | None = None
 
 
+class ReviewModeration(BaseModel):
+    """Aprobar (True) o retirar (False) una reseña."""
+
+    is_public: bool
+
+
 class TimeOffCreate(BaseModel):
     date: date
     reason: str | None = Field(default=None, max_length=200)

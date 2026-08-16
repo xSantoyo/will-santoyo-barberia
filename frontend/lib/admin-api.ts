@@ -15,6 +15,7 @@ import type {
   GiftCodeAdmin,
   MediaAsset,
   ProductAdmin,
+  ReviewAdmin,
   SecurityEventRow,
   ServiceAdmin,
   TimeOff,
@@ -252,6 +253,18 @@ export const adminApi = {
 
   stats: (days: number) =>
     request<PerformanceStats>(`/api/v1/admin/stats?days=${days}`),
+
+  reviews: (pendingOnly = false) =>
+    request<ReviewAdmin[]>(
+      `/api/v1/admin/reviews${pendingOnly ? "?pending_only=true" : ""}`,
+    ),
+  moderateReview: (id: number, isPublic: boolean) =>
+    request<{ id: number; is_public: boolean }>(`/api/v1/admin/reviews/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_public: isPublic }),
+    }),
+  deleteReview: (id: number) =>
+    request<void>(`/api/v1/admin/reviews/${id}`, { method: "DELETE" }),
 
   securityEvents: (kind?: string) =>
     request<SecurityEventRow[]>(

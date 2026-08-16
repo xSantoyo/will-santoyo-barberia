@@ -247,7 +247,10 @@ class Review(Base):
     customer_name: Mapped[str] = mapped_column(String(120))
     rating: Mapped[int] = mapped_column(Integer)
     comment: Mapped[str | None] = mapped_column(String(500))
-    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Nace PENDIENTE: nada se publica en el sitio de Will sin que él lo
+    # apruebe desde el panel. Sin esto, cualquiera con un código de gestión
+    # publica lo que quiera en su página.
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
 
     appointment: Mapped[Appointment] = relationship(back_populates="review")

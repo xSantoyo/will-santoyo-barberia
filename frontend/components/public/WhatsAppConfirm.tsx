@@ -39,7 +39,7 @@ export function mensajeConfirmacion({
   // verificable desde este entorno y el emoji no aporta información, se retira:
   // un mensaje que siempre llega bien vale más que uno bonito que a veces no.
   return [
-    `Hola Will! Soy ${nombre} y acabo de reservar por la página.`,
+    `¡Hola Will! Soy ${nombre} y acabo de reservar por la página.`,
     "",
     `Servicio: ${lista}`,
     `Fecha: ${fecha} a las ${hora}`,

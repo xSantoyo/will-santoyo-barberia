@@ -79,7 +79,7 @@ def test_portal_history_and_loyalty(client, client_history):
     assert all(a["can_review"] for a in done)
 
 
-def test_verified_reviews_flow(client, client_history, professional):
+def test_verified_reviews_flow(client, admin_headers, client_history, professional):
     completed_code, future_code = client_history[0], client_history[4]
 
     # Solo citas completadas pueden reseñar
@@ -108,11 +108,40 @@ def test_verified_reviews_flow(client, client_history, professional):
         f"{BASE}/appointments/{client_history[1]}/review", json={"rating": 6}
     ).status_code == 422
 
-    # Listado público con el promedio general
+    # PENDIENTE de aprobación: no sale al público todavía
+    listing = client.get(f"{BASE}/reviews").json()
+    assert not any(
+        "impecable" in (item["comment"] or "") for item in listing["items"]
+    ), "una reseña sin aprobar no puede aparecer en el sitio"
+
+    # Will la ve en su bandeja de pendientes
+    pendientes = client.get(
+        f"{ADMIN}/reviews?pending_only=true", headers=admin_headers
+    ).json()
+    mia = next(r for r in pendientes if r["comment"] == "El fade quedó impecable.")
+    assert mia["is_public"] is False
+
+    # La aprueba, y recién entonces se publica
+    aprobada = client.patch(
+        f"{ADMIN}/reviews/{mia['id']}", json={"is_public": True}, headers=admin_headers
+    )
+    assert aprobada.status_code == 200
     listing = client.get(f"{BASE}/reviews").json()
     assert listing["overall"]["count"] >= 1
     assert listing["overall"]["average"] is not None
     assert any("impecable" in (item["comment"] or "") for item in listing["items"])
+
+    # Y puede retirarla si se arrepiente
+    client.patch(
+        f"{ADMIN}/reviews/{mia['id']}", json={"is_public": False}, headers=admin_headers
+    )
+    assert not any(
+        "impecable" in (item["comment"] or "")
+        for item in client.get(f"{BASE}/reviews").json()["items"]
+    )
+    client.patch(
+        f"{ADMIN}/reviews/{mia['id']}", json={"is_public": True}, headers=admin_headers
+    )
 
     # El tiquete refleja la reseña dejada
     ticket = client.get(f"{BASE}/appointments/{completed_code}").json()

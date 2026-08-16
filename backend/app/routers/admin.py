@@ -45,6 +45,7 @@ from ..schemas import (
     ProductUpdate,
     ProfessionalAdmin,
     ProfessionalUpdate,
+    ReviewModeration,
     RescheduleRequest,
     ServiceAdmin,
     ServiceCreate,
@@ -807,6 +808,80 @@ def delete_media(
         pass  # la fila se elimina igual; huérfanos en storage no son críticos
     audit.record(db, user, "media.delete", "media_asset", asset_id, {"key": asset.s3_key})
     db.delete(asset)
+    db.commit()
+
+
+# ------------------------------------------------------------------ reseñas
+
+@router.get("/reviews")
+def list_reviews_admin(
+    pending_only: bool = False,
+    _: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Reseñas para moderar. Las pendientes primero: son las que piden acción."""
+    from ..models import Review
+
+    query = select(Review).where(Review.tenant_id == tenant.id)
+    if pending_only:
+        query = query.where(Review.is_public.is_(False))
+    rows = db.scalars(query.order_by(Review.is_public, Review.id.desc()).limit(200))
+    tz = ZoneInfo(tenant.timezone)
+    return [
+        {
+            "id": r.id,
+            "rating": r.rating,
+            "comment": r.comment,
+            "customer_name": r.customer_name,
+            "is_public": r.is_public,
+            "created_at": r.created_at.astimezone(tz).strftime("%Y-%m-%d %H:%M"),
+        }
+        for r in rows
+    ]
+
+
+@router.patch("/reviews/{review_id}")
+def moderate_review(
+    review_id: int,
+    data: ReviewModeration,
+    user: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Aprobar o retirar una reseña. Nada se publica sin pasar por aquí."""
+    from ..models import Review
+
+    review = db.scalar(
+        select(Review).where(Review.id == review_id, Review.tenant_id == tenant.id)
+    )
+    if review is None:
+        raise HTTPException(404, "Reseña no encontrada")
+    review.is_public = data.is_public
+    audit.record(db, user, "review.moderate", "review", review.id,
+                 {"is_public": data.is_public})
+    db.commit()
+    return {"id": review.id, "is_public": review.is_public}
+
+
+@router.delete("/reviews/{review_id}", status_code=204)
+def delete_review(
+    review_id: int,
+    user: AdminUser = Depends(require_admin),
+    tenant: Tenant = Depends(get_user_tenant),
+    db: Session = Depends(get_db),
+):
+    """Borra una reseña (spam o insultos). El turno queda intacto."""
+    from ..models import Review
+
+    review = db.scalar(
+        select(Review).where(Review.id == review_id, Review.tenant_id == tenant.id)
+    )
+    if review is None:
+        raise HTTPException(404, "Reseña no encontrada")
+    audit.record(db, user, "review.delete", "review", review_id,
+                 {"rating": review.rating})
+    db.delete(review)
     db.commit()
 
 

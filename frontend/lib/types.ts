@@ -279,6 +279,16 @@ export interface PerformanceStats {
   review_count: number;
 }
 
+export interface ReviewAdmin {
+  id: number;
+  rating: number;
+  comment: string | null;
+  customer_name: string;
+  /** false = pendiente de aprobación; no se ve en el sitio. */
+  is_public: boolean;
+  created_at: string;
+}
+
 export interface SecurityEventRow {
   id: number;
   kind: string;
