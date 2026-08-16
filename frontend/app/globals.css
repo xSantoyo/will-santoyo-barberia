@@ -54,6 +54,21 @@ body {
   font-family: var(--font-body);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+
+  /* iOS es la plataforma principal (≈60% del tráfico entra por iPhone).
+     Safari pinta un flash gris propio al tocar cualquier elemento: pelea con
+     el press feedback del sistema (scale 0.97) y hace que el toque se sienta
+     de dos capas. Se apaga: el feedback lo damos nosotros. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safari en iOS calcula 100vh contra la ventana SIN la barra de direcciones,
+   así que un `min-height: 100vh` deja el contenido cortado o con scroll
+   fantasma. `svh` (small viewport height) es la unidad que respeta la barra. */
+@supports (height: 100svh) {
+  .min-h-screen {
+    min-height: 100svh;
+  }
 }
 
 /* --------------------------------------------------------------------------

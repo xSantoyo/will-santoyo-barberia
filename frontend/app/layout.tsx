@@ -108,7 +108,7 @@ const JSON_LD = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={bricolage.variable}>
-      <body className="min-h-screen bg-night text-chalk antialiased">
+      <body className="min-h-svh bg-night text-chalk antialiased">
         <script
           type="application/ld+json"
           // Objeto propio y estático: no hay entrada de usuario que escapar.

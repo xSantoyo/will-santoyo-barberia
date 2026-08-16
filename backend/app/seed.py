@@ -9,6 +9,9 @@ Uso: python -m app.seed
 from __future__ import annotations
 
 import logging
+import os
+import secrets
+import string
 from pathlib import Path
 
 from sqlalchemy import select
@@ -48,8 +51,27 @@ SERVICES = [
     {"name": "Color / mechones", "price_cop": 60000, "duration_min": 90, "sort_order": 6},
 ]
 
-DEFAULT_ADMIN_USERNAME = "will"
-DEFAULT_ADMIN_PASSWORD = "WillSantoyo2026!"  # ⚠️ cambiar en el primer ingreso
+DEFAULT_ADMIN_USERNAME = os.environ.get("SEED_ADMIN_USERNAME", "will")
+
+
+def _admin_password() -> str:
+    """Contraseña inicial del panel.
+
+    NUNCA se escribe en el repositorio: este proyecto es público, y una clave
+    en el código es una clave que conoce todo el mundo. Se toma de
+    SEED_ADMIN_PASSWORD y, si no está, se genera una aleatoria que se imprime
+    UNA sola vez en el log del arranque para que el dueño la copie y la cambie.
+    """
+    from_env = os.environ.get("SEED_ADMIN_PASSWORD")
+    if from_env:
+        return from_env
+    alfabeto = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alfabeto) for _ in range(16))
+
+
+# Se resuelve al importar: los tests la leen de aquí y coincide con la que se
+# siembra, porque siembran en este mismo proceso.
+DEFAULT_ADMIN_PASSWORD = _admin_password()
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
 
@@ -127,19 +149,24 @@ def run() -> None:
         for spec in SERVICES:
             db.add(Service(tenant_id=tenant.id, **spec))
 
+        password = DEFAULT_ADMIN_PASSWORD
         db.add(
             AdminUser(
                 tenant_id=tenant.id,
                 username=DEFAULT_ADMIN_USERNAME,
-                password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
+                password_hash=hash_password(password),
                 role="admin",
             )
         )
 
         db.commit()
         logger.info(
-            "Seed completado: %s, %d servicios, usuario '%s' (clave: %s)",
-            tenant.name, len(SERVICES), DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD,
+            "Seed completado: %s, %d servicios, usuario '%s'.",
+            tenant.name, len(SERVICES), DEFAULT_ADMIN_USERNAME,
+        )
+        logger.warning(
+            "CONTRASENA INICIAL DEL PANEL: %s  <-- copiala y cambiala al entrar. "
+            "No se vuelve a mostrar.", password,
         )
         sync_local_media(db, tenant)
     finally:

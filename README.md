@@ -63,7 +63,10 @@ npm run dev
 ```
 
 Al arrancar, la semilla crea el negocio de Will, sus servicios y el usuario
-del panel `will` / `WillSantoyo2026!` — **cámbialo en el primer ingreso**.
+del panel (`will` por defecto). La contraseña **no vive en el repositorio**:
+se toma de `SEED_ADMIN_PASSWORD` o, si no la defines, la semilla genera una
+aleatoria y la imprime una sola vez en el log del arranque — cópiala de ahí
+y cámbiala al entrar.
 
 **Fotos reales:** colócalas en `content/will-santoyo/{gallery,profile,cuts}` y
 se indexan solas al arrancar, o súbelas por drag & drop desde `/admin/galeria`.

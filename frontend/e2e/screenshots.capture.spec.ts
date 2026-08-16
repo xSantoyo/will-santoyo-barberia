@@ -10,6 +10,10 @@
 import { readFileSync } from "node:fs";
 import { devices, expect, test, type Page } from "@playwright/test";
 
+// La clave del panel no se escribe en el repo (es publico): se pasa por
+// entorno. En local: $env:SEED_ADMIN_PASSWORD antes de correr el script.
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "";
+
 const OUT = "../docs/screenshots";
 const capture = process.env.CAPTURE === "1";
 
@@ -267,7 +271,7 @@ test("tanda 4: portafolio, vitrina y regalos", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/admin");
   await page.getByLabel(/usuario/i).fill("will");
-  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
+  await page.getByLabel(/contraseña/i).fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("link", { name: /regalos/i }).click();
@@ -315,7 +319,7 @@ test("ronda de seguridad: vista del barbero y panel de seguridad", async ({ page
   // ---- El barbero solo ve SU mundo: dashboard propio, desempeño y cuenta
   await page.goto("/admin");
   await page.getByLabel(/usuario/i).fill("barbero1");
-  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
+  await page.getByLabel(/contraseña/i).fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await shot(page, "48-barbero-dashboard");
@@ -333,7 +337,7 @@ test("ronda de seguridad: vista del barbero y panel de seguridad", async ({ page
   await page.getByRole("button", { name: /salir/i }).click();
   await expect(page.getByRole("button", { name: /entrar/i })).toBeVisible();
   await page.getByLabel(/usuario/i).fill("will");
-  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
+  await page.getByLabel(/contraseña/i).fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page.getByRole("heading", { name: "Hoy" })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("link", { name: /seguridad/i }).click();
@@ -346,7 +350,7 @@ test("panel admin: dashboard, agenda, turnos, barberos, servicios, galería", as
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/admin");
   await page.getByLabel(/usuario/i).fill("will");
-  await page.getByLabel(/contraseña/i).fill("WillSantoyo2026!");
+  await page.getByLabel(/contraseña/i).fill(ADMIN_PASSWORD);
   await shot(page, "12-admin-login");
   await page.getByRole("button", { name: /entrar/i }).click();
 

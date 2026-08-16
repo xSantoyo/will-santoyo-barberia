@@ -3,6 +3,10 @@
 // Uso: node e2e/capturas.mjs
 import { chromium } from "@playwright/test";
 
+// La clave del panel no se escribe en el repo (es publico): se pasa por
+// entorno. En local: $env:SEED_ADMIN_PASSWORD antes de correr el script.
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "";
+
 const OUT = "../docs/screenshots/v3";
 const BASE = "http://localhost:3000";
 
@@ -42,7 +46,7 @@ async function capturarPanel(ancho, alto, sufijo) {
   const page = await browser.newPage({ viewport: { width: ancho, height: alto } });
   await page.goto(`${BASE}/admin/login`, { waitUntil: "networkidle" });
   await page.getByLabel(/usuario/i).fill("will");
-  await page.getByLabel(/contrase/i).fill("WillSantoyo2026!");
+  await page.getByLabel(/contrase/i).fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: /entrar/i }).click();
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${OUT}/panel-${sufijo}.png` });

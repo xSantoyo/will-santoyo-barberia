@@ -8,7 +8,8 @@ Todo debe funcionar en local antes de tocar AWS:
 docker compose up --build
 # Frontend  http://localhost:3000
 # Backend   http://localhost:8000/docs
-# Admin     http://localhost:3000/admin  →  admin / WillSantoyo2026!
+# Admin     http://localhost:3000/admin  →  usuario 'will'; la clave sale en
+#           el log del seed (o se fija con SEED_ADMIN_PASSWORD)
 ```
 
 Suites de verificación:
