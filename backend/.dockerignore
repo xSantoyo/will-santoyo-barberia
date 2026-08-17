@@ -1,0 +1,33 @@
+# Aunque este Dockerfile copia rutas concretas y no `COPY . .`, la lista evita
+# que un cambio futuro arrastre secretos a una capa de la imagen. Una capa no se
+# borra: queda en el historial aunque un paso posterior elimine el archivo.
+
+# Secretos.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Historial de git.
+.git
+.gitignore
+
+# Entorno virtual local: la imagen instala sus propias dependencias.
+.venv
+venv
+
+# Bases de datos y correos de desarrollo (datos personales de prueba).
+*.db
+*.sqlite*
+outbox
+
+# Artefactos y cachés.
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+*.egg-info
+
+# Pruebas: no se ejecutan en la imagen de producción.
+tests

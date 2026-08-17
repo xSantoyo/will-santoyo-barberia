@@ -21,6 +21,15 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./dev.db"
 
+    # --- Semilla del panel ---
+    # Aquí y no leídas con os.environ en seed.py: así las toma también de
+    # backend/.env, como el resto de la configuración. Antes la semilla ignoraba
+    # ese archivo en silencio y generaba una clave aleatoria aunque el .env
+    # declarara una, dejando la documentación diciendo una cosa y el sistema
+    # haciendo otra.
+    seed_admin_username: str = "will"
+    seed_admin_password: str = ""  # vacío = generar una aleatoria y registrarla
+
     # --- Auth ---
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

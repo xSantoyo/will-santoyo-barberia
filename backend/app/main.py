@@ -49,7 +49,10 @@ app = FastAPI(
     title="Will Barber Shop — API",
     version="1.0.0",
     description="Plataforma de gestión y reservas para barberías (multi-tenant).",
-    docs_url="/docs" if settings.environment != "prod" else None,
+    # Lista blanca, no lista negra: con `!= "prod"` bastaba desplegar como
+    # "staging" o "produccion" para publicar el mapa completo de la API.
+    docs_url="/docs" if settings.environment == "local" else None,
+    openapi_url="/openapi.json" if settings.environment == "local" else None,
     redoc_url=None,
 )
 

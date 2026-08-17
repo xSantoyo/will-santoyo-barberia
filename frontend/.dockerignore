@@ -1,0 +1,35 @@
+# El Dockerfile hace `COPY . .`. Sin esta lista, el contexto de build arrastra
+# secretos y basura a las capas de la imagen — y una capa no se borra: queda en
+# el historial aunque un paso posterior elimine el archivo.
+
+# Secretos. Lo primero y lo más importante.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Historial de git: contiene todo lo que alguna vez estuvo en el repo.
+.git
+.gitignore
+
+# Se reinstala dentro del build (npm ci) y pesa 488 MB.
+node_modules
+
+# Artefactos: el build los regenera; copiarlos puede además pisar el resultado.
+.next
+out
+dist
+tsconfig.tsbuildinfo
+
+# Pruebas y sus salidas: no se ejecutan en la imagen de producción.
+e2e
+tests
+test-results
+playwright-report
+playwright.config.*
+vitest.config.*
+
+# Documentación y capturas.
+*.md
+docs

@@ -9,7 +9,6 @@ Uso: python -m app.seed
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
 from sqlalchemy import select
@@ -50,7 +49,7 @@ SERVICES = [
     {"name": "Color / mechones", "price_cop": 60000, "duration_min": 90, "sort_order": 6},
 ]
 
-DEFAULT_ADMIN_USERNAME = os.environ.get("SEED_ADMIN_USERNAME", "will")
+DEFAULT_ADMIN_USERNAME = get_settings().seed_admin_username
 
 
 def _admin_password() -> str:
@@ -66,10 +65,15 @@ def _admin_password() -> str:
     el 5,9 % de las veces salía sin ningún dígito: una clave que el propio panel
     habría rechazado al intentar cambiarla.
     """
-    from_env = os.environ.get("SEED_ADMIN_PASSWORD")
+    from_env = get_settings().seed_admin_password
     if from_env:
         return from_env
     return passwords.generar()
+
+
+#: True si la clave la generamos nosotros. Solo entonces tiene sentido
+#: escribirla en el log: es la única forma de que el dueño llegue a conocerla.
+CLAVE_GENERADA = not get_settings().seed_admin_password
 
 
 # Se resuelve al importar: los tests la leen de aquí y coincide con la que se
@@ -167,10 +171,20 @@ def run() -> None:
             "Seed completado: %s, %d servicios, usuario '%s'.",
             tenant.name, len(SERVICES), DEFAULT_ADMIN_USERNAME,
         )
-        logger.warning(
-            "CONTRASENA INICIAL DEL PANEL: %s  <-- copiala y cambiala al entrar. "
-            "No se vuelve a mostrar.", password,
-        )
+        # La clave solo se escribe en el log cuando la generamos aquí: si no,
+        # no habría manera de conocerla. Cuando viene de configuración
+        # (Secrets Manager, .env) el operador ya la tiene, y volcarla a stdout
+        # la deja copiada en CloudWatch para siempre, al alcance de cualquiera
+        # con permiso de lectura de logs.
+        if CLAVE_GENERADA:
+            logger.warning(
+                "CONTRASENA INICIAL DEL PANEL: %s  <-- copiala y cambiala al "
+                "entrar. No se vuelve a mostrar.", password,
+            )
+        else:
+            logger.info(
+                "Clave del panel tomada de la configuracion; no se registra."
+            )
         sync_local_media(db, tenant)
     finally:
         db.close()
