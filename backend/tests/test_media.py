@@ -4,7 +4,7 @@ from __future__ import annotations
 import io
 
 ADMIN = "/api/v1/admin"
-PUBLIC = "/api/v1/public/will-santoyo"
+PUBLIC = "/api/v1/public/will-barbershop"
 
 # PNG mínimo válido (1x1 transparente)
 TINY_PNG = bytes.fromhex(
@@ -22,7 +22,7 @@ def test_presign_contract_local_mode(client, admin_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "direct"  # backend local: subida multipart al backend
-    assert data["key"].startswith("tenants/will-santoyo/gallery/")
+    assert data["key"].startswith("tenants/will-barbershop/gallery/")
 
 
 def test_upload_list_and_delete(client, admin_headers):
@@ -35,7 +35,7 @@ def test_upload_list_and_delete(client, admin_headers):
     assert upload.status_code == 201, upload.text
     asset = upload.json()
     assert asset["kind"] == "cut"
-    assert asset["url"].startswith("/media/will-santoyo/cuts/")
+    assert asset["url"].startswith("/media/will-barbershop/cuts/")
 
     # La imagen servida por el backend responde 200
     served = client.get(asset["url"])

@@ -17,12 +17,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: willsantoyo
-          POSTGRES_PASSWORD: willsantoyo
-          POSTGRES_DB: willsantoyo_test
+          POSTGRES_USER: willbarbershop
+          POSTGRES_PASSWORD: willbarbershop
+          POSTGRES_DB: willbarbershop_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U willsantoyo"
+          --health-cmd "pg_isready -U willbarbershop"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -40,7 +40,7 @@ jobs:
         run: pytest -m "not postgres" -q
       - name: Tests de integración (Postgres real, constraint anti doble-reserva)
         env:
-          TEST_POSTGRES_URL: postgresql+psycopg://willsantoyo:willsantoyo@localhost:5432/willsantoyo_test
+          TEST_POSTGRES_URL: postgresql+psycopg://willbarbershop:willbarbershop@localhost:5432/willbarbershop_test
         run: pytest -m postgres -q
 
   frontend-build:

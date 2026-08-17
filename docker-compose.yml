@@ -1,18 +1,18 @@
-name: will-santoyo-platform
+name: will-barbershop-platform
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: willsantoyo
-      POSTGRES_PASSWORD: willsantoyo
-      POSTGRES_DB: willsantoyo
+      POSTGRES_USER: willbarbershop
+      POSTGRES_PASSWORD: willbarbershop
+      POSTGRES_DB: willbarbershop
     ports:
       - "5432:5432"
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U willsantoyo -d willsantoyo"]
+      test: ["CMD-SHELL", "pg_isready -U willbarbershop -d willbarbershop"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -22,7 +22,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://willsantoyo:willsantoyo@db:5432/willsantoyo
+      DATABASE_URL: postgresql+psycopg://willbarbershop:willbarbershop@db:5432/willbarbershop
       JWT_SECRET: local-dev-secret-change-me
       ENVIRONMENT: local
       CORS_ORIGINS: http://localhost:3000

@@ -8,7 +8,7 @@ terraform {
     random = { source = "hashicorp/random", version = "~> 3.6" }
   }
   backend "s3" {
-    bucket  = "will-santoyo-terraform-state" # mismo bucket, key distinta
+    bucket  = "will-barbershop-terraform-state" # mismo bucket, key distinta
     key     = "dev/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true
@@ -19,7 +19,7 @@ provider "aws" {
   region = var.aws_region
   default_tags {
     tags = {
-      Project     = "will-santoyo-platform"
+      Project     = "will-barbershop-platform"
       Environment = "dev"
       ManagedBy   = "terraform"
     }
@@ -27,7 +27,7 @@ provider "aws" {
 }
 
 locals {
-  name_prefix = "willsantoyo-dev"
+  name_prefix = "willbarbershop-dev"
 }
 
 module "network" {

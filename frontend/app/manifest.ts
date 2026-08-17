@@ -4,14 +4,18 @@ import type { MetadataRoute } from "next";
  * propio y abre a pantalla completa, como una app nativa. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Will Santoyo — Barbero en Soacha",
-    short_name: "Will Santoyo",
+    name: "Will Barbershop — Barbero en Soacha",
+    // Bajo el ícono de la pantalla de inicio caben ~12 caracteres: "Will
+    // Barbershop" se cortaría a "Will Barbers…", así que ahí va solo "Will".
+    short_name: "Will",
     description:
       "Agenda tu turno con Will, mira la fila en vivo y gestiona tu cita.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f1eee6",
-    theme_color: "#f1eee6",
+    // Paleta «Después de las 6»: si esto queda en el crema viejo, el splash de
+    // la PWA parpadea en claro antes de abrir un sitio oscuro.
+    background_color: "#141210",
+    theme_color: "#141210",
     lang: "es",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

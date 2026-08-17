@@ -151,7 +151,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
         <span className="display truncate text-lg text-chalk">{seccion}</span>
         <Link href="/" className="display ml-auto text-sm text-copper">
-          WS
+          WB
         </Link>
       </header>
 
@@ -177,7 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <div className="flex items-center justify-between px-4 py-4">
                 <Link href="/" className="display text-xl text-chalk">
-                  Will<span className="text-copper"> Santoyo</span>
+                  Will<span className="text-copper"> Barbershop</span>
                 </Link>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -198,7 +198,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* -------------------------------------------------------- desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-edge bg-coal lg:flex">
         <Link href="/" className="display px-5 py-6 text-xl text-chalk">
-          Will<span className="text-copper"> Santoyo</span>
+          Will<span className="text-copper"> Barbershop</span>
         </Link>
         <div className="barber-stripe mx-5 mb-4 w-16" />
         <NavList />

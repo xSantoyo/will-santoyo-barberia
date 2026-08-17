@@ -1,6 +1,7 @@
 import Navbar from "@/components/public/Navbar";
 import Hero from "@/components/public/Hero";
 import LiveStrip from "@/components/public/LiveStrip";
+import VideoReel from "@/components/public/VideoReel";
 import {
   About,
   Footer,
@@ -28,7 +29,7 @@ export const dynamic = "force-dynamic";
 
 const FALLBACK_TENANT: TenantPublic = {
   name: NEGOCIO.nombre,
-  slug: "will-santoyo",
+  slug: "will-barbershop",
   whatsapp_number: NEGOCIO.telefonoE164,
   timezone: "America/Bogota",
   brand_config: { tagline: `${NEGOCIO.oficio} en ${NEGOCIO.ciudad}` },
@@ -77,6 +78,7 @@ export default async function HomePage() {
         <Trayectoria data={trayectoria} />
         <Services services={services} />
         <Gallery items={gallery} />
+        <VideoReel />
         <Reviews data={reviews} />
         <Vitrina products={products} />
         <Location tenant={tenant} />

@@ -1,12 +1,12 @@
 # Copiar a terraform.tfvars (gitignored) y completar. NUNCA commitear el real.
 aws_region            = "us-east-1"
-backend_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/willsantoyo-backend:latest"
+backend_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/willbarbershop-backend:latest"
 frontend_url          = "https://main.d1234abcd.amplifyapp.com"
-github_repository_url = "https://github.com/OWNER/will-santoyo-platform"
+github_repository_url = "https://github.com/OWNER/will-barbershop-platform"
 github_access_token   = "ghp_..."
 
 jwt_secret = "generar-con: openssl rand -hex 32"
 
 # Correo que recibe las alarmas de seguridad (logins fallidos, bloqueos,
 # webhooks inválidos, ráfagas). SNS envía un correo de confirmación al aplicar.
-security_alert_email = "dueno@willsantoyo.com"
+security_alert_email = "dueno@willbarbershop.com"

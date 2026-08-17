@@ -24,8 +24,8 @@ jobs:
       contents: read
     env:
       AWS_REGION: us-east-1
-      ECR_REPOSITORY: willsantoyo-backend
-      LAMBDA_FUNCTION: willsantoyo-prod-api
+      ECR_REPOSITORY: willbarbershop-backend
+      LAMBDA_FUNCTION: willbarbershop-prod-api
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -50,7 +50,7 @@ jobs:
         run: |
           aws lambda invoke --function-name "$LAMBDA_FUNCTION" \
             --cli-binary-format raw-in-base64-out \
-            --payload '{"willsantoyo_task": "migrate"}' /tmp/migrate-out.json
+            --payload '{"willbarbershop_task": "migrate"}' /tmp/migrate-out.json
           cat /tmp/migrate-out.json
 
   # El frontend lo despliega Amplify Hosting automáticamente al detectar el push

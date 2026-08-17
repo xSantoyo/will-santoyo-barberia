@@ -7,7 +7,7 @@ BASE = "/api/v1/admin"
 
 
 def _services(client):
-    return client.get("/api/v1/public/will-santoyo/services").json()
+    return client.get("/api/v1/public/will-barbershop/services").json()
 
 
 def _manual_booking(client, admin_headers, professional, day, time="09:00", **extra):
@@ -121,7 +121,7 @@ def test_service_price_editable_without_code(client, admin_headers):
     assert response.json()["price_cop"] == 48000
 
     # El cambio se refleja de inmediato en el sitio público
-    public = client.get("/api/v1/public/will-santoyo/services").json()
+    public = client.get("/api/v1/public/will-barbershop/services").json()
     assert next(s for s in public if s["id"] == barba["id"])["price_cop"] == 48000
 
     # Desactivar un servicio lo oculta del público pero no del admin
@@ -129,7 +129,7 @@ def test_service_price_editable_without_code(client, admin_headers):
         f"{BASE}/services/{barba['id']}", json={"is_active": False}, headers=admin_headers
     )
     assert response.status_code == 200
-    public_ids = {s["id"] for s in client.get("/api/v1/public/will-santoyo/services").json()}
+    public_ids = {s["id"] for s in client.get("/api/v1/public/will-barbershop/services").json()}
     assert barba["id"] not in public_ids
 
     # restaurar para no afectar otros tests

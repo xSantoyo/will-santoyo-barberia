@@ -15,7 +15,7 @@ from app.db import SessionLocal
 from app.models import Appointment
 from app.routers import public as public_router
 
-BASE = "/api/v1/public/will-santoyo"
+BASE = "/api/v1/public/will-barbershop"
 TZ = ZoneInfo("America/Bogota")
 
 # Día aislado: ningún otro test reserva a +120 días

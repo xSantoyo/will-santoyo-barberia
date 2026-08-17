@@ -130,7 +130,7 @@ export default function ManageAppointmentPage({
           href="/"
           className="inline-flex items-center gap-2 text-sm text-smoke transition-colors hover:text-copper"
         >
-          <ArrowLeft size={16} /> Will Santoyo
+          <ArrowLeft size={16} /> Will Barbershop
         </Link>
 
         {/* Confirmación de asistencia: si no confirma, el turno se libera */}
@@ -266,12 +266,12 @@ export default function ManageAppointmentPage({
             <div className="mt-4">
               <AddToCalendar
                 event={{
-                  title: `Will Santoyo — turno #${appointment.daily_number}`,
+                  title: `Will Barbershop — turno #${appointment.daily_number}`,
                   dateLocal: appointment.date_local,
                   timeLocal: appointment.time_local,
                   durationMin: 60, // el turno dura siempre 1 h
                   description: `Con Will. Código de gestión: ${appointment.manage_code}.`,
-                  location: "Will Santoyo — Calle 35 Sur & Cra 15B, Soacha",
+                  location: "Will Barbershop — Calle 35 Sur & Cra 15B, Soacha",
                 }}
               />
             </div>

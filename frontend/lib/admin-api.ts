@@ -22,7 +22,7 @@ import type {
   TokenPair,
 } from "./types";
 
-const STORAGE_KEY = "willsantoyo.auth";
+const STORAGE_KEY = "willbarbershop.auth";
 
 export interface StoredAuth {
   access_token: string;

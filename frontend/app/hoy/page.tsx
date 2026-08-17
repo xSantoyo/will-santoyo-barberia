@@ -59,7 +59,7 @@ export default function BoardPage() {
               href="/"
               className="data text-xs uppercase tracking-[0.3em] text-smoke transition-colors hover:text-copper"
             >
-              ← Will Santoyo
+              ← Will Barbershop
             </Link>
             <h1 className="display mt-3 text-5xl text-chalk sm:text-6xl">
               La fila <span className="text-copper">en vivo</span>

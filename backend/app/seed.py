@@ -1,8 +1,8 @@
-"""Datos semilla: Will Santoyo, sus servicios y su cuenta de administración.
+"""Datos semilla: Will Barbershop, sus servicios y su cuenta de administración.
 
 Idempotente: se puede ejecutar en cada arranque (docker-compose lo hace); si el
 negocio ya existe no duplica nada. Además indexa las fotos reales que Will
-coloque en content/will-santoyo/{gallery,profile,cuts}.
+coloque en content/will-barbershop/{gallery,profile,cuts}.
 
 Uso: python -m app.seed
 """
@@ -23,9 +23,9 @@ from .models import AdminUser, MediaAsset, Professional, Service, Tenant
 from .security import hash_password
 from .services.storage import KIND_DIRS
 
-logger = logging.getLogger("willsantoyo.seed")
+logger = logging.getLogger("willbarbershop.seed")
 
-TENANT_SLUG = "will-santoyo"
+TENANT_SLUG = "will-barbershop"
 
 # Lunes a sábado; domingo de descanso.
 SCHEDULE = {
@@ -113,7 +113,7 @@ def run() -> None:
             return
 
         tenant = Tenant(
-            name="Will Santoyo",
+            name="Will Barbershop",
             slug=TENANT_SLUG,
             whatsapp_number="+573112398873",
             timezone="America/Bogota",

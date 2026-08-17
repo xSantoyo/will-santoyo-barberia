@@ -1,4 +1,4 @@
-# Investigación y migración de stack — Will Santoyo
+# Investigación y migración de stack — Will Barbershop
 
 **Fecha:** 14 de julio de 2026
 **Método:** cada herramienta se evaluó contra lo que ESTE aplicativo necesita
@@ -153,7 +153,7 @@ correo es una copia de cortesía y siempre opcional.**
 
 **Pendiente del dueño:** cuenta en resend.com (gratis), verificar el dominio
 propio y setear `RESEND_API_KEY` + `EMAIL_FROM` (ej.
-`Will Santoyo <turnos@dominio.com>`). Sin dominio propio los correos solo pueden
+`Will Barbershop <turnos@dominio.com>`). Sin dominio propio los correos solo pueden
 salir de `onboarding@resend.dev` (pruebas).
 
 ## 7. Spaceship como registrador de dominio — RECOMENDADO
@@ -162,7 +162,7 @@ Precios verificados (jul-2026): **.com ≈ 9–10 USD/año** (registro y
 renovación casi iguales — sin sorpresa al renovar), permite nameservers
 externos (necesario para delegar a Cloudflare, cosa que Cloudflare Registrar
 por ejemplo no permite al revés). Sugerencias a revisar con el dueño:
-`willsantoyo.com` / `.com.co` / `willsantoyo.com.co`.
+`willbarbershop.com` / `.com.co` / `willbarbershop.com.co`.
 
 **Cadena completa cuando se compre:** Spaceship (dominio) → Cloudflare (DNS +
 WAF) → Amplify/API Gateway (app) → Resend (dominio verificado para correos:

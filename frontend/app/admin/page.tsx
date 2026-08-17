@@ -35,7 +35,7 @@ import {
 } from "@/components/admin/shared";
 import ClientProfileModal from "@/components/admin/ClientProfileModal";
 
-const LAST_SEEN_KEY = "willsantoyo.dashboard.lastSeen";
+const LAST_SEEN_KEY = "willbarbershop.dashboard.lastSeen";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);

@@ -6,7 +6,7 @@ from app import seed
 
 from .conftest import next_working_date
 
-BASE = "/api/v1/public/will-santoyo"
+BASE = "/api/v1/public/will-barbershop"
 ADMIN = "/api/v1/admin"
 AUTH = "/api/v1/auth"
 

@@ -18,7 +18,7 @@ export default function AddToCalendar({ event }: { event: CalendarEvent }) {
       >
         <CalendarPlus size={14} /> Google Calendar
       </a>
-      <a href={icsDataUrl(event)} download="turno-will-santoyo.ics" className={buttonClass}>
+      <a href={icsDataUrl(event)} download="turno-will-barbershop.ics" className={buttonClass}>
         <CalendarPlus size={14} /> Apple / .ics
       </a>
     </div>

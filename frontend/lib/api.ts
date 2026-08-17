@@ -21,7 +21,7 @@ import type {
   TicketQueue,
 } from "./types";
 
-export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "will-santoyo";
+export const TENANT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? "will-barbershop";
 
 export function apiBase(): string {
   if (typeof window === "undefined") {

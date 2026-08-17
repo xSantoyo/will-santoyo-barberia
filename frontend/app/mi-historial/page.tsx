@@ -46,7 +46,7 @@ export default function PortalPage() {
           href="/"
           className="inline-flex items-center gap-2 text-sm text-smoke transition-colors hover:text-copper"
         >
-          <ArrowLeft size={16} /> Will Santoyo
+          <ArrowLeft size={16} /> Will Barbershop
         </Link>
         <h1 className="display mt-6 text-5xl text-chalk">
           Mi <span className="text-copper">historial</span>

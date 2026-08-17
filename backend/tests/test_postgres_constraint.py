@@ -5,7 +5,7 @@ Estos tests demuestran que aunque la validación de aplicación se salte
 
 Se ejecutan solo si TEST_POSTGRES_URL está definida:
     docker compose up -d db
-    TEST_POSTGRES_URL=postgresql+psycopg://willsantoyo:willsantoyo@localhost:5432/willsantoyo pytest -m postgres
+    TEST_POSTGRES_URL=postgresql+psycopg://willbarbershop:willbarbershop@localhost:5432/willbarbershop pytest -m postgres
 """
 from __future__ import annotations
 

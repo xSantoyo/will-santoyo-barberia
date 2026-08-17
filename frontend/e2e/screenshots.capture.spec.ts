@@ -40,7 +40,7 @@ async function shot(page: Page, name: string, fullPage = false) {
 test("sitio público: home desktop y mobile", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /will santoyo/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /will barbershop/i })).toBeVisible();
   await shot(page, "01-home-hero");
   await shot(page, "02-home-completo", true);
 

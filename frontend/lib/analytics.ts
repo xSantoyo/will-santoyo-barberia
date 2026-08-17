@@ -18,7 +18,7 @@
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
-const DISTINCT_KEY = "willsantoyo.analytics.id";
+const DISTINCT_KEY = "willbarbershop.analytics.id";
 
 export function analyticsEnabled(): boolean {
   return Boolean(KEY) && typeof window !== "undefined";

@@ -1,7 +1,7 @@
 # Monitoreo de seguridad (ronda jul-2026).
 #
 # El backend emite cada evento de seguridad como línea JSON en stdout con el
-# prefijo SECURITY (logger willsantoyo.security) → CloudWatch Logs. Aquí se
+# prefijo SECURITY (logger willbarbershop.security) → CloudWatch Logs. Aquí se
 # convierten en métricas (metric filters) y alarmas que notifican por SNS al
 # correo del negocio — nadie tiene que revisar logs a mano para enterarse de
 # un ataque en curso.
@@ -31,9 +31,9 @@ resource "aws_sns_topic_subscription" "email" {
 }
 
 locals {
-  namespace = "WillSantoyo/Security"
+  namespace = "WillBarbershop/Security"
   # Un metric filter por tipo de evento. El patrón busca la línea JSON que
-  # emite el logger willsantoyo.security: SECURITY {"event": "<kind>", ...}
+  # emite el logger willbarbershop.security: SECURITY {"event": "<kind>", ...}
   events = {
     login_failed = {
       description = "Intentos de login fallidos"

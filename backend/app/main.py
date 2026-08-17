@@ -46,7 +46,7 @@ def _enforce_production_secrets() -> None:
 _enforce_production_secrets()
 
 app = FastAPI(
-    title="Will Santoyo — API",
+    title="Will Barbershop — API",
     version="1.0.0",
     description="Plataforma de gestión y reservas para barberías (multi-tenant).",
     docs_url="/docs" if settings.environment != "prod" else None,

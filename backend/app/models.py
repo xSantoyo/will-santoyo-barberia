@@ -355,7 +355,7 @@ class SecurityEvent(Base):
     bloqueos, honeypots, fallos de firma de webhook, ráfagas de reservas.
 
     Complementa (no reemplaza) el audit_log de acciones administrativas. Cada
-    evento también se emite como línea JSON al logger `willsantoyo.security` para
+    evento también se emite como línea JSON al logger `willbarbershop.security` para
     que CloudWatch pueda alarmar sin consultar la base de datos."""
 
     __tablename__ = "security_events"

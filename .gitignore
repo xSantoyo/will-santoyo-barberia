@@ -35,10 +35,10 @@ next-env.d.ts
 crash.log
 
 # --- Contenido real del cliente (fotos pesadas se gestionan por S3, no por git) ---
-content/will-santoyo/gallery/*
-content/will-santoyo/profile/*
-content/will-santoyo/cuts/*
-!content/will-santoyo/**/.gitkeep
+content/will-barbershop/gallery/*
+content/will-barbershop/profile/*
+content/will-barbershop/cuts/*
+!content/will-barbershop/**/.gitkeep
 
 # --- SO / editores ---
 .DS_Store
@@ -60,3 +60,13 @@ backend/outbox/
 # Skills instaladas por npx skills (viven en el perfil de usuario, no en el repo)
 .agents/
 .claude/
+
+# Originales de video en 4K (313 MB): se quedan en el disco, no en el repo.
+# Al repo solo suben los MP4 ya comprimidos de frontend/public/videos/.
+_originales-video/
+
+# Clips con menores identificables: procesados y listos en disco, pero FUERA
+# del repo hasta que Will confirme el permiso de los padres. El repo es
+# publico: subirlos aqui los deja descargables aunque la pagina no los enlace.
+frontend/public/videos/corte-1-*
+frontend/public/videos/corte-4-*

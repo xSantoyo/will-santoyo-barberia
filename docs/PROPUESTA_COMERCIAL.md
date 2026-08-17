@@ -1,4 +1,4 @@
-# Plan de costos y propuesta comercial — Plataforma Will Santoyo
+# Plan de costos y propuesta comercial — Plataforma Will Barbershop
 
 > Documento comercial, **no técnico**: cómo vender este software a la barbería.
 > El aplicativo queda congelado tal como está (decisión del dueño del proyecto,
@@ -139,7 +139,7 @@ devoluciones.
 
 ## 4. Resumen de la oferta (para presentar en una hoja)
 
-> **Plataforma Will Santoyo**
+> **Plataforma Will Barbershop**
 > - Implementación llave en mano: **$2.500.000** (pago único)
 > - Incluye 2 meses de soporte y administración **gratis**
 > - Desde el mes 3: administración **$150.000/mes** (o $250.000 con horas de

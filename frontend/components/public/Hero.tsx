@@ -74,7 +74,7 @@ export default function Hero({
         aria-hidden
         className="display text-outline pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 text-[24vw] leading-none lg:block"
       >
-        WS
+        WB
       </span>
 
       <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-12 px-5 pt-28 pb-12 lg:grid-cols-[1.15fr_minmax(0,400px)]">
@@ -91,7 +91,7 @@ export default function Hero({
           <h1 className="display-xl text-[clamp(3rem,8vw,5.5rem)] text-chalk">
             <Line delay={0.18}>Will</Line>
             <Line delay={0.27} accent>
-              Santoyo
+              Barbershop
             </Line>
           </h1>
 
@@ -167,7 +167,10 @@ export default function Hero({
       >
         <dl className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-edge/60 px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Dato icon={MapPin} label="Dónde" value={NEGOCIO.calle} />
-          <Dato icon={Clock} label="Horario" value="Lun a sáb · desde 9:00" />
+          {/* Debe coincidir con SCHEDULE en backend/app/seed.py (08:00–20:00,
+              lun a sáb). Si el hero promete una hora que la agenda no ofrece,
+              el cliente llega al wizard y no encuentra el cupo. */}
+          <Dato icon={Clock} label="Horario" value="Lun a sáb · 8:00 a 20:00" />
           <Dato
             icon={Scissors}
             label="Corte clásico"

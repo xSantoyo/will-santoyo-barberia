@@ -1,4 +1,4 @@
-# Auditoría de seguridad — Will Santoyo
+# Auditoría de seguridad — Will Barbershop
 
 **Fecha:** 8 de julio de 2026
 **Alcance:** backend FastAPI (`backend/`), frontend Next.js (`frontend/`) e
@@ -100,7 +100,7 @@ Auditados todos los endpoints (`admin.py`, `public.py`, `auth.py`).
 
 ## 5. Registro de actividad sospechosa y monitoreo — CORREGIDO
 
-- Nueva tabla `security_events` + logger `willsantoyo.security` que emite cada
+- Nueva tabla `security_events` + logger `willbarbershop.security` que emite cada
   evento como **línea JSON a stdout** (→ CloudWatch Logs). Se registran:
   logins fallidos y correctos, bloqueos, cambios de contraseña, activaciones de
   rate limit, honeypots, CAPTCHA fallido, **fallos de firma del webhook de

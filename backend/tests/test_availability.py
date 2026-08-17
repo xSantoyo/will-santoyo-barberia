@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from .conftest import next_working_date
 
-PUBLIC = "/api/v1/public/will-santoyo"
+PUBLIC = "/api/v1/public/will-barbershop"
 ADMIN = "/api/v1/admin"
 
 

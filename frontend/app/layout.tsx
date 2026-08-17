@@ -19,10 +19,10 @@ const DESCRIPCION =
   "diseño, con cita reservada en línea. Sin filas, sin llamadas.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://willsantoyo.com"),
+  metadataBase: new URL("https://willbarbershop.com"),
   title: {
-    default: `Will Santoyo — Barbero en ${NEGOCIO.ciudad}`,
-    template: "%s · Will Santoyo",
+    default: `Will Barbershop — Barbero en ${NEGOCIO.ciudad}`,
+    template: "%s · Will Barbershop",
   },
   description: DESCRIPCION,
   keywords: [
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
     "corte de cabello Soacha",
     "fade Soacha",
     "barbería Cundinamarca",
-    "Will Santoyo",
+    "Will Barbershop",
     "reservar turno barbería",
   ],
   openGraph: {
     type: "website",
     locale: "es_CO",
-    siteName: "Will Santoyo",
-    title: `Will Santoyo — Barbero en ${NEGOCIO.ciudad}`,
+    siteName: "Will Barbershop",
+    title: `Will Barbershop — Barbero en ${NEGOCIO.ciudad}`,
     description: DESCRIPCION,
   },
   twitter: { card: "summary_large_image" },
   appleWebApp: {
     capable: true,
-    title: "Will Santoyo",
+    title: "Will Barbershop",
     statusBarStyle: "black-translucent",
   },
 };

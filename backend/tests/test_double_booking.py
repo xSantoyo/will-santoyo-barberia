@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from .conftest import next_working_date
 
-BASE = "/api/v1/public/will-santoyo"
+BASE = "/api/v1/public/will-barbershop"
 
 
 def _services(client):

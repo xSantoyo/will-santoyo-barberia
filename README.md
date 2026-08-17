@@ -1,6 +1,6 @@
-# Will Santoyo — Reservas de barbería
+# Will Barbershop — Reservas de barbería
 
-La página de reservas personal de **Will Santoyo**, barbero profesional en
+La página de reservas personal de **Will Barbershop**, barbero profesional en
 Soacha, Cundinamarca. Un solo profesional, una sola agenda: el cliente elige
 servicio, fecha y hora, deja sus datos y recibe un código de gestión en
 pantalla. Sin selección de barbero, sin cobro en línea.
@@ -28,10 +28,10 @@ pantalla. Sin selección de barbero, sin cobro en línea.
 │   ├── alembic/         #   migraciones (proposed/ = destructivas, requieren OK)
 │   └── tests/           #   suite pytest
 ├── infra/               # Terraform (modules + environments/{dev,prod})
-├── content/will-santoyo # Fotos reales (gallery / profile / cuts / products)
+├── content/will-barbershop # Fotos reales (gallery / profile / cuts / products)
 ├── legacy-styles/       # Piel anterior archivada (referencia, no código vivo)
 ├── docs/                # ARCHITECTURE, DEPLOYMENT (+ docs/archive/)
-├── DESIGN_SYSTEM.md     # Sistema de diseño vigente («Estudio Santoyo»)
+├── DESIGN_SYSTEM.md     # Sistema de diseño vigente («Estudio Barbershop»)
 └── docker-compose.yml   # Postgres + backend + frontend con un solo comando
 ```
 
@@ -68,8 +68,18 @@ se toma de `SEED_ADMIN_PASSWORD` o, si no la defines, la semilla genera una
 aleatoria y la imprime una sola vez en el log del arranque — cópiala de ahí
 y cámbiala al entrar.
 
-**Fotos reales:** colócalas en `content/will-santoyo/{gallery,profile,cuts}` y
+**Fotos reales:** colócalas en `content/will-barbershop/{gallery,profile,cuts}` y
 se indexan solas al arrancar, o súbelas por drag & drop desde `/admin/galeria`.
+
+**Videos:** los originales del celular se quedan en `_originales-video/` (fuera
+del repo, pesan cientos de MB). Al repo solo entran los MP4 ya comprimidos de
+`frontend/public/videos/`, en dos tamaños por clip: `-720.mp4` para datos
+móviles y `-1080.mp4` para escritorio, más un `-poster.jpg`. La lista de los que
+se publican está en `components/public/VideoReel.tsx`.
+
+> Antes de publicar un clip donde salga un menor identificable hace falta el
+> permiso de sus padres (Ley 1581/2012 y Código de Infancia). Los que están
+> pendientes de ese permiso se excluyen en `.gitignore` — el repo es público.
 
 ## Tests
 

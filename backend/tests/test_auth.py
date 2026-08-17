@@ -19,7 +19,7 @@ def test_login_with_tenant_slug(client):
     response = client.post(
         "/api/v1/auth/login",
         json={"username": seed.DEFAULT_ADMIN_USERNAME, "password": seed.DEFAULT_ADMIN_PASSWORD,
-              "tenant_slug": "will-santoyo"},
+              "tenant_slug": "will-barbershop"},
     )
     assert response.status_code == 200
 

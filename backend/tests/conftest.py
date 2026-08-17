@@ -14,7 +14,7 @@ import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="willsantoyo-tests-"))
+_TMP = Path(tempfile.mkdtemp(prefix="willbarbershop-tests-"))
 os.environ.update(
     {
         "DATABASE_URL": f"sqlite:///{(_TMP / 'test.db').as_posix()}",

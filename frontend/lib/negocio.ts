@@ -3,7 +3,7 @@
  * otro lado. */
 
 export const NEGOCIO = {
-  nombre: "Will Santoyo",
+  nombre: "Will Barbershop",
   oficio: "Barbero profesional",
   ciudad: "Soacha",
   region: "Cundinamarca",

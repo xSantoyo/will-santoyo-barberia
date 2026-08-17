@@ -40,9 +40,9 @@ export function buildICS(event: CalendarEvent): string {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Will Santoyo//Turnos//ES",
+    "PRODID:-//Will Barbershop//Turnos//ES",
     "BEGIN:VEVENT",
-    `UID:${compact(start)}-turno@willsantoyo`,
+    `UID:${compact(start)}-turno@willbarbershop`,
     `DTSTAMP:${stamp}`,
     `DTSTART:${compact(start)}`,
     `DTEND:${compact(end)}`,

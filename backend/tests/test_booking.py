@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .conftest import next_day_off, next_working_date
 
-BASE = "/api/v1/public/will-santoyo"
+BASE = "/api/v1/public/will-barbershop"
 
 
 def _get_slot(client, professional_id: int, day, service_ids: list[int]) -> list[str]:
@@ -19,7 +19,7 @@ def test_tenant_info(client):
     response = client.get(BASE)
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "Will Santoyo"
+    assert data["name"] == "Will Barbershop"
     assert data["timezone"] == "America/Bogota"
 
 

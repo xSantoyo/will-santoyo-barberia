@@ -12,11 +12,11 @@ variable "multi_az" {
 }
 variable "db_name" {
   type    = string
-  default = "willsantoyo"
+  default = "willbarbershop"
 }
 variable "db_username" {
   type    = string
-  default = "willsantoyo"
+  default = "willbarbershop"
 }
 
 resource "aws_db_subnet_group" "main" {

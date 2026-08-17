@@ -15,8 +15,8 @@ const SERVICES: ServicePublic[] = [
 ];
 
 const TENANT: TenantPublic = {
-  name: "Will Santoyo",
-  slug: "will-santoyo",
+  name: "Will Barbershop",
+  slug: "will-barbershop",
   whatsapp_number: "+573112398873",
   timezone: "America/Bogota",
   brand_config: { address: "Cra. 00 # 00-00" },

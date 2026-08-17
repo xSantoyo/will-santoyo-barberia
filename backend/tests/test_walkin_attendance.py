@@ -18,7 +18,7 @@ from app.services import appointments as appointments_service
 from app.services import availability as availability_service
 
 TZ = ZoneInfo("America/Bogota")
-BASE_PUBLIC = "/api/v1/public/will-santoyo"
+BASE_PUBLIC = "/api/v1/public/will-barbershop"
 BASE_ADMIN = "/api/v1/admin"
 
 

@@ -31,7 +31,7 @@ from ..config import get_settings
 from ..db import utcnow
 from ..models import Appointment, Tenant
 
-logger = logging.getLogger("willsantoyo.email")
+logger = logging.getLogger("willbarbershop.email")
 
 # Paleta de la marca (inline: los clientes de correo no cargan CSS externo)
 INK = "#0B0B0C"

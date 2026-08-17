@@ -9,7 +9,7 @@ import pytest
 from app.db import SessionLocal
 from app.models import Appointment
 
-BASE = "/api/v1/public/will-santoyo"
+BASE = "/api/v1/public/will-barbershop"
 ADMIN = "/api/v1/admin"
 PHONE = "+573159990001"  # exclusivo de esta suite
 

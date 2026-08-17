@@ -14,7 +14,7 @@ TINY_PNG = bytes.fromhex(
 
 def test_manual_photos_in_content_are_indexed(client):
     media_root = Path(os.environ["LOCAL_MEDIA_ROOT"])
-    target = media_root / "will-santoyo" / "gallery" / "fachada-local.png"
+    target = media_root / "will-barbershop" / "gallery" / "fachada-local.png"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(TINY_PNG)
     # Un archivo que no es imagen debe ignorarse
@@ -22,19 +22,19 @@ def test_manual_photos_in_content_are_indexed(client):
 
     seed.run()  # idempotente: indexa lo nuevo sin duplicar lo existente
 
-    listed = client.get("/api/v1/public/will-santoyo/media", params={"kind": "gallery"}).json()
+    listed = client.get("/api/v1/public/will-barbershop/media", params={"kind": "gallery"}).json()
     urls = [item["url"] for item in listed]
-    assert "/media/will-santoyo/gallery/fachada-local.png" in urls
+    assert "/media/will-barbershop/gallery/fachada-local.png" in urls
     assert not any("notas.txt" in (u or "") for u in urls)
 
     # Correr el seed otra vez no duplica
     seed.run()
     listed_again = client.get(
-        "/api/v1/public/will-santoyo/media", params={"kind": "gallery"}
+        "/api/v1/public/will-barbershop/media", params={"kind": "gallery"}
     ).json()
     assert len(listed_again) == len(listed)
 
     # La imagen se sirve por el mount /media del backend
-    served = client.get("/media/will-santoyo/gallery/fachada-local.png")
+    served = client.get("/media/will-barbershop/gallery/fachada-local.png")
     assert served.status_code == 200
     assert served.content == TINY_PNG
