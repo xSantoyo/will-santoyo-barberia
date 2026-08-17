@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import logging
 import os
-import secrets
-import string
 from pathlib import Path
 
 from sqlalchemy import select
@@ -21,6 +19,7 @@ from .config import get_settings
 from .db import SessionLocal
 from .models import AdminUser, MediaAsset, Professional, Service, Tenant
 from .security import hash_password
+from .services import passwords
 from .services.storage import KIND_DIRS
 
 logger = logging.getLogger("willbarbershop.seed")
@@ -61,12 +60,16 @@ def _admin_password() -> str:
     en el código es una clave que conoce todo el mundo. Se toma de
     SEED_ADMIN_PASSWORD y, si no está, se genera una aleatoria que se imprime
     UNA sola vez en el log del arranque para que el dueño la copie y la cambie.
+
+    La generación la hace `services.passwords`, que aplica la misma política que
+    valida la API. Antes se sorteaba aquí un alfanumérico sin comprobar nada y
+    el 5,9 % de las veces salía sin ningún dígito: una clave que el propio panel
+    habría rechazado al intentar cambiarla.
     """
     from_env = os.environ.get("SEED_ADMIN_PASSWORD")
     if from_env:
         return from_env
-    alfabeto = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alfabeto) for _ in range(16))
+    return passwords.generar()
 
 
 # Se resuelve al importar: los tests la leen de aquí y coincide con la que se

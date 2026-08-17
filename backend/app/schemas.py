@@ -6,6 +6,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .services import passwords
+
 # ---------------------------------------------------------------- utilidades
 
 PHONE_RE = re.compile(r"^\+?[0-9]{10,15}$")
@@ -172,18 +174,16 @@ class LoginRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=10, max_length=128)
+    # La regla completa vive en services/passwords.py, que es también de donde
+    # la lee el generador de la semilla: un solo sitio, imposible desincronizar.
+    new_password: str = Field(
+        min_length=passwords.LARGO_MINIMO, max_length=passwords.LARGO_MAXIMO
+    )
 
     @field_validator("new_password")
     @classmethod
     def _strength(cls, v: str) -> str:
-        if v.strip() != v:
-            raise ValueError("La contraseña no puede empezar ni terminar en espacios")
-        has_letter = any(c.isalpha() for c in v)
-        has_digit = any(c.isdigit() for c in v)
-        if not (has_letter and has_digit):
-            raise ValueError("La contraseña debe combinar letras y números")
-        return v
+        return passwords.validar(v)
 
 
 class TokenPair(BaseModel):
