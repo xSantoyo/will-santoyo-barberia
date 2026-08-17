@@ -1,7 +1,7 @@
 """La Fila en vivo: tablero público de turnos del día y posición por código.
 
-Se congela `utcnow` del router público en un día lejano (sin interferencia de
-otros tests) y se insertan turnos directamente con estados controlados.
+Se congela `utcnow` del router público en una fecha fija y se insertan turnos
+directamente con estados controlados.
 """
 from __future__ import annotations
 
@@ -18,10 +18,11 @@ from app.routers import public as public_router
 BASE = "/api/v1/public/will-barbershop"
 TZ = ZoneInfo("America/Bogota")
 
-# Día aislado: ningún otro test reserva a +120 días
-FROZEN_LOCAL = (datetime.now(TZ) + timedelta(days=120)).replace(
-    hour=15, minute=0, second=0, microsecond=0
-)
+# Fecha fija: da igual cuál sea, y da igual si otro test reserva ese mismo día,
+# porque cada test corre en su propia transacción y se revierte (ver conftest).
+# Antes esto era `hoy + 120 días` para esquivar a test_growth, que reservaba ahí
+# por casualidad aritmética.
+FROZEN_LOCAL = datetime(2027, 3, 10, 15, 0, tzinfo=TZ)
 
 
 @pytest.fixture()
@@ -67,9 +68,7 @@ def queue_day(tenant, professional, frozen_now):
     db.commit()
     codes = {n: r.manage_code for n, r in rows.items()}
     yield professional, codes
-    for row in rows.values():
-        db.delete(row)
-    db.commit()
+    # Sin borrado manual: la transacción del test revierte estas filas.
     db.close()
 
 
