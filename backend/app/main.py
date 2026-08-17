@@ -89,7 +89,28 @@ def health():
 if settings.storage_backend == "local":
     media_root = Path(settings.local_media_root)
     media_root.mkdir(parents=True, exist_ok=True)
-    app.mount("/media", StaticFiles(directory=str(media_root)), name="media")
+
+    class _MediaSinIndexar(StaticFiles):
+        """Medios servidos con `X-Robots-Tag: noindex`.
+
+        Entre los medios hay fotos y videos de clientes, algunos menores de
+        edad, publicados con un permiso que se puede revocar. Que un buscador
+        los indexe significa que sobreviven en su caché y en la búsqueda de
+        imágenes después de retirarlos del sitio, que es justo lo que hace
+        imposible cumplir una revocación.
+
+        La cabecera va aquí y no en `robots.txt` porque estos archivos no son
+        páginas y los sirve otro origen: `X-Robots-Tag` es el único mecanismo
+        que viaja con el archivo. En producción, donde los sirve CloudFront,
+        hay que replicar la cabecera en la distribución (ver infra/).
+        """
+
+        async def get_response(self, path: str, scope):
+            respuesta = await super().get_response(path, scope)
+            respuesta.headers["X-Robots-Tag"] = "noindex, noimageindex, noarchive"
+            return respuesta
+
+    app.mount("/media", _MediaSinIndexar(directory=str(media_root)), name="media")
 
 
 # ---------------------------------------------------------------- AWS Lambda

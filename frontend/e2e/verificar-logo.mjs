@@ -66,6 +66,19 @@ chequear(meta.iconos.length > 0, "hay favicon declarado", meta.iconos.join(" | "
 chequear(meta.og !== null, "og:image declarado", meta.og ?? "");
 chequear(meta.tw !== null, "twitter:image declarado", meta.tw ?? "");
 
+// La miniatura de compartir tiene que ser el logo. Si alguien la cambia por un
+// fotograma de un clip, sale la cara de un cliente —a veces un menor— en cada
+// enlace que se pegue en WhatsApp. Esta comprobacion existe para impedirlo.
+for (const [nombre, url] of [["og:image", meta.og], ["twitter:image", meta.tw]]) {
+  if (!url) continue;
+  const ruta = new URL(url).pathname;
+  chequear(
+    ruta.startsWith("/opengraph-image") && !ruta.includes("/media/"),
+    `${nombre} es el logo, no un cliente`,
+    ruta,
+  );
+}
+
 // Que las URLs no den 404
 for (const [nombre, url] of [["og:image", meta.og], ["twitter:image", meta.tw]]) {
   if (!url) continue;

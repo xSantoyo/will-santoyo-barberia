@@ -71,15 +71,35 @@ y cámbiala al entrar.
 **Fotos reales:** colócalas en `content/will-barbershop/{gallery,profile,cuts}` y
 se indexan solas al arrancar, o súbelas por drag & drop desde `/admin/galeria`.
 
-**Videos:** los originales del celular se quedan en `_originales-video/` (fuera
-del repo, pesan cientos de MB). Al repo solo entran los MP4 ya comprimidos de
-`frontend/public/videos/`, en dos tamaños por clip: `-720.mp4` para datos
-móviles y `-1080.mp4` para escritorio, más un `-poster.jpg`. La lista de los que
-se publican está en `components/public/VideoReel.tsx`.
+**Videos:** viven en `content/will-barbershop/videos/`, junto al resto de
+medios, y los sirve el backend en `/media/`. Tres archivos por clip:
+`-720.mp4` para datos móviles, `-1080.mp4` para escritorio y `-poster.jpg`.
+La lista de los publicados está en un solo sitio, `frontend/lib/videos.ts`.
+Los originales del celular se quedan en `_originales-video/`.
 
-> Antes de publicar un clip donde salga un menor identificable hace falta el
-> permiso de sus padres (Ley 1581/2012 y Código de Infancia). Los que están
-> pendientes de ese permiso se excluyen en `.gitignore` — el repo es público.
+**Ninguno de los dos entra al repositorio, y es a propósito.** Algunos clips
+muestran clientes menores de edad, publicados con permiso de sus padres — un
+permiso revocable. Un repositorio público conserva para siempre lo que entra,
+incluso en bifurcaciones de terceros: retirar un clip del sitio no bastaría
+para retirarlo del mundo. Viviendo en `content/`, borrar el archivo alcanza.
+Y no se excluyen solo esos clips sino todos, porque excluir únicamente los de
+los menores sería señalar cuáles son.
+
+Para añadir clips, deja los MOV en `_originales-video/` y corre:
+
+```bash
+bash scripts/comprimir-videos.sh
+```
+
+El guion recorta a 12 s, quita el audio, genera los dos tamaños y el póster, y
+**verifica que no sobreviva ningún metadato del original** — los MOV del iPhone
+traen fecha de captura y, algunos, las coordenadas GPS del sitio donde se
+grabaron. Publicar eso junto a la cara de un cliente es dar su ubicación. Si
+encuentra alguno, falla y no te deja publicar.
+
+Después, añade la entrada en `frontend/lib/videos.ts`. **Para retirar un clip,
+borra su entrada de ese archivo** (y sus tres archivos, si quieres que además
+desaparezca del servidor). No hay un segundo sitio que tocar.
 
 ## Tests
 

@@ -46,8 +46,11 @@ for (const [ancho, alto, etiqueta, esperado] of [
       pausado: el.paused,
       mudo: el.muted,
       fuente: el.currentSrc.split("/").pop(),
+      desdeMedia: el.currentSrc.includes("/media/"),
       ancho: el.videoWidth,
       enLinea: el.hasAttribute("playsinline"),
+      sinDescarga: (el.getAttribute("controlsList") ?? "").includes("nodownload"),
+      cuantos: document.querySelectorAll("#en-movimiento video").length,
     };
   });
 
@@ -57,7 +60,21 @@ for (const [ancho, alto, etiqueta, esperado] of [
     chequear(v.mudo, "va mudo");
     chequear(v.enLinea, "playsInline puesto (iOS no lo abre a pantalla completa)");
     chequear(v.fuente.includes(esperado), `sirve la versión ${esperado}p`, v.fuente);
+    chequear(v.desdeMedia, "se sirve desde /media/, fuera del repositorio público");
+    chequear(v.sinDescarga, "sin el atajo de descarga del navegador");
+    chequear(v.cuantos === 4, "los cuatro clips publicados", `${v.cuantos}`);
   }
+
+  // Ningún clip debe llevar texto que identifique a quien sale.
+  const textos = await page.evaluate(() =>
+    [...document.querySelectorAll("#en-movimiento video")].map((e) => e.getAttribute("aria-label") ?? ""),
+  );
+  const prohibido = /niñ|nino|hij|menor|años|anos|colegio|escuela|familia/i;
+  chequear(
+    !textos.some((t) => prohibido.test(t)),
+    "las descripciones no identifican a nadie",
+    textos.join(" · "),
+  );
 
   // --- 4. nada se sale de la pantalla
   const m = await page.evaluate(() => ({

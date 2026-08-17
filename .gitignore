@@ -62,14 +62,17 @@ backend/outbox/
 .claude/
 
 # Originales de video en 4K (313 MB): se quedan en el disco, no en el repo.
-# Al repo solo suben los MP4 ya comprimidos de frontend/public/videos/.
+# Los MP4 comprimidos tampoco: viven en content/, como el resto de medios.
 _originales-video/
 
-# Clips con menores identificables: procesados y listos en disco, pero FUERA
-# del repo hasta que Will confirme el permiso de los padres. El repo es
-# publico: subirlos aqui los deja descargables aunque la pagina no los enlace.
-frontend/public/videos/corte-1-*
-frontend/public/videos/corte-4-*
+# Videos publicables. Fuera del repo A PROPOSITO, y TODOS por igual:
+# algunos muestran clientes menores de edad, y si solo se excluyeran esos, el
+# propio .gitignore estaria senalando cuales son. Un repositorio publico
+# conserva para siempre lo que entra, incluso en bifurcaciones de terceros, asi
+# que retirar un clip del sitio no bastaria para retirarlo del mundo. Aqui
+# basta con borrar el archivo. Los sirve el backend en /media/.
+content/will-barbershop/videos/*
+!content/will-barbershop/videos/.gitkeep
 
 # Capturas de verificacion: se generan con los scripts de frontend/e2e/ y son
 # evidencia del momento de la revision, no las consume nadie en ejecucion.

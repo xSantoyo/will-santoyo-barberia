@@ -71,3 +71,23 @@ def test_upload_rejects_bad_type_and_kind(client, admin_headers):
     assert bad_kind.status_code == 400
 
 
+
+
+def test_media_no_se_indexa(client, tenant):
+    """Los medios incluyen caras de clientes, algunos menores de edad, con un
+    permiso revocable. Si un buscador los indexa, sobreviven en su cache y en la
+    busqueda de imagenes despues de retirarlos del sitio: la revocacion deja de
+    poder cumplirse. La cabecera viaja con el archivo, que es lo unico que
+    funciona cuando los sirve otro origen."""
+    from pathlib import Path
+
+    from app.config import get_settings
+
+    raiz = Path(get_settings().local_media_root) / tenant.slug / "gallery"
+    raiz.mkdir(parents=True, exist_ok=True)
+    (raiz / "prueba-noindex.png").write_bytes(TINY_PNG)
+
+    respuesta = client.get(f"/media/{tenant.slug}/gallery/prueba-noindex.png")
+    assert respuesta.status_code == 200
+    assert "noindex" in respuesta.headers.get("x-robots-tag", "")
+    assert "noimageindex" in respuesta.headers.get("x-robots-tag", "")

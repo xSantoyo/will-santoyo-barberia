@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+# Fotos y videos de clientes. La cabecera X-Robots-Tag del backend es la que
+# manda (viaja con el archivo, y en prod los sirve otro origen); esto cubre a
+# los rastreadores que llegan por esta ruta.
+Disallow: /media/

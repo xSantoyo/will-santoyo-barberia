@@ -28,29 +28,20 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-
-type Clip = {
-  /** Base del archivo en /public/videos: <base>-720.mp4, -1080.mp4, -poster.jpg */
-  base: string;
-  /** Descripción para lectores de pantalla. */
-  alt: string;
-};
+import { mediaUrl } from "@/lib/api";
+import { CLIPS, fuentes, type Clip } from "@/lib/videos";
 
 /**
- * Clips publicados.
- *
- * OJO — consentimiento: `corte-1` (niño pequeño) y `corte-4` (adolescente)
- * muestran menores de edad identificables. Publicar su imagen en un sitio
- * abierto requiere permiso de los padres (Ley 1581/2012 y Código de Infancia).
- * Los archivos ya están comprimidos y listos en /public/videos; en cuanto Will
- * confirme el permiso, basta con descomentarlos aquí.
+ * Columnas según cuántos clips haya, para que la última fila no quede coja:
+ * cuatro clips en una rejilla de tres dejan uno solo abajo, y con pocos las
+ * tarjetas se estiran hasta comerse la pantalla. Las clases van completas
+ * porque Tailwind las busca como texto literal.
  */
-const CLIPS: Clip[] = [
-  { base: "corte-3", alt: "Cliente recostado durante el ritual de toalla y afeitado" },
-  { base: "corte-2", alt: "Afeitado al detalle con espuma caliente" },
-  // { base: "corte-1", alt: "Niño estrenando corte" },      // ← requiere permiso de los padres
-  // { base: "corte-4", alt: "Fade terminado, vista de perfil" }, // ← requiere permiso de los padres
-];
+function columnas(cuantos: number): string {
+  if (cuantos <= 2) return "sm:mx-auto sm:max-w-3xl sm:grid-cols-2";
+  if (cuantos === 3) return "sm:grid-cols-2 lg:grid-cols-3";
+  return "sm:grid-cols-2 lg:grid-cols-4";
+}
 
 export default function VideoReel() {
   if (CLIPS.length === 0) return null;
@@ -67,14 +58,9 @@ export default function VideoReel() {
         </h2>
 
         {/* Carrusel con encaje en móvil (los clips son verticales, uno por
-            pantalla); rejilla cuando hay ancho de sobra. Las columnas siguen a
-            la cantidad de clips: con dos, una rejilla de tres deja un hueco. */}
+            pantalla); rejilla cuando hay ancho de sobra. */}
         <ul
-          className={`mt-10 -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:overflow-visible sm:px-0 ${
-            CLIPS.length >= 3
-              ? "sm:grid-cols-2 lg:grid-cols-3"
-              : "sm:mx-auto sm:max-w-3xl sm:grid-cols-2"
-          }`}
+          className={`mt-10 -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:overflow-visible sm:px-0 ${columnas(CLIPS.length)}`}
           aria-label="Videos del trabajo"
         >
           {CLIPS.map((clip) => (
@@ -119,26 +105,33 @@ function ClipCard({ clip }: { clip: Clip }) {
     return () => observer.disconnect();
   }, [reduce]);
 
+  const src = fuentes(clip);
+
   return (
     <div className="surface relative aspect-[9/16] overflow-hidden rounded-[var(--radius-card)]">
+      {/* Sin `controls`, sin menú contextual de descarga y sin imagen en imagen.
+          Que quede claro qué NO es esto: cualquiera con la pestaña de red del
+          navegador tiene la URL del archivo. No existe forma de publicar un
+          video en la web y que no se pueda bajar. Esto solo evita el camino
+          fácil; lo que de verdad protege es que el archivo no esté en un
+          repositorio público (ver lib/videos.ts). */}
       <video
         ref={ref}
-        poster={`/videos/${clip.base}-poster.jpg`}
+        poster={mediaUrl(src.poster) ?? undefined}
         preload="none"
         loop
         muted
         playsInline
         controls={!!reduce}
+        controlsList="nodownload noplaybackrate"
+        disablePictureInPicture
+        onContextMenu={(e) => e.preventDefault()}
         aria-label={clip.alt}
         onPlaying={() => setReproduciendo(true)}
         className="h-full w-full object-cover"
       >
-        <source
-          src={`/videos/${clip.base}-720.mp4`}
-          type="video/mp4"
-          media="(max-width: 900px)"
-        />
-        <source src={`/videos/${clip.base}-1080.mp4`} type="video/mp4" />
+        <source src={mediaUrl(src.movil) ?? ""} type="video/mp4" media="(max-width: 900px)" />
+        <source src={mediaUrl(src.escritorio) ?? ""} type="video/mp4" />
       </video>
 
       {/* Velo inferior: da contraste si algún día se rotula el clip, y asienta
