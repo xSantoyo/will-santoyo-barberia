@@ -38,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { adminApi, getAuth, type StoredAuth } from "@/lib/admin-api";
+import LogoMarcaSimple from "@/components/public/LogoMarcaSimple";
 
 const NAV = [
   { href: "/admin", label: "Hoy", icon: LayoutDashboard },
@@ -150,8 +151,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Menu size={22} aria-hidden />
         </button>
         <span className="display truncate text-lg text-chalk">{seccion}</span>
-        <Link href="/" className="display ml-auto text-sm text-copper">
-          WB
+        {/* Aquí iban dos letras escritas a mano. Va la marca real, en su
+            versión reducida: a 24 px CSS en un teléfono de densidad 1× son
+            24 px físicos, por debajo del umbral de 32 donde el escudo
+            completo deja de leerse (ver LogoMarcaSimple). */}
+        <Link href="/" aria-label="Ir al sitio" className="ml-auto text-copper">
+          <LogoMarcaSimple className="h-6 w-auto" />
         </Link>
       </header>
 

@@ -103,6 +103,36 @@ jerarquía de sección. Es la escala nativa de Tailwind, usada tal cual.
 `96px` móvil / `128px` desktop. Sobre fondo oscuro el aire es lo que separa;
 apretarlo hace que todo se lea como una masa.
 
+## 4b. El logo y su umbral de tamaño
+
+Tres piezas, todas del mismo vector original (el PDF del diseñador, sin
+retocar). Fondo transparente y `fill="currentColor"`: el color lo pone el CSS.
+
+| Pieza | Archivo | Componente |
+|---|---|---|
+| Lockup completo (escudo + WILL + BARBER SHOP.) | `public/logo-completo.svg` | — |
+| Escudo con monograma WB y destello | `public/logo-marca.svg` | `LogoMarca` |
+| Monograma WB solo | `public/logo-marca-simple.svg` | `LogoMarcaSimple` |
+
+**El umbral son 32 píxeles FÍSICOS, no CSS.** Por encima, el escudo completo;
+por debajo, el monograma solo.
+
+La distinción importa: en un celular de densidad 3× un elemento de 32 px CSS se
+dibuja con 96 px reales, donde el escudo se ve perfecto. Medido en el navbar a
+densidad 1× —el peor caso, 32 px físicos— el escudo **todavía se lee**, así que
+el navbar usa `LogoMarca` en cualquier teléfono. Hoy solo bajan del umbral el
+favicon (el navegador lo rasteriza a 16–32 px reales, sin importar la densidad)
+y la barra superior del panel en móvil, a 24 px.
+
+**Por qué se cae el escudo y no el monograma.** El problema al reducir no era el
+detalle del WB: era que el escudo lo dejaba ocupando ~60 % del lienzo. Quitando
+el escudo, el monograma se queda con todo el espacio. Y no se pierde la
+silueta — la W y la B rematan en punta hacia abajo, que es la forma que el
+escudo envolvía. Se probó también el escudo vacío: legible a 16 px, pero un
+escudo sin nada dentro es cualquier marca.
+
+**Texto sobre `copper` va en `night`** (7.09:1 AAA). Blanco da 2.64:1 y no pasa.
+
 ## 5. Radios y sombras
 
 | Token | Valor | Uso |
