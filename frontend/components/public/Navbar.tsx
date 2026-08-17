@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import LogoMarca from "./LogoMarca";
 
 const LINKS = [
   { href: "/#servicios", label: "Servicios" },
@@ -31,8 +32,18 @@ export default function Navbar() {
       }`}
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-        <Link href="/" className="display text-2xl text-chalk">
-          WILL<span className="text-copper"> BARBERSHOP</span>
+        {/* El escudo va con el nombre, no en su lugar: a 32 px de alto el
+            lockup completo («WILL / BARBER SHOP.») sería ilegible, y una marca
+            sola no dice a dónde llegó quien entra por primera vez. */}
+        <Link
+          href="/"
+          aria-label="Will Barbershop — inicio"
+          className="flex items-center gap-2.5 text-chalk sm:gap-3"
+        >
+          <LogoMarca className="h-8 w-auto shrink-0 sm:h-9" />
+          <span className="display text-xl sm:text-2xl">
+            WILL<span className="text-copper"> BARBERSHOP</span>
+          </span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
