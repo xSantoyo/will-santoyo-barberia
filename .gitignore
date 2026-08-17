@@ -70,3 +70,8 @@ _originales-video/
 # publico: subirlos aqui los deja descargables aunque la pagina no los enlace.
 frontend/public/videos/corte-1-*
 frontend/public/videos/corte-4-*
+
+# Capturas de verificacion: se generan con los scripts de frontend/e2e/ y son
+# evidencia del momento de la revision, no las consume nadie en ejecucion.
+# Pesan mas que el codigo y este repo es publico.
+docs/screenshots/
