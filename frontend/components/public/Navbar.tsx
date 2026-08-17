@@ -37,12 +37,12 @@ export default function Navbar() {
             sola no dice a dónde llegó quien entra por primera vez. */}
         <Link
           href="/"
-          aria-label="Will Barbershop — inicio"
+          aria-label="Will Barber Shop — inicio"
           className="flex items-center gap-2.5 text-chalk sm:gap-3"
         >
           <LogoMarca className="h-8 w-auto shrink-0 sm:h-9" />
           <span className="display text-xl sm:text-2xl">
-            WILL<span className="text-copper"> BARBERSHOP</span>
+            WILL<span className="text-copper"> BARBER SHOP</span>
           </span>
         </Link>
 

@@ -19,7 +19,7 @@ def test_tenant_info(client):
     response = client.get(BASE)
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "Will Barbershop"
+    assert data["name"] == "Will Barber Shop"
     assert data["timezone"] == "America/Bogota"
 
 

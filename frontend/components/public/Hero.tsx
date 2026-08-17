@@ -91,7 +91,7 @@ export default function Hero({
           <h1 className="display-xl text-[clamp(3rem,8vw,5.5rem)] text-chalk">
             <Line delay={0.18}>Will</Line>
             <Line delay={0.27} accent>
-              Barbershop
+              Barber Shop
             </Line>
           </h1>
 

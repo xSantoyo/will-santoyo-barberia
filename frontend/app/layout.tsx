@@ -21,8 +21,8 @@ const DESCRIPCION =
 export const metadata: Metadata = {
   metadataBase: new URL("https://willbarbershop.com"),
   title: {
-    default: `Will Barbershop — Barbero en ${NEGOCIO.ciudad}`,
-    template: "%s · Will Barbershop",
+    default: `Will Barber Shop — Barbero en ${NEGOCIO.ciudad}`,
+    template: "%s · Will Barber Shop",
   },
   description: DESCRIPCION,
   keywords: [
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
     "corte de cabello Soacha",
     "fade Soacha",
     "barbería Cundinamarca",
-    "Will Barbershop",
+    "Will Barber Shop",
     "reservar turno barbería",
   ],
   openGraph: {
     type: "website",
     locale: "es_CO",
-    siteName: "Will Barbershop",
-    title: `Will Barbershop — Barbero en ${NEGOCIO.ciudad}`,
+    siteName: "Will Barber Shop",
+    title: `Will Barber Shop — Barbero en ${NEGOCIO.ciudad}`,
     description: DESCRIPCION,
   },
   twitter: { card: "summary_large_image" },
   appleWebApp: {
     capable: true,
-    title: "Will Barbershop",
+    title: "Will Barber Shop",
     statusBarStyle: "black-translucent",
   },
 };

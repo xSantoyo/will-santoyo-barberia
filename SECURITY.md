@@ -1,4 +1,4 @@
-# Auditoría de seguridad — Will Barbershop
+# Auditoría de seguridad — Will Barber Shop
 
 **Fecha:** 8 de julio de 2026
 **Alcance:** backend FastAPI (`backend/`), frontend Next.js (`frontend/`) e

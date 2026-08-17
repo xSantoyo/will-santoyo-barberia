@@ -1,7 +1,7 @@
 [project]
 name = "will-barbershop-backend"
 version = "1.0.0"
-description = "API de reservas de Will Barbershop, barbero en Soacha"
+description = "API de reservas de Will Barber Shop, barbero en Soacha"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",

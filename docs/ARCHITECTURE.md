@@ -1,4 +1,4 @@
-# Arquitectura — Plataforma Will Barbershop
+# Arquitectura — Plataforma Will Barber Shop
 
 > Documento de referencia técnica. Última actualización: Fase 0–3 (julio 2026).
 

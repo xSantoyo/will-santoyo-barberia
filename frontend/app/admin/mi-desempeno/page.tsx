@@ -44,7 +44,7 @@ export default function MyPerformancePage() {
     <>
       <PageTitle
         title="Mi desempeño"
-        subtitle="Will Barbershop"
+        subtitle="Will Barber Shop"
         action={
           <div className="flex gap-1 rounded-sm border border-edge p-1">
             {RANGES.map((range) => (

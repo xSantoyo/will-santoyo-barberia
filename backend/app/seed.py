@@ -1,4 +1,4 @@
-"""Datos semilla: Will Barbershop, sus servicios y su cuenta de administración.
+"""Datos semilla: Will Barber Shop, sus servicios y su cuenta de administración.
 
 Idempotente: se puede ejecutar en cada arranque (docker-compose lo hace); si el
 negocio ya existe no duplica nada. Además indexa las fotos reales que Will
@@ -116,7 +116,7 @@ def run() -> None:
             return
 
         tenant = Tenant(
-            name="Will Barbershop",
+            name="Will Barber Shop",
             slug=TENANT_SLUG,
             whatsapp_number="+573112398873",
             timezone="America/Bogota",

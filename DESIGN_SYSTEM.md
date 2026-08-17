@@ -3,7 +3,7 @@
 **v3 · agosto 2026.** La barbería de Will al caer la noche: carbón cálido, luz de
 cobre, tipografía de estudio. Implementado en `frontend/app/globals.css`.
 Versiones anteriores archivadas en `legacy-styles/` (v1 Bad Boys, v2 Estudio
-Barbershop) — no se eliminan, sirven de referencia y de columna "antes".
+Barber Shop) — no se eliminan, sirven de referencia y de columna "antes".
 
 ## Qué gobierna este documento
 

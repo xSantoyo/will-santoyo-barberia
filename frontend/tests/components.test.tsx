@@ -15,7 +15,7 @@ const SERVICES: ServicePublic[] = [
 ];
 
 const TENANT: TenantPublic = {
-  name: "Will Barbershop",
+  name: "Will Barber Shop",
   slug: "will-barbershop",
   whatsapp_number: "+573112398873",
   timezone: "America/Bogota",

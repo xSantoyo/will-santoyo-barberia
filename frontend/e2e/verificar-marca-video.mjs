@@ -33,7 +33,7 @@ for (const [ancho, alto, etiqueta, esperado] of [
 
   // --- 2. el nombre nuevo en el encabezado
   const h1 = (await page.locator("h1").first().innerText()).replace(/\s+/g, " ").trim();
-  chequear(/will/i.test(h1) && /barbershop/i.test(h1), "h1 dice Will Barbershop", h1);
+  chequear(/will/i.test(h1) && /barber shop/i.test(h1), "h1 dice Will Barber Shop", h1);
 
   // --- 3. el video
   await page.locator("#en-movimiento").scrollIntoViewIfNeeded();

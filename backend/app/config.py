@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     resend_api_url: str = "https://api.resend.com/emails"
     # El remitente debe ser de un dominio verificado en Resend. Mientras no
     # haya dominio propio, onboarding@resend.dev sirve para pruebas.
-    email_from: str = "Will Barbershop <onboarding@resend.dev>"
+    email_from: str = "Will Barber Shop <onboarding@resend.dev>"
     email_outbox_dir: str = "./outbox"  # solo se usa sin API key
 
     @property

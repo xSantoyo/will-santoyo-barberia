@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 test("flujo completo: agendar → confirmar → gestionar → cancelar", async ({ page }) => {
   // 1. Home carga con la marca y el CTA
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /will barbershop/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /will barber shop/i })).toBeVisible();
   await page.getByRole("link", { name: /agendar mi turno/i }).click();
 
   // 2. Paso 1: elegir barbero

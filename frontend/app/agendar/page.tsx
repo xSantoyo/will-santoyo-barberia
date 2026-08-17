@@ -14,7 +14,7 @@ export default function AgendarPage() {
           href="/"
           className="inline-flex items-center gap-2 text-sm text-smoke transition-colors hover:text-copper"
         >
-          <ArrowLeft size={16} /> Will Barbershop
+          <ArrowLeft size={16} /> Will Barber Shop
         </Link>
         <h1 className="display mt-6 text-5xl text-chalk">
           Agenda tu <span className="text-copper">turno</span>

@@ -47,7 +47,7 @@ idioma **es_CO** (español, Colombia):
 
 - **Cuerpo:**
   ```
-  Hola {{1}} 👋 Tu turno en Bad Boys Barbershop quedó confirmado:
+  Hola {{1}} 👋 Tu turno en Bad Boys Barber Shop quedó confirmado:
 
   📅 {{2}} a las {{3}}
   💈 Barbero: {{4}}
@@ -63,7 +63,7 @@ idioma **es_CO** (español, Colombia):
 
 - **Cuerpo:**
   ```
-  Hola {{1}}, te recordamos tu turno en Bad Boys Barbershop mañana {{2}} a las {{3}} con {{4}}. Si no puedes asistir, cancélalo desde el enlace para liberar el horario. ¡Te esperamos!
+  Hola {{1}}, te recordamos tu turno en Bad Boys Barber Shop mañana {{2}} a las {{3}} con {{4}}. Si no puedes asistir, cancélalo desde el enlace para liberar el horario. ¡Te esperamos!
   ```
 - **Botón:** URL dinámica → `https://TU-DOMINIO.com/turno/{{1}}`.
 
@@ -71,7 +71,7 @@ idioma **es_CO** (español, Colombia):
 
 - **Cuerpo:**
   ```
-  Hola {{1}}, tu turno del {{2}} a las {{3}} en Bad Boys Barbershop fue cancelado. Puedes agendar uno nuevo cuando quieras en nuestra página.
+  Hola {{1}}, tu turno del {{2}} a las {{3}} en Bad Boys Barber Shop fue cancelado. Puedes agendar uno nuevo cuando quieras en nuestra página.
   ```
 
 ### 3.4 `notificacion_interna` (al número del dueño/admin)

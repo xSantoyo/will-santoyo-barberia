@@ -4,9 +4,9 @@ import type { MetadataRoute } from "next";
  * propio y abre a pantalla completa, como una app nativa. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Will Barbershop — Barbero en Soacha",
+    name: "Will Barber Shop — Barbero en Soacha",
     // Bajo el ícono de la pantalla de inicio caben ~12 caracteres: "Will
-    // Barbershop" se cortaría a "Will Barbers…", así que ahí va solo "Will".
+    // Barber Shop" se cortaría a "Will Barbers…", así que ahí va solo "Will".
     short_name: "Will",
     description:
       "Agenda tu turno con Will, mira la fila en vivo y gestiona tu cita.",

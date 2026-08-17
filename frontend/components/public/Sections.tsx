@@ -411,11 +411,11 @@ export function Footer({ tenant }: { tenant: TenantPublic }) {
         aria-hidden
         className="display text-outline pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[18vw] leading-none"
       >
-        WILL BARBERSHOP
+        WILL BARBER SHOP
       </span>
       <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-14 text-center">
         <p className="display text-3xl text-chalk">
-          WILL<span className="text-copper"> BARBERSHOP</span>
+          WILL<span className="text-copper"> BARBER SHOP</span>
         </p>
         <div className="flex gap-6">
           {socials.map(({ href, icon: Icon, label }) => (

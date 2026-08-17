@@ -29,7 +29,7 @@ export default function EmbedWidget() {
     <div className="grain flex h-svh flex-col justify-between overflow-hidden border border-copper/30 bg-night p-4">
       <div>
         <p className="display text-2xl text-chalk">
-          WILL<span className="text-copper"> BARBERSHOP</span>
+          WILL<span className="text-copper"> BARBER SHOP</span>
         </p>
         <div className="barber-stripe mt-2 w-16" />
       </div>

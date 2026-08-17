@@ -1,6 +1,6 @@
-# Will Barbershop — Reservas de barbería
+# Will Barber Shop — Reservas de barbería
 
-La página de reservas personal de **Will Barbershop**, barbero profesional en
+La página de reservas personal de **Will Barber Shop**, barbero profesional en
 Soacha, Cundinamarca. Un solo profesional, una sola agenda: el cliente elige
 servicio, fecha y hora, deja sus datos y recibe un código de gestión en
 pantalla. Sin selección de barbero, sin cobro en línea.
@@ -31,7 +31,7 @@ pantalla. Sin selección de barbero, sin cobro en línea.
 ├── content/will-barbershop # Fotos reales (gallery / profile / cuts / products)
 ├── legacy-styles/       # Piel anterior archivada (referencia, no código vivo)
 ├── docs/                # ARCHITECTURE, DEPLOYMENT (+ docs/archive/)
-├── DESIGN_SYSTEM.md     # Sistema de diseño vigente («Estudio Barbershop»)
+├── DESIGN_SYSTEM.md     # Sistema de diseño vigente («Estudio Barber Shop»)
 └── docker-compose.yml   # Postgres + backend + frontend con un solo comando
 ```
 

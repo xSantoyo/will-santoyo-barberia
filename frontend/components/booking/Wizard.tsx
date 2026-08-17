@@ -1058,7 +1058,7 @@ function Confirmation({
       <div className="mt-4">
         <AddToCalendar
           event={{
-            title: `Will Barbershop — turno #${appointment.daily_number}`,
+            title: `Will Barber Shop — turno #${appointment.daily_number}`,
             dateLocal: appointment.date_local,
             timeLocal: appointment.time_local,
             durationMin: appointment.services.reduce((sum, s) => sum + s.duration_min, 0) || 45,

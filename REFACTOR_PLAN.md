@@ -1,4 +1,4 @@
-# REFACTOR — De plataforma multi-barbero a la agenda personal de Will Barbershop
+# REFACTOR — De plataforma multi-barbero a la agenda personal de Will Barber Shop
 
 **Fecha:** 15 de agosto de 2026
 **Rama:** `master`
@@ -6,7 +6,7 @@
 
 ## Fase 6 (15-ago-2026): identidad visual, pagos fuera, QA de movimiento
 
-- **Sistema de diseño «Estudio Barbershop»** definido en `DESIGN_SYSTEM.md` e
+- **Sistema de diseño «Estudio Barber Shop»** definido en `DESIGN_SYSTEM.md` e
   implementado desde cero; la piel Bad Boys quedó archivada en `legacy-styles/`
   (referencia congelada, excluida del build, no se elimina).
 - **Cobro en línea retirado por completo** (UI, contratos, endpoints, config,
@@ -102,7 +102,7 @@ duraciones de 300–500 ms, que el estándar de la skill marca como bloqueo).
   `/barbers` público. Nuevos: `/professional`, `/profile`, `/time-off`, `/trayectoria`
 - `dashboard`, `agenda`, `queue` y `stats` colapsan a un bloque único; `reviews` pierde
   `per_barber`
-- `seed.py`: Will Barbershop, Bogotá, sus redes, horario lunes a sábado
+- `seed.py`: Will Barber Shop, Bogotá, sus redes, horario lunes a sábado
 - `content/bad-boys/` → `content/will-barbershop/{gallery,profile,cuts,products}`
 - Migración `0009` (renombrados, no destructiva) **lista para ejecutar**
 - Migración `0010` (destructiva) en `alembic/proposed/` con extensión `.proposed`:
@@ -146,12 +146,12 @@ encargo sigue intacta: nada de UI sin pasar por esas skills.
 
 ## 0. Resumen ejecutivo
 
-El repositorio implementa hoy **Bad Boys Barbershop**: una plataforma multi-tenant,
+El repositorio implementa hoy **Bad Boys Barber Shop**: una plataforma multi-tenant,
 multi-barbero (3 sillas), con selección de profesional en la reserva, portafolios
 individuales, tablero de fila con un carril por barbero y panel administrativo con
 rol `barbero` restringido a la agenda propia.
 
-El nuevo alcance es **la página de reservas personal de Will Barbershop**, barbero
+El nuevo alcance es **la página de reservas personal de Will Barber Shop**, barbero
 profesional en Bogotá. Un solo profesional, una sola agenda, una sola silla.
 
 **Hallazgo determinante de la auditoría:** el nombre "Will" **no aparece en ninguna
@@ -167,11 +167,11 @@ Esto significa que:
 
 | Campo | Valor |
 |---|---|
-| Nombre | Will Barbershop |
+| Nombre | Will Barber Shop |
 | Oficio | Barbero profesional |
 | Ciudad | Bogotá, Colombia |
 | Instagram | [@_barber_wil_](https://instagram.com/_barber_wil_) |
-| TikTok | Will Barbershop |
+| TikTok | Will Barber Shop |
 | Facebook | facebook.com/willsantoyo.0 |
 | Teléfono de agenda | 321 201 4153 |
 
@@ -401,7 +401,7 @@ Commits atómicos, en este orden (cada fase deja el repo compilando):
 
 | # | Fase | Alcance | Skills aplicadas |
 |---|---|---|---|
-| 1 | **Modelo y semilla** | Resolver de profesional único, guard de fila única, seed → Will Barbershop, migración `0009` escrita sin ejecutar | — |
+| 1 | **Modelo y semilla** | Resolver de profesional único, guard de fila única, seed → Will Barber Shop, migración `0009` escrita sin ejecutar | — |
 | 2 | **API backend** | Eliminar endpoints de barberos, podar esquemas, colapsar disponibilidad/dashboard/agenda/stats/queue | — |
 | 3 | **Contratos frontend** | `types.ts`, `api.ts`, `admin-api.ts` alineados a la nueva API | — |
 | 4 | **Borrado de rutas** | `/barbero/[id]`, `/admin/barberos`, sección `Barbers` | — |
@@ -431,6 +431,6 @@ Solo lo destructivo sobre datos. Todo lo demás se ejecuta sin consultar.
 
 - Dirección real del local (hoy placeholder).
 - Si el teléfono `321 201 4153` debe aparecer públicamente en el sitio.
-- Si se conserva el nombre comercial "Bad Boys Barbershop" como local donde Will
-  atiende, o el sitio pasa a ser 100% "Will Barbershop". **Asumo lo segundo**: marca
+- Si se conserva el nombre comercial "Bad Boys Barber Shop" como local donde Will
+  atiende, o el sitio pasa a ser 100% "Will Barber Shop". **Asumo lo segundo**: marca
   personal pura, que es lo que pide el encargo.

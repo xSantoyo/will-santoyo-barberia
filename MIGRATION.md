@@ -1,4 +1,4 @@
-# Investigación y migración de stack — Will Barbershop
+# Investigación y migración de stack — Will Barber Shop
 
 **Fecha:** 14 de julio de 2026
 **Método:** cada herramienta se evaluó contra lo que ESTE aplicativo necesita
@@ -153,7 +153,7 @@ correo es una copia de cortesía y siempre opcional.**
 
 **Pendiente del dueño:** cuenta en resend.com (gratis), verificar el dominio
 propio y setear `RESEND_API_KEY` + `EMAIL_FROM` (ej.
-`Will Barbershop <turnos@dominio.com>`). Sin dominio propio los correos solo pueden
+`Will Barber Shop <turnos@dominio.com>`). Sin dominio propio los correos solo pueden
 salir de `onboarding@resend.dev` (pruebas).
 
 ## 7. Spaceship como registrador de dominio — RECOMENDADO
