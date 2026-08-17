@@ -85,6 +85,50 @@ Salidas relevantes: `api_endpoint`, `frontend_url`, `cloudfront_domain`.
 3. **Amplify**: la app queda conectada al repo por Terraform; el primer build se
    dispara al hacer push a `main`. Configurar el dominio propio en la consola de
    Amplify si aplica.
+4. **Subir los medios** — ver 4b. Sin este paso el sitio sale sin fotos ni
+   videos, y no es un error que se note en el build.
+5. **Cabecera `X-Robots-Tag` en CloudFront** — ver 4c.
+
+## 4b. Los medios NO viajan en el repositorio
+
+**Un despliegue limpio sale sin una sola foto ni video.** No es un fallo: las
+fotos de la galería y los clips están fuera del control de versiones a
+propósito, y hay que subirlos aparte cada vez que se levanta un entorno nuevo.
+
+| Qué | Dónde vive en local | Dónde va en producción |
+|---|---|---|
+| Fotos (galería, perfil, cortes, productos) | `content/will-barbershop/{gallery,profile,cuts,products}/` | bucket S3 de medios |
+| Videos + pósters | `content/will-barbershop/videos/` | bucket S3 de medios |
+
+**Por qué están fuera.** Algunos clips muestran clientes menores de edad,
+publicados con permiso de sus padres — un permiso revocable. Un repositorio
+público conserva para siempre lo que entra, incluso en bifurcaciones ajenas:
+retirar un clip del sitio no bastaría para retirarlo del mundo. Fuera del
+repo, borrar el archivo alcanza. Y están fuera **todos** los medios, no solo
+esos: excluir únicamente los de los menores señalaría cuáles son.
+
+```bash
+# Con STORAGE_BACKEND=s3, sincronizar la carpeta local contra el bucket:
+aws s3 sync content/will-barbershop/ s3://<bucket-de-medios>/tenants/will-barbershop/ \
+  --exclude ".gitkeep"
+```
+
+Después de subir, comprobar que la home muestra la galería y que la sección
+«Así se siente la silla» reproduce. Si sale vacía, faltan los archivos.
+
+## 4c. `X-Robots-Tag` en la distribución de CloudFront
+
+En local, el backend sirve `/media/` añadiendo
+`X-Robots-Tag: noindex, noimageindex, noarchive` (ver `app/main.py`). **En
+producción los medios los sirve CloudFront, que no pasa por ese código**, así
+que la cabecera hay que replicarla ahí con una response headers policy.
+
+Sin esto, los buscadores indexan las caras de los clientes: quedan en su caché
+y en la búsqueda de imágenes, y una revocación de permiso deja de poder
+cumplirse aunque se borre el archivo del bucket.
+
+> **Requiere verificación manual tras el despliegue:**
+> `curl -sI https://<dominio-cdn>/tenants/will-barbershop/videos/corte-1-720.mp4 | grep -i x-robots-tag`
 
 ## 5. Secretos
 
